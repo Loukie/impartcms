@@ -1,120 +1,217 @@
 # ImpartCMS – Current State Manifest (Laravel 12 + Breeze)
 
-Repo
+## Repo
 - GitHub: https://github.com/Loukie/impartcms
-- Local path: C:\laragon\www\2kocms
+- Local path: `C:\laragon\www\2kocms`
 - Local domain: http://2kocms.test (Laragon)
 
-Core Goal
-- A custom CMS (WordPress-style) focused on security, speed, modularity.
-- Current milestone: Pages admin with Draft/Publish workflow, admin-only preview, and Trash system (soft deletes).
+---
 
-Authentication / Admin Access
+## Core Goal
+- A custom CMS (WordPress-style) focused on **security, speed, and modularity**.
+- Current milestone includes:
+  - Pages admin with Draft/Publish workflow
+  - Admin-only preview
+  - Trash system (soft deletes)
+  - Fully functional SEO output layer (incl. OG/Twitter)
+  - WordPress-style admin sidebar
+  - Basic Settings module (site name + logo)
+
+---
+
+## Authentication / Admin Access
 - Laravel Breeze installed (Blade auth scaffolding).
 - Admin access controlled via Gate:
-  - File: app/Providers/AppServiceProvider.php
-  - Gate name: access-admin
-  - Middleware usage: auth + can:access-admin
+  - File: `app/Providers/AppServiceProvider.php`
+  - Gate name: `access-admin`
+  - Middleware usage: `auth + can:access-admin`
 
-Routing (Critical)
-- File: routes/web.php
+---
+
+## Routing (Critical)
+- File: `routes/web.php`
 - Admin routes grouped under prefix:
-  - config('cms.admin_path', 'admin') => default /admin
+  - `config('cms.admin_path', 'admin')` → default `/admin`
 - Public pages use catch-all route at bottom:
-  - GET /{slug} => PageController@show (must remain LAST)
+  - `GET /{slug} → PageController@show` (**must remain LAST**)
 - Admin-only preview route:
-  - GET /_preview/pages/{pagePreview}
-  - Route name: pages.preview
-  - Protected by middleware: auth + can:access-admin
-  - Preview supports drafts AND trashed pages.
+  - `GET /_preview/pages/{pagePreview}`
+  - Route name: `pages.preview`
+  - Middleware: `auth + can:access-admin`
+  - Supports drafts AND trashed pages
+- Admin Settings routes:
+  - `GET  /admin/settings → admin.settings.edit`
+  - `PUT  /admin/settings → admin.settings.update`
+  - Protected by admin middleware group
 
-Route Model Binding (Important for Trash + Preview)
-- routes/web.php defines custom bindings:
-  - pagePreview => resolves Page::withTrashed()
-  - pageTrash   => resolves Page::withTrashed()
-- This prevents 404 when restoring/force deleting trashed pages and allows previewing trashed pages.
+---
 
-Public Rendering
-- Controller: app/Http/Controllers/PageController.php
-- show():
-  - Only serves status = published pages publicly
-  - Homepage uses is_homepage flag
-  - Trashed pages are never public (SoftDeletes excludes them by default)
-- preview():
-  - Renders any page (draft/published/trashed) for admins only
-  - Adds header: X-Robots-Tag: noindex, nofollow
+## Route Model Binding (Trash + Preview Safety)
+- Custom bindings in `routes/web.php`:
+  - `pagePreview → Page::withTrashed()`
+  - `pageTrash → Page::withTrashed()`
+- Prevents 404s when previewing, restoring, or force-deleting trashed pages.
 
-Pages Admin (CRUD + Draft/Publish)
-- Controller: app/Http/Controllers/Admin/PageAdminController.php
+---
+
+## Public Rendering
+- Controller: `app/Http/Controllers/PageController.php`
+- `show()`:
+  - Serves **published pages only**
+  - Homepage uses `is_homepage` flag
+  - Trashed pages never render publicly
+- `preview()`:
+  - Renders draft/published/trashed pages for admins only
+  - Adds response header:
+    - `X-Robots-Tag: noindex, nofollow`
+
+---
+
+## Pages Admin (CRUD + Draft/Publish)
+- Controller: `app/Http/Controllers/Admin/PageAdminController.php`
 - Draft/Publish controlled via form submit buttons:
-  - name="action" value="draft" or "publish"
-- Behavior:
-  - Draft: status=draft (never public)
-  - Publish: status=published (+ published_at)
-- SEO saved/updated alongside page.
+  - `name="action"` → `draft` or `publish`
+- Behaviour:
+  - Draft → `status=draft` (never public)
+  - Publish → `status=published` + `published_at`
+- SEO is saved/updated alongside the page.
 
-Trash System (WordPress-style)
+---
+
+## Trash System (WordPress-style)
 - Uses Soft Deletes on pages:
-  - Migration: database/migrations/*_add_deleted_at_to_pages_table.php
-  - Model: app/Models/Page.php uses SoftDeletes
+  - Migration: `*_add_deleted_at_to_pages_table.php`
+  - Model: `app/Models/Page.php` uses `SoftDeletes`
 - Admin Trash routes:
-  - GET    /admin/pages-trash                     => PageAdminController@trash (admin.pages.trash)
-  - POST   /admin/pages-trash/{pageTrash}/restore => PageAdminController@restore (admin.pages.restore)
-  - DELETE /admin/pages-trash/{pageTrash}/force   => PageAdminController@forceDestroy (admin.pages.forceDestroy)
-- Behavior:
-  - "Trash" action = soft delete (move to trash)
-  - Restore = restore soft deleted record
-  - Delete permanently = force delete
+  - `GET    /admin/pages-trash`
+  - `POST   /admin/pages-trash/{pageTrash}/restore`
+  - `DELETE /admin/pages-trash/{pageTrash}/force`
+- Behaviour:
+  - Trash → soft delete
+  - Restore → restore record
+  - Delete permanently → force delete
 
-SEO Relation (Important)
-- Page model relates to SEO meta using SeoMeta model (table: seo_meta)
-  - File: app/Models/Page.php
-  - Method: seo() => hasOne(SeoMeta::class)
+---
+
+## SEO Relation
+- Page model relates to SEO meta via `SeoMeta` model:
+  - File: `app/Models/Page.php`
+  - Relation: `seo() → hasOne(SeoMeta::class)`
 - Force deleting a page deletes the related SEO record.
 
-Admin Views (Blade)
-- Pages list:
-  - File: resources/views/admin/pages/index.blade.php
-  - Has header buttons: "Trash" + "New Page"
-  - Per-row actions:
-    - Published: View Live
-    - Draft: Preview Draft (admin-only)
-    - Edit
-    - Trash (Move to Trash)
-- Trash list:
-  - File: resources/views/admin/pages/trash.blade.php
-  - Per-row actions:
-    - Preview (admin-only)
-    - Restore
-    - Delete Permanently
-- Page create/edit screens:
-  - Files:
-    - resources/views/admin/pages/create.blade.php
-    - resources/views/admin/pages/edit.blade.php
-  - Include:
-    - Cancel link
-    - Save Draft + Publish buttons
-    - Preview Draft / View Live link in header (depending on status)
+---
 
-Guarantees (Security + Behaviour)
-- Draft pages: NOT publicly reachable via slug routes.
-- Trashed pages: NOT publicly reachable via slug routes.
-- Only admins can preview drafts/trashed pages via /_preview/pages/{id}.
-- Preview responses are noindex/nofollow to avoid indexing.
-- Dependencies and secrets excluded from Git:
-  - .env, /vendor, /node_modules ignored via .gitignore
+## SEO Output Layer (Now Functional)
+- Theme file: `resources/views/themes/default/page.blade.php`
+- SEO tags rendered in `<head>` with fallbacks:
+  - `<title>`
+  - `<meta name="description">`
+  - `<link rel="canonical">`
+  - `<meta name="robots">`
+  - OpenGraph tags (`og:*`)
+  - Twitter tags (`twitter:*`)
+- Preview routes remain protected via `X-Robots-Tag: noindex, nofollow`.
 
-Setup Commands (fresh install)
-- composer install
-- npm install
-- npm run build
-- php artisan migrate
-- php artisan optimize:clear
+---
 
-Current Next Features (planned)
-- Forms module v1:
-  - Shortcode placement (header/footer/body)
-  - Per-form recipient routing by page/user
-- Modules/Plugin system:
-  - Enable/disable features separate from core
-- Roles/permissions beyond admin (editor, author)
+## Admin Views (Blade)
+
+### Pages List
+- File: `resources/views/admin/pages/index.blade.php`
+- Header actions:
+  - Trash
+  - New Page
+- Per-row actions:
+  - View Live (published)
+  - Preview Draft (draft)
+  - Edit
+  - Trash
+
+### Trash List
+- File: `resources/views/admin/pages/trash.blade.php`
+- Actions:
+  - Preview
+  - Restore
+  - Delete permanently
+
+### Page Create/Edit (RankMath-style UI)
+- Files:
+  - `resources/views/admin/pages/create.blade.php`
+  - `resources/views/admin/pages/edit.blade.php`
+- Layout:
+  - 2-column editor
+    - Content left
+    - Sidebar right (sticky)
+- Sidebar panels:
+  - Status/actions
+  - SEO panel (tabs):
+    - General
+    - Social
+    - Advanced
+  - Live SERP preview
+  - Simple SEO score + checklist (JS-only)
+
+### Navigation Cleanup
+- Removed duplicate inline “mini admin nav” (Pages / Trash / Forms / Settings)
+- Navigation is handled exclusively by the global sidebar.
+
+---
+
+## Admin Sidebar (WordPress-style)
+- Rendered only on admin routes and for admin users.
+- Controlled in: `resources/views/layouts/app.blade.php`
+- Conditions:
+  - Admin path match
+  - `Gate::allows('access-admin')`
+- Sidebar partial:
+  - File: `resources/views/admin/partials/sidebar.blade.php`
+  - Links:
+    - Pages
+    - Trash
+    - Settings
+    - Forms (soon placeholder)
+  - Displays Site Name + optional Logo.
+
+---
+
+## Settings Module (Basic v1)
+- Purpose:
+  - Manage Site Name and Logo via admin UI.
+- Storage:
+  - Table: `settings` (key/value)
+  - Migration: `*_create_settings_table.php`
+- Model:
+  - File: `app/Models/Setting.php`
+  - Cached per key
+- Controller:
+  - File: `app/Http/Controllers/Admin/SettingsController.php`
+  - Handles load, validation, upload, removal
+- View:
+  - File: `resources/views/admin/settings/edit.blade.php`
+- Layout integration:
+  - `<title>` uses saved Site Name
+  - Sidebar shows logo + site name if set
+
+---
+
+## Guarantees (Security + Behaviour)
+- Draft pages are never publicly routable.
+- Trashed pages are never publicly routable.
+- Only admins can preview drafts/trashed pages.
+- Preview responses are always noindex/nofollow.
+- Settings screen is admin-only.
+- Secrets excluded from Git:
+  - `.env`
+  - `/vendor`
+  - `/node_modules`
+
+---
+
+## Setup Commands (Fresh Install)
+```bash
+composer install
+npm install
+npm run build
+php artisan migrate
+php artisan storage:link
+php artisan optimize:clear
