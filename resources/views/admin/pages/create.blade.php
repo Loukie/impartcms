@@ -11,17 +11,6 @@
                     Cancel
                 </a>
             </div>
-
-            <nav class="flex flex-wrap items-center gap-2">
-                <a href="{{ route('admin.pages.index') }}" class="inline-flex items-center px-3 py-1.5 rounded-md text-xs font-semibold uppercase tracking-widest border bg-gray-900 text-white border-gray-900">Pages</a>
-                <a href="{{ route('admin.pages.trash') }}" class="inline-flex items-center px-3 py-1.5 rounded-md text-xs font-semibold uppercase tracking-widest border bg-white text-gray-700 border-gray-300 hover:bg-gray-50">Trash</a>
-                <span class="inline-flex items-center px-3 py-1.5 rounded-md text-xs font-semibold uppercase tracking-widest border border-gray-200 text-gray-400 bg-gray-50 cursor-not-allowed">
-                    Forms (soon)
-                </span>
-                <span class="inline-flex items-center px-3 py-1.5 rounded-md text-xs font-semibold uppercase tracking-widest border border-gray-200 text-gray-400 bg-gray-50 cursor-not-allowed">
-                    Settings (soon)
-                </span>
-            </nav>
         </div>
     </x-slot>
 

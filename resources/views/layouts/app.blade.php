@@ -5,32 +5,63 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        <title>{{ config('app.name', 'Laravel') }}</title>
+        <title>{{ \App\Models\Setting::get('site_name', config('app.name', 'Laravel')) }}</title>
 
-        <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
 
-        <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
+
     <body class="font-sans antialiased">
+        @php
+            $adminPrefix = trim(config('cms.admin_path', 'admin'), '/');
+            $isAdminPath = request()->is($adminPrefix . '*');
+
+            $showAdminSidebar = $isAdminPath && \Illuminate\Support\Facades\Gate::allows('access-admin');
+        @endphp
+
         <div class="min-h-screen bg-gray-100">
             @include('layouts.navigation')
 
-            <!-- Page Heading -->
-            @isset($header)
-                <header class="bg-white shadow">
-                    <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-                        {{ $header }}
-                    </div>
-                </header>
-            @endisset
+            @if($showAdminSidebar)
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+                    {{-- IMPORTANT: switch to columns at md (>=768px), not lg --}}
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+                        <aside class="md:col-span-3">
+                            <div class="md:sticky md:top-6">
+                                @include('admin.partials.sidebar')
+                            </div>
+                        </aside>
 
-            <!-- Page Content -->
-            <main>
-                {{ $slot }}
-            </main>
+                        <div class="md:col-span-9">
+                            @isset($header)
+                                <header class="bg-white shadow sm:rounded-lg">
+                                    <div class="py-6 px-4 sm:px-6 lg:px-8">
+                                        {{ $header }}
+                                    </div>
+                                </header>
+                            @endisset
+
+                            <main class="mt-6">
+                                {{ $slot }}
+                            </main>
+                        </div>
+                    </div>
+                </div>
+            @else
+                @isset($header)
+                    <header class="bg-white shadow">
+                        <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+                            {{ $header }}
+                        </div>
+                    </header>
+                @endisset
+
+                <main>
+                    {{ $slot }}
+                </main>
+            @endif
         </div>
     </body>
 </html>

@@ -1,34 +1,21 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex flex-col gap-3">
-            <div class="flex items-center justify-between">
-                <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                    Pages
-                </h2>
+        <div class="flex items-center justify-between">
+            <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+                Pages
+            </h2>
 
-                <div class="flex items-center gap-3">
-                    <a href="{{ route('admin.pages.trash') }}"
-                       class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 uppercase tracking-widest hover:bg-gray-50">
-                        Trash
-                    </a>
+            <div class="flex items-center gap-3">
+                <a href="{{ route('admin.pages.trash') }}"
+                   class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 uppercase tracking-widest hover:bg-gray-50">
+                    Trash
+                </a>
 
-                    <a href="{{ route('admin.pages.create') }}"
-                       class="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-md font-semibold text-xs uppercase tracking-widest hover:bg-gray-800">
-                        New Page
-                    </a>
-                </div>
+                <a href="{{ route('admin.pages.create') }}"
+                   class="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-md font-semibold text-xs uppercase tracking-widest hover:bg-gray-800">
+                    New Page
+                </a>
             </div>
-
-            <nav class="flex flex-wrap items-center gap-2">
-                <a href="{{ route('admin.pages.index') }}" class="inline-flex items-center px-3 py-1.5 rounded-md text-xs font-semibold uppercase tracking-widest border bg-gray-900 text-white border-gray-900">Pages</a>
-                <a href="{{ route('admin.pages.trash') }}" class="inline-flex items-center px-3 py-1.5 rounded-md text-xs font-semibold uppercase tracking-widest border bg-white text-gray-700 border-gray-300 hover:bg-gray-50">Trash</a>
-                <span class="inline-flex items-center px-3 py-1.5 rounded-md text-xs font-semibold uppercase tracking-widest border border-gray-200 text-gray-400 bg-gray-50 cursor-not-allowed">
-                    Forms (soon)
-                </span>
-                <span class="inline-flex items-center px-3 py-1.5 rounded-md text-xs font-semibold uppercase tracking-widest border border-gray-200 text-gray-400 bg-gray-50 cursor-not-allowed">
-                    Settings (soon)
-                </span>
-            </nav>
         </div>
     </x-slot>
 

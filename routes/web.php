@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\PageAdminController;
+use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\FormSubmissionController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\ProfileController;
@@ -57,6 +58,10 @@ Route::middleware(['auth', 'can:access-admin'])
     ->name('admin.')
     ->group(function () {
         Route::get('/', fn () => redirect()->route('admin.pages.index'))->name('home');
+
+        // Settings
+        Route::get('/settings', [SettingsController::class, 'edit'])->name('settings.edit');
+        Route::put('/settings', [SettingsController::class, 'update'])->name('settings.update');
 
         // Trash routes
         Route::get('/pages-trash', [PageAdminController::class, 'trash'])->name('pages.trash');
