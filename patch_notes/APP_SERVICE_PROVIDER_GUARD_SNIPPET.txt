@@ -1,0 +1,10 @@
+// In app/Providers/AppServiceProvider.php
+// Add at top:
+// use Illuminate\Support\Facades\Gate;
+
+public function boot(): void
+{
+    Gate::define('access-admin', fn ($user) => (bool) $user->is_admin);
+
+    // ...keep any existing boot logic...
+}

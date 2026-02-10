@@ -1,0 +1,1 @@
+Add App\Providers\CmsServiceProvider::class to bootstrap/providers.php (Laravel 12).

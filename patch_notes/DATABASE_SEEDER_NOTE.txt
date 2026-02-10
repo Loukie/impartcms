@@ -1,0 +1,1 @@
+In database/seeders/DatabaseSeeder.php call: $this->call(CmsStarterSeeder::class);
