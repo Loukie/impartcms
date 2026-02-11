@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -109,7 +110,21 @@ class UserAdminController extends Controller
         return back()->with('status', $user->is_admin ? 'User promoted to admin.' : 'Admin access removed.');
     }
 
-    public function destroy(Request $request, User $user): RedirectResponse
+    
+    public function sendResetLink(Request $request, User $user): RedirectResponse
+    {
+        // Sends the standard Laravel password reset email (Breeze compatible).
+        // NOTE: Requires mail configuration in .env to actually deliver.
+        $status = Password::sendResetLink(['email' => $user->email]);
+
+        if ($status === Password::RESET_LINK_SENT) {
+            return back()->with('status', 'Password reset link sent to ' . $user->email . '.');
+        }
+
+        return back()->withErrors(['status' => 'Could not send reset link. Please check mail settings.']);
+    }
+
+public function destroy(Request $request, User $user): RedirectResponse
     {
         if ($user->id === (int) $request->user()->id) {
             return back()->withErrors(['status' => 'You can’t delete your own account from here.']);

@@ -82,6 +82,7 @@ Route::middleware(['auth', 'can:access-admin'])
         Route::get('/users/{user}/edit', [UserAdminController::class, 'edit'])->name('users.edit');
         Route::put('/users/{user}', [UserAdminController::class, 'update'])->name('users.update');
         Route::post('/users/{user}/toggle-admin', [UserAdminController::class, 'toggleAdmin'])->name('users.toggleAdmin');
+        Route::post('/users/{user}/send-reset-link', [UserAdminController::class, 'sendResetLink'])->name('users.sendResetLink');
         Route::delete('/users/{user}', [UserAdminController::class, 'destroy'])->name('users.destroy');
     });
 
