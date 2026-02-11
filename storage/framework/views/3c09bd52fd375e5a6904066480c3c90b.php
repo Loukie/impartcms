@@ -38,8 +38,35 @@
     <title><?php echo e($siteName); ?> Admin</title>
 
     <?php echo app('Illuminate\Foundation\Vite')(['resources/css/app.css', 'resources/js/app.js']); ?>
+
+    <style>
+        /*
+         * Admin-only: force full-width across ALL backend screens.
+         * Many views still wrap content in Breeze-style containers (max-w-* + mx-auto).
+         * This keeps the admin feeling modern and “full”, without touching each view.
+         */
+        .admin-shell .admin-content .max-w-7xl,
+        .admin-shell .admin-content .max-w-6xl,
+        .admin-shell .admin-content .max-w-5xl,
+        .admin-shell .admin-content .max-w-4xl,
+        .admin-shell .admin-content .max-w-3xl,
+        .admin-shell .admin-content .max-w-2xl,
+        .admin-shell .admin-content .max-w-xl,
+        .admin-shell .admin-content .max-w-lg,
+        .admin-shell .admin-content .max-w-md,
+        .admin-shell .admin-content .max-w-sm,
+        .admin-shell .admin-content .max-w-xs,
+        .admin-shell .admin-content .container {
+            max-width: none !important;
+        }
+
+        .admin-shell .admin-content .mx-auto {
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+        }
+    </style>
 </head>
-<body class="min-h-screen bg-slate-50">
+<body class="min-h-screen bg-slate-50 admin-shell">
 <div class="min-h-screen flex">
     
     <aside class="w-64 bg-slate-950 text-white flex-shrink-0 border-r border-white/5">
@@ -155,7 +182,7 @@
             <?php endif; ?>
         </header>
 
-        <main class="px-6 py-6">
+        <main class="px-6 py-6 admin-content">
             <?php echo e($slot); ?>
 
         </main>
