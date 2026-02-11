@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\MediaFile;
 use App\Models\Page;
 use App\Models\Setting;
 use Illuminate\Http\Request;
@@ -17,15 +18,27 @@ class SettingsController extends Controller
             ->where('status', 'published')
             ->value('id') ?? 0);
 
+        $logoMediaId = (int) (Setting::get('site_logo_media_id', '0') ?? 0);
+        $logoMedia = $logoMediaId > 0
+            ? MediaFile::query()->whereKey($logoMediaId)->where('mime_type', 'like', 'image/%')->first()
+            : null;
+
         return view('admin.settings.edit', [
             'siteName' => Setting::get('site_name', config('app.name')),
             'logoPath' => Setting::get('site_logo_path', null),
+            'logoMediaId' => $logoMedia?->id,
+            'logoMediaUrl' => $logoMedia?->url,
             'showNameWithLogo' => (bool) ((int) Setting::get('admin_show_name_with_logo', '0')),
             'homepagePageId' => (int) (Setting::get('homepage_page_id', $fallbackHomepageId) ?? 0),
             'homepagePages' => Page::query()
                 ->where('status', 'published')
                 ->orderBy('title')
                 ->get(['id', 'title', 'slug']),
+            'logoMediaOptions' => MediaFile::query()
+                ->where('mime_type', 'like', 'image/%')
+                ->latest()
+                ->limit(200)
+                ->get(['id', 'title', 'original_name', 'folder']),
         ]);
     }
 
@@ -34,6 +47,7 @@ class SettingsController extends Controller
         $validated = $request->validate([
             'site_name' => ['required', 'string', 'max:120'],
             'site_logo' => ['nullable', 'image', 'max:2048'], // 2MB
+            'site_logo_media_id' => ['nullable', 'integer', 'exists:media_files,id'],
             'remove_logo' => ['nullable', 'boolean'],
             'admin_show_name_with_logo' => ['nullable', 'boolean'],
             'homepage_page_id' => ['nullable', 'integer', 'exists:pages,id'],
@@ -66,20 +80,40 @@ class SettingsController extends Controller
 
         if ($removeLogo) {
             $existing = Setting::get('site_logo_path', null);
-            if ($existing) {
+            if ($existing && str_starts_with((string) $existing, 'settings/')) {
                 Storage::disk('public')->delete($existing);
             }
             Setting::set('site_logo_path', null);
+            Setting::set('site_logo_media_id', '0');
+        }
+
+        // If a Media Library image is selected, use it as the logo.
+        // This does NOT delete any Media file when removed from Settings.
+        $selectedMediaId = (int) ($validated['site_logo_media_id'] ?? 0);
+        if ($selectedMediaId > 0) {
+            $media = MediaFile::query()->whereKey($selectedMediaId)->first();
+            if (!$media || !$media->isImage()) {
+                return back()->withErrors([
+                    'site_logo_media_id' => 'Please select a valid image from Media.',
+                ])->withInput();
+            }
+
+            // Clear uploaded logo path so we have a single source of truth.
+            Setting::set('site_logo_path', null);
+            Setting::set('site_logo_media_id', (string) $media->id);
         }
 
         if ($request->hasFile('site_logo')) {
             $existing = Setting::get('site_logo_path', null);
-            if ($existing) {
+            if ($existing && str_starts_with((string) $existing, 'settings/')) {
                 Storage::disk('public')->delete($existing);
             }
 
             $path = $request->file('site_logo')->store('settings', 'public');
             Setting::set('site_logo_path', $path);
+
+            // Uploaded logo overrides any Media-selected logo.
+            Setting::set('site_logo_media_id', '0');
         }
 
         return back()->with('status', 'Settings updated.');

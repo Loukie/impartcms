@@ -76,9 +76,16 @@ unset($__errorArgs, $__bag); ?>
                             <div class="mt-4">
                                 <label class="block text-sm font-medium text-gray-700">Logo</label>
 
-                                <?php if($logoPath): ?>
+                                <?php
+                                    $hasLogo = !empty($logoMediaUrl) || !empty($logoPath);
+                                    $previewUrl = !empty($logoMediaUrl)
+                                        ? $logoMediaUrl
+                                        : (!empty($logoPath) ? asset('storage/' . $logoPath) : null);
+                                ?>
+
+                                <?php if($hasLogo): ?>
                                     <div class="mt-3 flex items-center gap-4">
-                                        <img src="<?php echo e(asset('storage/' . $logoPath)); ?>" alt="Site logo"
+                                        <img src="<?php echo e($previewUrl); ?>" alt="Site logo"
                                              class="h-10 w-auto rounded bg-white border border-gray-200 p-1">
                                         <label class="inline-flex items-center gap-2 text-sm text-gray-700">
                                             <input type="checkbox" name="remove_logo" value="1"
@@ -87,6 +94,30 @@ unset($__errorArgs, $__bag); ?>
                                         </label>
                                     </div>
                                 <?php endif; ?>
+
+                                <div class="mt-4">
+                                    <label class="block text-sm font-medium text-gray-700">Choose from Media library</label>
+                                    <select name="site_logo_media_id"
+                                            class="mt-1 block w-full rounded-md border-gray-300 focus:border-gray-500 focus:ring-gray-500">
+                                        <option value="">— Select an image from Media —</option>
+                                        <?php $__currentLoopData = $logoMediaOptions; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $m): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                            <option value="<?php echo e($m->id); ?>" <?php echo e((int) old('site_logo_media_id', $logoMediaId) === (int) $m->id ? 'selected' : ''); ?>>
+                                                <?php echo e($m->title ?: pathinfo($m->original_name, PATHINFO_FILENAME)); ?> (<?php echo e($m->folder); ?>)
+                                            </option>
+                                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                                    </select>
+                                    <p class="mt-1 text-xs text-gray-500">
+                                        Using a Media image as your logo will <span class="font-semibold">not</span> delete it when removed from Settings.
+                                    </p>
+                                    <?php $__errorArgs = ['site_logo_media_id'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> <p class="mt-1 text-sm text-red-600"><?php echo e($message); ?></p> <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                                </div>
 
                                 <input type="file" name="site_logo" accept="image/*"
                                        class="mt-3 block w-full text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:bg-gray-900 file:text-white hover:file:bg-gray-800">
@@ -107,13 +138,13 @@ unset($__errorArgs, $__bag); ?>
                                     <input type="checkbox" name="admin_show_name_with_logo" value="1"
                                            <?php echo e(old('admin_show_name_with_logo', $showNameWithLogo) ? 'checked' : ''); ?>
 
-                                           <?php echo e($logoPath ? '' : 'disabled'); ?>
+                                           <?php echo e($hasLogo ? '' : 'disabled'); ?>
 
                                            class="mt-0.5 rounded border-gray-300 text-gray-900 focus:ring-gray-500 disabled:opacity-50">
                                     <span>
                                         <span class="font-medium">Show site name next to logo in admin sidebar</span>
                                         <span class="block text-xs text-gray-500 mt-1">
-                                            <?php echo e($logoPath ? 'Enabled = logo + text. Disabled = logo-only.' : 'Upload a logo to enable this option.'); ?>
+                                            <?php echo e($hasLogo ? 'Enabled = logo + text. Disabled = logo-only.' : 'Add a logo to enable this option.'); ?>
 
                                         </span>
                                     </span>

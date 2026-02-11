@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\MediaFile;
 use App\Models\Page;
 use App\Models\SeoMeta;
+use App\Models\Setting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -126,7 +127,13 @@ class MediaAdminController extends Controller
     {
         // Safety: refuse delete if it appears in any pages/seo.
         $usage = $this->detectUsage($media);
-        if (!empty($usage['pages']) || !empty($usage['seo_pages'])) {
+        $inUse = (
+            (isset($usage['pages']) && method_exists($usage['pages'], 'isNotEmpty') && $usage['pages']->isNotEmpty())
+            || (isset($usage['seo_pages']) && method_exists($usage['seo_pages'], 'isNotEmpty') && $usage['seo_pages']->isNotEmpty())
+            || ((bool) ($usage['settings_logo'] ?? false))
+        );
+
+        if ($inUse) {
             return back()->withErrors([
                 'status' => 'This file appears to be in use. Remove it from pages first, then delete.'
             ]);
@@ -147,6 +154,9 @@ class MediaAdminController extends Controller
     {
         $relative = '/storage/' . ltrim($media->path, '/');
         $relative2 = 'storage/' . ltrim($media->path, '/');
+
+        $logoMediaId = (int) (Setting::get('site_logo_media_id', '0') ?? 0);
+        $usedAsLogo = $logoMediaId > 0 && $logoMediaId === (int) $media->id;
 
         $pages = Page::query()
             ->where(function ($q) use ($relative, $relative2) {
@@ -175,6 +185,7 @@ class MediaAdminController extends Controller
         return [
             'pages' => $pages,
             'seo_pages' => $seoPages,
+            'settings_logo' => $usedAsLogo,
         ];
     }
 }
