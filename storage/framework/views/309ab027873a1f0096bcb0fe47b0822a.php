@@ -1,31 +1,41 @@
-<x-admin-layout>
-    <x-slot name="header">
+<?php if (isset($component)) { $__componentOriginale0f1cdd055772eb1d4a99981c240763e = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginale0f1cdd055772eb1d4a99981c240763e = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.admin-layout','data' => []] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('admin-layout'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes([]); ?>
+     <?php $__env->slot('header', null, []); ?> 
         <div class="flex items-center justify-between">
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">
                 Pages
             </h2>
 
             <div class="flex items-center gap-3">
-                <a href="{{ route('admin.pages.trash') }}"
+                <a href="<?php echo e(route('admin.pages.trash')); ?>"
                    class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 uppercase tracking-widest hover:bg-gray-50">
                     Trash
                 </a>
 
-                <a href="{{ route('admin.pages.create') }}"
+                <a href="<?php echo e(route('admin.pages.create')); ?>"
                    class="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-md font-semibold text-xs uppercase tracking-widest hover:bg-gray-800">
                     New Page
                 </a>
             </div>
         </div>
-    </x-slot>
+     <?php $__env->endSlot(); ?>
 
     <div class="py-8">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            @if (session('status'))
+            <?php if(session('status')): ?>
                 <div class="mb-4 p-3 rounded bg-green-50 text-green-800 border border-green-200">
-                    {{ session('status') }}
+                    <?php echo e(session('status')); ?>
+
                 </div>
-            @endif
+            <?php endif; ?>
 
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6">
@@ -43,64 +53,69 @@
                             </thead>
 
                             <tbody class="bg-white divide-y divide-gray-200">
-                                @forelse($pages as $page)
+                                <?php $__empty_1 = true; $__currentLoopData = $pages; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $page): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                                     <tr>
                                         <td class="px-3 py-2 whitespace-nowrap font-medium text-gray-900">
-                                            {{ $page->title }}
-                                            @if($page->is_homepage)
+                                            <?php echo e($page->title); ?>
+
+                                            <?php if($page->is_homepage): ?>
                                                 <span class="ml-2 text-xs px-2 py-0.5 rounded border border-gray-200 bg-gray-50 text-gray-700">
                                                     Home
                                                 </span>
-                                            @endif
+                                            <?php endif; ?>
                                         </td>
 
                                         <td class="px-3 py-2 whitespace-nowrap text-gray-700">
-                                            {{ $page->slug }}
+                                            <?php echo e($page->slug); ?>
+
                                         </td>
 
                                         <td class="px-3 py-2 whitespace-nowrap">
                                             <span class="px-2 py-1 text-xs rounded border
-                                                {{ $page->status === 'published'
+                                                <?php echo e($page->status === 'published'
                                                     ? 'bg-green-50 text-green-800 border-green-200'
-                                                    : 'bg-yellow-50 text-yellow-800 border-yellow-200' }}">
-                                                {{ strtoupper($page->status) }}
+                                                    : 'bg-yellow-50 text-yellow-800 border-yellow-200'); ?>">
+                                                <?php echo e(strtoupper($page->status)); ?>
+
                                             </span>
                                         </td>
 
                                         <td class="px-3 py-2 whitespace-nowrap text-gray-700 text-sm">
-                                            {{ optional($page->created_at)->format('Y-m-d H:i') }}
+                                            <?php echo e(optional($page->created_at)->format('Y-m-d H:i')); ?>
+
                                         </td>
 
                                         <td class="px-3 py-2 whitespace-nowrap text-gray-700 text-sm">
-                                            {{ optional($page->updated_at)->format('Y-m-d H:i') }}
+                                            <?php echo e(optional($page->updated_at)->format('Y-m-d H:i')); ?>
+
                                         </td>
 
                                         <td class="px-3 py-2 whitespace-nowrap text-right">
                                             <div class="flex items-center justify-end gap-4">
-                                                @if($page->status === 'published')
-                                                    <a href="{{ url('/' . ltrim($page->slug, '/')) }}"
+                                                <?php if($page->status === 'published'): ?>
+                                                    <a href="<?php echo e(url('/' . ltrim($page->slug, '/'))); ?>"
                                                        target="_blank"
                                                        class="underline text-sm text-gray-600 hover:text-gray-900">
                                                         View Live
                                                     </a>
-                                                @else
-                                                    <a href="{{ route('pages.preview', $page) }}"
+                                                <?php else: ?>
+                                                    <a href="<?php echo e(route('pages.preview', $page)); ?>"
                                                        target="_blank"
                                                        class="underline text-sm text-gray-600 hover:text-gray-900">
                                                         Preview Draft
                                                     </a>
-                                                @endif
+                                                <?php endif; ?>
 
-                                                <a href="{{ route('admin.pages.edit', $page) }}"
+                                                <a href="<?php echo e(route('admin.pages.edit', $page)); ?>"
                                                    class="text-indigo-600 hover:text-indigo-900 font-semibold text-sm">
                                                     Edit
                                                 </a>
 
-                                                <form method="POST" action="{{ route('admin.pages.destroy', $page) }}"
+                                                <form method="POST" action="<?php echo e(route('admin.pages.destroy', $page)); ?>"
                                                       onsubmit="return confirm('Move this page to trash?');"
                                                       class="inline">
-                                                    @csrf
-                                                    @method('DELETE')
+                                                    <?php echo csrf_field(); ?>
+                                                    <?php echo method_field('DELETE'); ?>
                                                     <button type="submit"
                                                             class="text-red-600 hover:text-red-800 font-semibold text-sm">
                                                         Trash
@@ -109,24 +124,34 @@
                                             </div>
                                         </td>
                                     </tr>
-                                @empty
+                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                                     <tr>
                                         <td colspan="6" class="px-3 py-6 text-center text-gray-500">
                                             No pages yet.
                                         </td>
                                     </tr>
-                                @endforelse
+                                <?php endif; ?>
                             </tbody>
                         </table>
                     </div>
 
-                    @if(method_exists($pages, 'links'))
+                    <?php if(method_exists($pages, 'links')): ?>
                         <div class="mt-6">
-                            {{ $pages->links() }}
+                            <?php echo e($pages->links()); ?>
+
                         </div>
-                    @endif
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
     </div>
-</x-admin-layout>
+ <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginale0f1cdd055772eb1d4a99981c240763e)): ?>
+<?php $attributes = $__attributesOriginale0f1cdd055772eb1d4a99981c240763e; ?>
+<?php unset($__attributesOriginale0f1cdd055772eb1d4a99981c240763e); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginale0f1cdd055772eb1d4a99981c240763e)): ?>
+<?php $component = $__componentOriginale0f1cdd055772eb1d4a99981c240763e; ?>
+<?php unset($__componentOriginale0f1cdd055772eb1d4a99981c240763e); ?>
+<?php endif; ?><?php /**PATH C:\laragon\www\2kocms\resources\views/admin/pages/index.blade.php ENDPATH**/ ?>

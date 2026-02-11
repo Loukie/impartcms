@@ -1,4 +1,4 @@
-<x-app-layout>
+<x-admin-layout>
     <x-slot name="header">
         <div class="flex flex-col gap-3">
             <div class="flex items-center justify-between">
@@ -30,6 +30,8 @@
                                 <tr>
                                     <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
                                     <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Slug</th>
+                                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+                                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Updated</th>
                                     <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Deleted</th>
                                     <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                 </tr>
@@ -46,13 +48,21 @@
                                             {{ $page->slug }}
                                         </td>
 
+                                        <td class="px-3 py-2 whitespace-nowrap text-gray-700 text-sm">
+                                            {{ optional($page->created_at)->format('Y-m-d H:i') }}
+                                        </td>
+
+                                        <td class="px-3 py-2 whitespace-nowrap text-gray-700 text-sm">
+                                            {{ optional($page->updated_at)->format('Y-m-d H:i') }}
+                                        </td>
+
                                         <td class="px-3 py-2 whitespace-nowrap text-gray-700">
                                             {{ optional($page->deleted_at)->format('Y-m-d H:i') }}
                                         </td>
 
                                         <td class="px-3 py-2 whitespace-nowrap text-right">
                                             <div class="flex items-center justify-end gap-4">
-                                                <a href="{{ route('pages.preview', ['pagePreview' => $page->id]) }}"
+                                                <a href="{{ route('pages.preview', $page->id) }}"
                                                    target="_blank"
                                                    class="underline text-sm text-gray-600 hover:text-gray-900">
                                                     Preview
@@ -83,7 +93,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="4" class="px-3 py-6 text-center text-gray-500">
+                                        <td colspan="6" class="px-3 py-6 text-center text-gray-500">
                                             Trash is empty.
                                         </td>
                                     </tr>
@@ -101,4 +111,4 @@
             </div>
         </div>
     </div>
-</x-app-layout>
+</x-admin-layout>

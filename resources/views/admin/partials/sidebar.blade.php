@@ -17,25 +17,26 @@
     </div>
 
     <div class="mt-4 border-t pt-4 space-y-1">
+        <a href="{{ route('dashboard') }}"
+           class="block px-3 py-2 rounded-md text-sm font-medium {{ $isActive('dashboard') ? 'bg-gray-900 text-white' : 'text-gray-700 hover:bg-gray-50' }}">
+            Dashboard
+        </a>
+
+        <a href="{{ url('/') }}" target="_blank"
+           class="block px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">
+            View site
+        </a>
+
+        <div class="pt-2 mt-2 border-t border-gray-100"></div>
+
         <a href="{{ route('admin.pages.index') }}"
            class="block px-3 py-2 rounded-md text-sm font-medium {{ $isActive('admin.pages.*') ? 'bg-gray-900 text-white' : 'text-gray-700 hover:bg-gray-50' }}">
             Pages
-        </a>
-
-        <a href="{{ route('admin.pages.trash') }}"
-           class="block px-3 py-2 rounded-md text-sm font-medium {{ $isActive('admin.pages.trash') ? 'bg-gray-900 text-white' : 'text-gray-700 hover:bg-gray-50' }}">
-            Trash
         </a>
 
         <a href="{{ route('admin.settings.edit') }}"
            class="block px-3 py-2 rounded-md text-sm font-medium {{ $isActive('admin.settings.*') ? 'bg-gray-900 text-white' : 'text-gray-700 hover:bg-gray-50' }}">
             Settings
         </a>
-
-        <div class="mt-2 text-xs text-gray-400 px-3">Modules</div>
-
-        <div class="block px-3 py-2 rounded-md text-sm text-gray-400 bg-gray-50 cursor-not-allowed">
-            Forms (soon)
-        </div>
     </div>
 </div>

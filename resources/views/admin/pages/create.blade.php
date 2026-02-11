@@ -1,4 +1,4 @@
-<x-app-layout>
+<x-admin-layout>
     <x-slot name="header">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div class="flex items-center justify-between gap-4">
@@ -355,4 +355,4 @@
             updatePreview();
         })();
     </script>
-</x-app-layout>
+</x-admin-layout>
