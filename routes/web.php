@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\PageAdminController;
+use App\Http\Controllers\Admin\MediaAdminController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\UserAdminController;
 use App\Http\Controllers\FormSubmissionController;
@@ -81,9 +82,16 @@ Route::middleware(['auth', 'can:access-admin'])
         Route::post('/users', [UserAdminController::class, 'store'])->name('users.store');
         Route::get('/users/{user}/edit', [UserAdminController::class, 'edit'])->name('users.edit');
         Route::put('/users/{user}', [UserAdminController::class, 'update'])->name('users.update');
-        Route::post('/users/{user}/toggle-admin', [UserAdminController::class, 'toggleAdmin'])->name('users.toggleAdmin');
         Route::post('/users/{user}/send-reset-link', [UserAdminController::class, 'sendResetLink'])->name('users.sendResetLink');
+        Route::post('/users/{user}/toggle-admin', [UserAdminController::class, 'toggleAdmin'])->name('users.toggleAdmin');
         Route::delete('/users/{user}', [UserAdminController::class, 'destroy'])->name('users.destroy');
+
+        // Media
+        Route::get('/media', [MediaAdminController::class, 'index'])->name('media.index');
+        Route::post('/media', [MediaAdminController::class, 'store'])->name('media.store');
+        Route::get('/media/{media}', [MediaAdminController::class, 'show'])->name('media.show');
+        Route::put('/media/{media}', [MediaAdminController::class, 'update'])->name('media.update');
+        Route::delete('/media/{media}', [MediaAdminController::class, 'destroy'])->name('media.destroy');
     });
 
 /**

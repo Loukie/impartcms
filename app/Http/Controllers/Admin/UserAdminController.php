@@ -110,21 +110,30 @@ class UserAdminController extends Controller
         return back()->with('status', $user->is_admin ? 'User promoted to admin.' : 'Admin access removed.');
     }
 
-    
     public function sendResetLink(Request $request, User $user): RedirectResponse
     {
-        // Sends the standard Laravel password reset email (Breeze compatible).
-        // NOTE: Requires mail configuration in .env to actually deliver.
+        // Only admins can access this controller group already.
+        // Safety: avoid sending reset links to yourself from here (use standard profile reset instead).
+        if ($user->id === (int) $request->user()->id) {
+            return back()->withErrors(['status' => 'Use your profile page to update your own password.']);
+        }
+
+        if (empty($user->email)) {
+            return back()->withErrors(['status' => 'This user has no email address.']);
+        }
+
         $status = Password::sendResetLink(['email' => $user->email]);
 
         if ($status === Password::RESET_LINK_SENT) {
-            return back()->with('status', 'Password reset link sent to ' . $user->email . '.');
+            return back()->with('status', 'Password reset link sent.');
         }
 
-        return back()->withErrors(['status' => 'Could not send reset link. Please check mail settings.']);
+        return back()->withErrors([
+            'status' => 'Could not send reset link. Check your mail settings in .env (SMTP) and try again.',
+        ]);
     }
 
-public function destroy(Request $request, User $user): RedirectResponse
+    public function destroy(Request $request, User $user): RedirectResponse
     {
         if ($user->id === (int) $request->user()->id) {
             return back()->withErrors(['status' => 'You can’t delete your own account from here.']);
