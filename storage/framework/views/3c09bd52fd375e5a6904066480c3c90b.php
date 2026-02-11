@@ -74,6 +74,12 @@
             </a>
 
             
+            <a href="<?php echo e(route('admin.users.index')); ?>"
+               class="<?php echo e($linkBase); ?> <?php echo e(request()->routeIs('admin.users.*') ? $linkActive : $linkInactive); ?>">
+                <span>Users</span>
+            </a>
+
+            
             <?php if(\Illuminate\Support\Facades\Route::has('admin.settings.edit')): ?>
                 <a href="<?php echo e(route('admin.settings.edit')); ?>"
                    class="<?php echo e($linkBase); ?> <?php echo e(request()->routeIs('admin.settings.*') ? $linkActive : $linkInactive); ?>">

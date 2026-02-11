@@ -73,6 +73,12 @@
                 <span>Pages</span>
             </a>
 
+            {{-- Users --}}
+            <a href="{{ route('admin.users.index') }}"
+               class="{{ $linkBase }} {{ request()->routeIs('admin.users.*') ? $linkActive : $linkInactive }}">
+                <span>Users</span>
+            </a>
+
             {{-- Settings (show only if route exists) --}}
             @if(\Illuminate\Support\Facades\Route::has('admin.settings.edit'))
                 <a href="{{ route('admin.settings.edit') }}"

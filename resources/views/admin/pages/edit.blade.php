@@ -49,6 +49,13 @@
                 </div>
             @endif
 
+
+            @if ($errors->any())
+                <div class=\"mb-4 p-3 rounded bg-red-50 text-red-800 border border-red-200\">
+                    {{ $errors->first() }}
+                </div>
+            @endif
+
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6">
                     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -306,19 +313,32 @@
                                 {{-- Danger zone (SEPARATE form, NOT nested) --}}
                                 <div class="rounded-lg border border-red-200 bg-red-50 p-4">
                                     <h3 class="text-sm font-semibold text-red-700">Danger zone</h3>
-                                    <p class="text-xs text-red-700/80 mt-1">Move this page to Trash (you can restore it later).</p>
 
-                                    <form method="POST" action="{{ route('admin.pages.destroy', $page) }}"
-                                          onsubmit="return confirm('Move this page to Trash?');"
-                                          class="mt-3">
-                                        @csrf
-                                        @method('DELETE')
+                                    @if($page->is_homepage)
+                                        <p class="text-xs text-red-700/80 mt-1">
+                                            This page is set as the <strong>Homepage</strong>. Choose a different homepage first before moving it to Trash.
+                                        </p>
 
-                                        <button type="submit"
-                                                class="w-full inline-flex items-center justify-center px-4 py-2 bg-red-600 text-white rounded-md font-semibold text-xs uppercase tracking-widest hover:bg-red-700">
+                                        <button type="button"
+                                                class="mt-3 w-full inline-flex items-center justify-center px-4 py-2 bg-red-300 text-white rounded-md font-semibold text-xs uppercase tracking-widest cursor-not-allowed"
+                                                disabled>
                                             Move to Trash
                                         </button>
-                                    </form>
+                                    @else
+                                        <p class="text-xs text-red-700/80 mt-1">Move this page to Trash (you can restore it later).</p>
+
+                                        <form method="POST" action="{{ route('admin.pages.destroy', $page) }}"
+                                              onsubmit="return confirm('Move this page to Trash?');"
+                                              class="mt-3">
+                                            @csrf
+                                            @method('DELETE')
+
+                                            <button type="submit"
+                                                    class="w-full inline-flex items-center justify-center px-4 py-2 bg-red-600 text-white rounded-md font-semibold text-xs uppercase tracking-widest hover:bg-red-700">
+                                                Move to Trash
+                                            </button>
+                                        </form>
+                                    @endif
                                 </div>
                             </div>
                         </aside>

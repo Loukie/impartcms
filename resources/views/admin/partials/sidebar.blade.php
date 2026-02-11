@@ -43,6 +43,11 @@
             Pages
         </a>
 
+        <a href="{{ route('admin.users.index') }}"
+           class="block px-3 py-2 rounded-md text-sm font-medium {{ $isActive('admin.users.*') ? 'bg-gray-900 text-white' : 'text-gray-700 hover:bg-gray-50' }}">
+            Users
+        </a>
+
         <a href="{{ route('admin.settings.edit') }}"
            class="block px-3 py-2 rounded-md text-sm font-medium {{ $isActive('admin.settings.*') ? 'bg-gray-900 text-white' : 'text-gray-700 hover:bg-gray-50' }}">
             Settings

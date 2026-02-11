@@ -27,6 +27,13 @@
                 </div>
             @endif
 
+
+            @if ($errors->any())
+                <div class=\"mb-4 p-3 rounded bg-red-50 text-red-800 border border-red-200\">
+                    {{ $errors->first() }}
+                </div>
+            @endif
+
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6">
                     <div class="overflow-x-auto">
@@ -107,6 +114,7 @@
                                                     </form>
                                                 @endif
 
+                                                @if(!$page->is_homepage)
                                                 <form method="POST" action="{{ route('admin.pages.destroy', $page) }}"
                                                       onsubmit="return confirm('Move this page to trash?');"
                                                       class="inline">
@@ -117,6 +125,12 @@
                                                         Trash
                                                     </button>
                                                 </form>
+                                                @else
+                                                    <span class="text-gray-400 font-semibold text-sm cursor-not-allowed"
+                                                          title="You can’t trash the homepage. Set a different homepage first.">
+                                                        Trash
+                                                    </span>
+                                                @endif
                                             </div>
                                         </td>
                                     </tr>

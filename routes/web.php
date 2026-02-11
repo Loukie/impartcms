@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\PageAdminController;
 use App\Http\Controllers\Admin\SettingsController;
+use App\Http\Controllers\Admin\UserAdminController;
 use App\Http\Controllers\FormSubmissionController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\ProfileController;
@@ -73,6 +74,13 @@ Route::middleware(['auth', 'can:access-admin'])
 
         // Standard pages CRUD (destroy = Move to Trash)
         Route::resource('pages', PageAdminController::class);
+
+        // Users
+        Route::get('/users', [UserAdminController::class, 'index'])->name('users.index');
+        Route::get('/users/{user}/edit', [UserAdminController::class, 'edit'])->name('users.edit');
+        Route::put('/users/{user}', [UserAdminController::class, 'update'])->name('users.update');
+        Route::post('/users/{user}/toggle-admin', [UserAdminController::class, 'toggleAdmin'])->name('users.toggleAdmin');
+        Route::delete('/users/{user}', [UserAdminController::class, 'destroy'])->name('users.destroy');
     });
 
 /**

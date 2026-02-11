@@ -22,6 +22,13 @@
                 </div>
             @endif
 
+
+            @if ($errors->any())
+                <div class=\"mb-4 p-3 rounded bg-red-50 text-red-800 border border-red-200\">
+                    {{ $errors->first() }}
+                </div>
+            @endif
+
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6">
                     <div class="overflow-x-auto">
@@ -42,6 +49,11 @@
                                     <tr>
                                         <td class="px-3 py-2 whitespace-nowrap font-medium text-gray-900">
                                             {{ $page->title }}
+                                            @if($page->is_homepage)
+                                                <span class="ml-2 text-xs px-2 py-0.5 rounded border border-gray-200 bg-gray-50 text-gray-700">
+                                                    Home
+                                                </span>
+                                            @endif
                                         </td>
 
                                         <td class="px-3 py-2 whitespace-nowrap text-gray-700">
@@ -78,6 +90,7 @@
                                                     </button>
                                                 </form>
 
+                                                @if(!$page->is_homepage)
                                                 <form method="POST" action="{{ route('admin.pages.forceDestroy', ['pageTrash' => $page->id]) }}"
                                                       onsubmit="return confirm('Delete permanently? This cannot be undone.');"
                                                       class="inline">
@@ -88,6 +101,12 @@
                                                         Delete Permanently
                                                     </button>
                                                 </form>
+                                                @else
+                                                    <span class="text-gray-400 font-semibold text-sm cursor-not-allowed"
+                                                          title="You can’t permanently delete the homepage. Set a different homepage first.">
+                                                        Delete Permanently
+                                                    </span>
+                                                @endif
                                             </div>
                                         </td>
                                     </tr>

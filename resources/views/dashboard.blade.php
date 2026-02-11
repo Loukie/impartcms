@@ -15,6 +15,9 @@
                 <a class="block underline text-gray-700 hover:text-gray-900" href="{{ route('admin.pages.index') }}">
                     Manage Pages
                 </a>
+                <a class="block underline text-gray-700 hover:text-gray-900" href="{{ route('admin.users.index') }}">
+                    Manage Users
+                </a>
                 <a class="block underline text-gray-700 hover:text-gray-900" href="{{ route('admin.pages.trash') }}">
                     View Trash
                 </a>

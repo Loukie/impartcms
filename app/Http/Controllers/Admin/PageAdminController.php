@@ -50,6 +50,7 @@ class PageAdminController extends Controller
         if ($request->has('is_homepage')) {
             $data['is_homepage'] = (bool) $request->boolean('is_homepage');
         }
+
         $data = array_filter($data, fn ($v) => $v !== null);
 
         $page = Page::create($data);
@@ -97,6 +98,7 @@ class PageAdminController extends Controller
         if ($request->has('is_homepage')) {
             $data['is_homepage'] = (bool) $request->boolean('is_homepage');
         }
+
         $data = array_filter($data, fn ($v) => $v !== null);
 
         $page->update($data);
@@ -148,11 +150,28 @@ class PageAdminController extends Controller
         Setting::set('homepage_page_id', (string) $page->id);
     }
 
+    private function isCurrentHomepage(Page $page): bool
+    {
+        $homepageId = (int) (Setting::get('homepage_page_id', 0) ?? 0);
+
+        if ($homepageId > 0 && (int) $page->id === $homepageId) {
+            return true;
+        }
+
+        return (bool) $page->is_homepage;
+    }
+
     /**
      * Move to Trash (soft delete)
      */
     public function destroy(Page $page): RedirectResponse
     {
+        if ($this->isCurrentHomepage($page)) {
+            return back()->withErrors([
+                'delete' => 'You can’t move the homepage to Trash. Set a different homepage first.',
+            ]);
+        }
+
         $page->delete();
 
         return redirect()
@@ -177,6 +196,12 @@ class PageAdminController extends Controller
      */
     public function forceDestroy(Page $pageTrash): RedirectResponse
     {
+        if ($this->isCurrentHomepage($pageTrash)) {
+            return back()->withErrors([
+                'delete' => 'You can’t permanently delete the homepage. Set a different homepage first.',
+            ]);
+        }
+
         $pageTrash->forceDelete();
 
         return redirect()
