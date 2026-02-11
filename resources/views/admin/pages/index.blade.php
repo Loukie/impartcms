@@ -96,6 +96,17 @@
                                                     Edit
                                                 </a>
 
+                                                @if($page->status === 'published' && !$page->is_homepage)
+                                                    <form method="POST" action="{{ route('admin.pages.setHomepage', $page) }}" class="inline"
+                                                          onsubmit="return confirm('Set this page as the homepage (/)?');">
+                                                        @csrf
+                                                        <button type="submit"
+                                                                class="text-gray-700 hover:text-gray-900 font-semibold text-sm">
+                                                            Set Home
+                                                        </button>
+                                                    </form>
+                                                @endif
+
                                                 <form method="POST" action="{{ route('admin.pages.destroy', $page) }}"
                                                       onsubmit="return confirm('Move this page to trash?');"
                                                       class="inline">

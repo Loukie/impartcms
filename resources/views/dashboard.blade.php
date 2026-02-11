@@ -4,7 +4,7 @@
             Dashboard
         </h2>
         <p class="text-sm text-gray-600 mt-1">
-            Welcome to the ImpartCMS admin.
+            Welcome to the {{ \App\Models\Setting::get('site_name', config('app.name', 'ImpartCMS')) }} admin.
         </p>
     </x-slot>
 

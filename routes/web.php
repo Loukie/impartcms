@@ -68,6 +68,9 @@ Route::middleware(['auth', 'can:access-admin'])
         Route::post('/pages-trash/{pageTrash}/restore', [PageAdminController::class, 'restore'])->name('pages.restore');
         Route::delete('/pages-trash/{pageTrash}/force', [PageAdminController::class, 'forceDestroy'])->name('pages.forceDestroy');
 
+        // Homepage selection (WordPress-style)
+        Route::post('/pages/{page}/homepage', [PageAdminController::class, 'setHomepage'])->name('pages.setHomepage');
+
         // Standard pages CRUD (destroy = Move to Trash)
         Route::resource('pages', PageAdminController::class);
     });

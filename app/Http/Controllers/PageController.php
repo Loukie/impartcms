@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Page;
+use App\Models\Setting;
 use Illuminate\Http\Response;
 use Illuminate\View\View;
 
@@ -17,15 +18,27 @@ class PageController extends Controller
     {
         $slug = $slug ? trim($slug, '/') : null;
 
+        $homepageId = (int) (Setting::get('homepage_page_id', 0) ?? 0);
+
         $page = $slug
             ? Page::query()
                 ->where('slug', $slug)
                 ->where('status', 'published')
                 ->first()
-            : Page::query()
+            : ($homepageId
+                ? Page::query()
+                    ->whereKey($homepageId)
+                    ->where('status', 'published')
+                    ->first()
+                : null);
+
+        // Fallback to legacy flag if settings selection is missing or invalid.
+        if (!$slug && !$page) {
+            $page = Page::query()
                 ->where('is_homepage', true)
                 ->where('status', 'published')
                 ->first();
+        }
 
         if (!$page) {
             abort(404);

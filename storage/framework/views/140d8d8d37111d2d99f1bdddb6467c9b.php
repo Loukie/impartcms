@@ -1,5 +1,14 @@
-<x-admin-layout>
-    <x-slot name="header">
+<?php if (isset($component)) { $__componentOriginale0f1cdd055772eb1d4a99981c240763e = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginale0f1cdd055772eb1d4a99981c240763e = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.admin-layout','data' => []] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('admin-layout'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes([]); ?>
+     <?php $__env->slot('header', null, []); ?> 
         <div class="flex flex-col gap-3">
             <div class="flex items-center justify-between gap-4">
                 <div class="flex items-center gap-3">
@@ -8,141 +17,165 @@
                     </h2>
 
                     <span class="px-2 py-1 text-xs rounded border
-                        {{ $page->status === 'published' ? 'bg-green-50 text-green-800 border-green-200' : 'bg-yellow-50 text-yellow-800 border-yellow-200' }}">
-                        {{ strtoupper($page->status) }}
+                        <?php echo e($page->status === 'published' ? 'bg-green-50 text-green-800 border-green-200' : 'bg-yellow-50 text-yellow-800 border-yellow-200'); ?>">
+                        <?php echo e(strtoupper($page->status)); ?>
+
                     </span>
 
                     <span class="text-xs text-gray-500">
-                        Created {{ $page->created_at?->format('Y-m-d H:i') }} · Updated {{ $page->updated_at?->format('Y-m-d H:i') }}
+                        Created <?php echo e($page->created_at?->format('Y-m-d H:i')); ?> · Updated <?php echo e($page->updated_at?->format('Y-m-d H:i')); ?>
+
                     </span>
                 </div>
 
                 <div class="flex items-center gap-4">
-                    @if($page->status === 'published')
-                        <a href="{{ url('/' . ltrim($page->slug, '/')) }}"
+                    <?php if($page->status === 'published'): ?>
+                        <a href="<?php echo e(url('/' . ltrim($page->slug, '/'))); ?>"
                            target="_blank"
                            class="underline text-sm text-gray-600 hover:text-gray-900">
                             View Live
                         </a>
-                    @else
-                        <a href="{{ route('pages.preview', $page) }}"
+                    <?php else: ?>
+                        <a href="<?php echo e(route('pages.preview', $page)); ?>"
                            target="_blank"
                            class="underline text-sm text-gray-600 hover:text-gray-900">
                             Preview Draft
                         </a>
-                    @endif
+                    <?php endif; ?>
 
-                    <a href="{{ route('admin.pages.index') }}"
+                    <a href="<?php echo e(route('admin.pages.index')); ?>"
                        class="underline text-sm text-gray-600 hover:text-gray-900">
                         Back to Pages
                     </a>
                 </div>
             </div>
         </div>
-    </x-slot>
+     <?php $__env->endSlot(); ?>
 
     <div class="py-8">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            @if (session('status'))
+            <?php if(session('status')): ?>
                 <div class="mb-4 p-3 rounded bg-green-50 text-green-800 border border-green-200">
-                    {{ session('status') }}
+                    <?php echo e(session('status')); ?>
+
                 </div>
-            @endif
+            <?php endif; ?>
 
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6">
                     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                        {{-- Main column --}}
+                        
                         <div class="lg:col-span-8">
-                            <form method="POST" action="{{ route('admin.pages.update', $page) }}" class="space-y-6" id="page-form">
-                                @csrf
-                                @method('PUT')
+                            <form method="POST" action="<?php echo e(route('admin.pages.update', $page)); ?>" class="space-y-6" id="page-form">
+                                <?php echo csrf_field(); ?>
+                                <?php echo method_field('PUT'); ?>
 
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700">Title</label>
-                                    <input type="text" name="title" value="{{ old('title', $page->title) }}"
+                                    <input type="text" name="title" value="<?php echo e(old('title', $page->title)); ?>"
                                            class="mt-1 block w-full rounded-md border-gray-300 focus:border-gray-500 focus:ring-gray-500"
                                            id="field-title">
-                                    @error('title') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                                    <?php $__errorArgs = ['title'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> <p class="mt-1 text-sm text-red-600"><?php echo e($message); ?></p> <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
                                 </div>
 
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700">Slug</label>
-                                    <input type="text" name="slug" value="{{ old('slug', $page->slug) }}"
+                                    <input type="text" name="slug" value="<?php echo e(old('slug', $page->slug)); ?>"
                                            class="mt-1 block w-full rounded-md border-gray-300 focus:border-gray-500 focus:ring-gray-500"
                                            id="field-slug">
                                     <p class="mt-1 text-xs text-gray-500">Allowed: letters, numbers, dashes, and /</p>
-                                    @error('slug') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                                    <?php $__errorArgs = ['slug'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> <p class="mt-1 text-sm text-red-600"><?php echo e($message); ?></p> <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
                                 </div>
 
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700">Body</label>
                                     <textarea name="body" rows="14"
-                                              class="mt-1 block w-full rounded-md border-gray-300 focus:border-gray-500 focus:ring-gray-500">{{ old('body', $page->body) }}</textarea>
+                                              class="mt-1 block w-full rounded-md border-gray-300 focus:border-gray-500 focus:ring-gray-500"><?php echo e(old('body', $page->body)); ?></textarea>
                                     <p class="mt-1 text-xs text-gray-500">
                                         Tip: embed forms with <code class="px-1 py-0.5 bg-gray-100 rounded">[form slug="contact"]</code>
                                     </p>
-                                    @error('body') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                                    <?php $__errorArgs = ['body'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> <p class="mt-1 text-sm text-red-600"><?php echo e($message); ?></p> <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
                                 </div>
 
-                                {{-- Keep sidebar actions inside the SAME form (no nested forms) --}}
+                                
                             </form>
                         </div>
 
-                        {{-- Sidebar --}}
+                        
                         <aside class="lg:col-span-4">
                             <div class="space-y-6">
-                                {{-- Actions + SEO are part of the update form (submitted via #page-form) --}}
+                                
                                 <div class="hidden lg:block">
                                     <div class="rounded-lg border border-gray-200 bg-white p-4">
                                         <h3 class="text-sm font-semibold text-gray-900">Actions</h3>
 
                                         <p class="mt-1 text-xs text-gray-600">
-                                            @if($page->status === 'published')
-                                                Live at <span class="font-mono">{{ url('/' . ltrim($page->slug, '/')) }}</span>
-                                            @else
+                                            <?php if($page->status === 'published'): ?>
+                                                Live at <span class="font-mono"><?php echo e(url('/' . ltrim($page->slug, '/'))); ?></span>
+                                            <?php else: ?>
                                                 Drafts are admin-preview only until published.
-                                            @endif
+                                            <?php endif; ?>
                                         </p>
 
                                         <div class="mt-4 flex flex-col gap-2">
-                                            @if($page->status === 'published')
-                                                <a href="{{ url('/' . ltrim($page->slug, '/')) }}"
+                                            <?php if($page->status === 'published'): ?>
+                                                <a href="<?php echo e(url('/' . ltrim($page->slug, '/'))); ?>"
                                                    target="_blank"
                                                    class="inline-flex items-center justify-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 uppercase tracking-widest hover:bg-gray-50">
                                                     View Live
                                                 </a>
-                                            @else
-                                                <a href="{{ route('pages.preview', $page) }}"
+                                            <?php else: ?>
+                                                <a href="<?php echo e(route('pages.preview', $page)); ?>"
                                                    target="_blank"
                                                    class="inline-flex items-center justify-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 uppercase tracking-widest hover:bg-gray-50">
                                                     Preview Draft
                                                 </a>
-                                            @endif
+                                            <?php endif; ?>
 
-                                            @if($page->status === 'published')
-                                                @if($page->is_homepage)
+                                            <?php if($page->status === 'published'): ?>
+                                                <?php if($page->is_homepage): ?>
                                                     <div class="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-700">
                                                         This page is currently set as the <strong>Homepage</strong>.
                                                     </div>
-                                                @else
-                                                    <form method="POST" action="{{ route('admin.pages.setHomepage', $page) }}"
+                                                <?php else: ?>
+                                                    <form method="POST" action="<?php echo e(route('admin.pages.setHomepage', $page)); ?>"
                                                           onsubmit="return confirm('Set this page as the homepage (/)?');">
-                                                        @csrf
+                                                        <?php echo csrf_field(); ?>
                                                         <button type="submit"
                                                                 class="inline-flex w-full items-center justify-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 uppercase tracking-widest hover:bg-gray-50">
                                                             Set as Homepage
                                                         </button>
                                                     </form>
-                                                @endif
-                                            @else
+                                                <?php endif; ?>
+                                            <?php else: ?>
                                                 <div class="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-700">
                                                     Publish this page to set it as the homepage.
                                                 </div>
-                                            @endif
+                                            <?php endif; ?>
 
-                                            {{-- Buttons submit the MAIN form via form="page-form" --}}
-                                            @if($page->status === 'published')
+                                            
+                                            <?php if($page->status === 'published'): ?>
                                                 <button type="submit" form="page-form" name="action" value="publish"
                                                         class="inline-flex items-center justify-center px-4 py-2 bg-gray-900 text-white rounded-md font-semibold text-xs uppercase tracking-widest hover:bg-gray-800">
                                                     Update
@@ -152,7 +185,7 @@
                                                         class="inline-flex items-center justify-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 uppercase tracking-widest hover:bg-gray-50">
                                                     Move to Draft
                                                 </button>
-                                            @else
+                                            <?php else: ?>
                                                 <button type="submit" form="page-form" name="action" value="draft"
                                                         class="inline-flex items-center justify-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 uppercase tracking-widest hover:bg-gray-50">
                                                     Save Draft
@@ -162,9 +195,9 @@
                                                         class="inline-flex items-center justify-center px-4 py-2 bg-gray-900 text-white rounded-md font-semibold text-xs uppercase tracking-widest hover:bg-gray-800">
                                                     Go Live
                                                 </button>
-                                            @endif
+                                            <?php endif; ?>
 
-                                            <a href="{{ route('admin.pages.index') }}"
+                                            <a href="<?php echo e(route('admin.pages.index')); ?>"
                                                class="text-center underline text-sm text-gray-600 hover:text-gray-900">
                                                 Cancel
                                             </a>
@@ -210,18 +243,32 @@
                                                 <div>
                                                     <label class="block text-sm font-medium text-gray-700">Meta Title</label>
                                                     <input type="text" name="meta_title" form="page-form"
-                                                           value="{{ old('meta_title', optional($page->seo)->meta_title) }}"
+                                                           value="<?php echo e(old('meta_title', optional($page->seo)->meta_title)); ?>"
                                                            class="mt-1 block w-full rounded-md border-gray-300 focus:border-gray-500 focus:ring-gray-500"
                                                            id="field-meta-title">
-                                                    @error('meta_title') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                                                    <?php $__errorArgs = ['meta_title'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> <p class="mt-1 text-sm text-red-600"><?php echo e($message); ?></p> <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
                                                 </div>
 
                                                 <div>
                                                     <label class="block text-sm font-medium text-gray-700">Meta Description</label>
                                                     <textarea name="meta_description" rows="3" form="page-form"
                                                               class="mt-1 block w-full rounded-md border-gray-300 focus:border-gray-500 focus:ring-gray-500"
-                                                              id="field-meta-description">{{ old('meta_description', optional($page->seo)->meta_description) }}</textarea>
-                                                    @error('meta_description') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                                                              id="field-meta-description"><?php echo e(old('meta_description', optional($page->seo)->meta_description)); ?></textarea>
+                                                    <?php $__errorArgs = ['meta_description'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> <p class="mt-1 text-sm text-red-600"><?php echo e($message); ?></p> <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
                                                 </div>
                                             </div>
 
@@ -230,20 +277,20 @@
                                                     <div>
                                                         <label class="block text-sm font-medium text-gray-700">OG Title</label>
                                                         <input type="text" name="og_title" form="page-form"
-                                                               value="{{ old('og_title', optional($page->seo)->og_title) }}"
+                                                               value="<?php echo e(old('og_title', optional($page->seo)->og_title)); ?>"
                                                                class="mt-1 block w-full rounded-md border-gray-300 focus:border-gray-500 focus:ring-gray-500">
                                                     </div>
 
                                                     <div>
                                                         <label class="block text-sm font-medium text-gray-700">OG Description</label>
                                                         <textarea name="og_description" rows="3" form="page-form"
-                                                                  class="mt-1 block w-full rounded-md border-gray-300 focus:border-gray-500 focus:ring-gray-500">{{ old('og_description', optional($page->seo)->og_description) }}</textarea>
+                                                                  class="mt-1 block w-full rounded-md border-gray-300 focus:border-gray-500 focus:ring-gray-500"><?php echo e(old('og_description', optional($page->seo)->og_description)); ?></textarea>
                                                     </div>
 
                                                     <div>
                                                         <label class="block text-sm font-medium text-gray-700">OG Image URL</label>
                                                         <input type="text" name="og_image_url" form="page-form"
-                                                               value="{{ old('og_image_url', optional($page->seo)->og_image_url) }}"
+                                                               value="<?php echo e(old('og_image_url', optional($page->seo)->og_image_url)); ?>"
                                                                class="mt-1 block w-full rounded-md border-gray-300 focus:border-gray-500 focus:ring-gray-500">
                                                     </div>
                                                 </div>
@@ -255,20 +302,20 @@
                                                         <div>
                                                             <label class="block text-sm font-medium text-gray-700">Twitter Title</label>
                                                             <input type="text" name="twitter_title" form="page-form"
-                                                                   value="{{ old('twitter_title', optional($page->seo)->twitter_title) }}"
+                                                                   value="<?php echo e(old('twitter_title', optional($page->seo)->twitter_title)); ?>"
                                                                    class="mt-1 block w-full rounded-md border-gray-300 focus:border-gray-500 focus:ring-gray-500">
                                                         </div>
 
                                                         <div>
                                                             <label class="block text-sm font-medium text-gray-700">Twitter Description</label>
                                                             <textarea name="twitter_description" rows="3" form="page-form"
-                                                                      class="mt-1 block w-full rounded-md border-gray-300 focus:border-gray-500 focus:ring-gray-500">{{ old('twitter_description', optional($page->seo)->twitter_description) }}</textarea>
+                                                                      class="mt-1 block w-full rounded-md border-gray-300 focus:border-gray-500 focus:ring-gray-500"><?php echo e(old('twitter_description', optional($page->seo)->twitter_description)); ?></textarea>
                                                         </div>
 
                                                         <div>
                                                             <label class="block text-sm font-medium text-gray-700">Twitter Image URL</label>
                                                             <input type="text" name="twitter_image_url" form="page-form"
-                                                                   value="{{ old('twitter_image_url', optional($page->seo)->twitter_image_url) }}"
+                                                                   value="<?php echo e(old('twitter_image_url', optional($page->seo)->twitter_image_url)); ?>"
                                                                    class="mt-1 block w-full rounded-md border-gray-300 focus:border-gray-500 focus:ring-gray-500">
                                                         </div>
                                                     </div>
@@ -279,20 +326,34 @@
                                                 <div>
                                                     <label class="block text-sm font-medium text-gray-700">Canonical URL</label>
                                                     <input type="text" name="canonical_url" form="page-form"
-                                                           value="{{ old('canonical_url', optional($page->seo)->canonical_url) }}"
+                                                           value="<?php echo e(old('canonical_url', optional($page->seo)->canonical_url)); ?>"
                                                            placeholder="Auto uses current URL if empty"
                                                            class="mt-1 block w-full rounded-md border-gray-300 focus:border-gray-500 focus:ring-gray-500"
                                                            id="field-canonical">
-                                                    @error('canonical_url') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                                                    <?php $__errorArgs = ['canonical_url'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> <p class="mt-1 text-sm text-red-600"><?php echo e($message); ?></p> <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
                                                 </div>
 
                                                 <div>
                                                     <label class="block text-sm font-medium text-gray-700">Robots</label>
                                                     <input type="text" name="robots" form="page-form"
-                                                           value="{{ old('robots', optional($page->seo)->robots) }}"
+                                                           value="<?php echo e(old('robots', optional($page->seo)->robots)); ?>"
                                                            placeholder="index,follow"
                                                            class="mt-1 block w-full rounded-md border-gray-300 focus:border-gray-500 focus:ring-gray-500">
-                                                    @error('robots') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                                                    <?php $__errorArgs = ['robots'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> <p class="mt-1 text-sm text-red-600"><?php echo e($message); ?></p> <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
                                                 </div>
 
                                                 <p class="text-xs text-gray-500">
@@ -303,16 +364,16 @@
                                     </div>
                                 </div>
 
-                                {{-- Danger zone (SEPARATE form, NOT nested) --}}
+                                
                                 <div class="rounded-lg border border-red-200 bg-red-50 p-4">
                                     <h3 class="text-sm font-semibold text-red-700">Danger zone</h3>
                                     <p class="text-xs text-red-700/80 mt-1">Move this page to Trash (you can restore it later).</p>
 
-                                    <form method="POST" action="{{ route('admin.pages.destroy', $page) }}"
+                                    <form method="POST" action="<?php echo e(route('admin.pages.destroy', $page)); ?>"
                                           onsubmit="return confirm('Move this page to Trash?');"
                                           class="mt-3">
-                                        @csrf
-                                        @method('DELETE')
+                                        <?php echo csrf_field(); ?>
+                                        <?php echo method_field('DELETE'); ?>
 
                                         <button type="submit"
                                                 class="w-full inline-flex items-center justify-center px-4 py-2 bg-red-600 text-white rounded-md font-semibold text-xs uppercase tracking-widest hover:bg-red-700">
@@ -379,10 +440,10 @@
             function updatePreview() {
                 const title = (elMetaTitle?.value || elTitle?.value || '').trim();
                 const desc = (elMetaDesc?.value || '').trim();
-                const slug = (elSlug?.value || '').replace(/^\/+/, '').trim() || '{{ ltrim($page->slug, '/') }}';
+                const slug = (elSlug?.value || '').replace(/^\/+/, '').trim() || '<?php echo e(ltrim($page->slug, '/')); ?>';
                 const canonical = (elCanonical?.value || '').trim();
 
-                const url = canonical !== '' ? canonical : `{{ url('/') }}/${slug}`;
+                const url = canonical !== '' ? canonical : `<?php echo e(url('/')); ?>/${slug}`;
 
                 prevUrl.textContent = url;
                 prevTitle.textContent = title !== '' ? title : '—';
@@ -419,4 +480,14 @@
             updatePreview();
         })();
     </script>
-</x-admin-layout>
+ <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginale0f1cdd055772eb1d4a99981c240763e)): ?>
+<?php $attributes = $__attributesOriginale0f1cdd055772eb1d4a99981c240763e; ?>
+<?php unset($__attributesOriginale0f1cdd055772eb1d4a99981c240763e); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginale0f1cdd055772eb1d4a99981c240763e)): ?>
+<?php $component = $__componentOriginale0f1cdd055772eb1d4a99981c240763e; ?>
+<?php unset($__componentOriginale0f1cdd055772eb1d4a99981c240763e); ?>
+<?php endif; ?>
+<?php /**PATH C:\laragon\www\2kocms\resources\views/admin/pages/edit.blade.php ENDPATH**/ ?>

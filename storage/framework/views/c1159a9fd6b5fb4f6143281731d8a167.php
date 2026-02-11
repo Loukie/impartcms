@@ -9,20 +9,15 @@
 <?php endif; ?>
 <?php $component->withAttributes([]); ?>
      <?php $__env->slot('header', null, []); ?> 
-        <div class="flex items-center justify-between">
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                Pages
-            </h2>
-
-            <div class="flex items-center gap-3">
-                <a href="<?php echo e(route('admin.pages.trash')); ?>"
-                   class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 uppercase tracking-widest hover:bg-gray-50">
+        <div class="flex flex-col gap-3">
+            <div class="flex items-center justify-between">
+                <h2 class="font-semibold text-xl text-gray-800 leading-tight">
                     Trash
-                </a>
+                </h2>
 
-                <a href="<?php echo e(route('admin.pages.create')); ?>"
+                <a href="<?php echo e(route('admin.pages.index')); ?>"
                    class="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-md font-semibold text-xs uppercase tracking-widest hover:bg-gray-800">
-                    New Page
+                    Back to Pages
                 </a>
             </div>
         </div>
@@ -45,9 +40,9 @@
                                 <tr>
                                     <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
                                     <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Slug</th>
-                                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                     <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
                                     <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Updated</th>
+                                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Deleted</th>
                                     <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
@@ -58,26 +53,11 @@
                                         <td class="px-3 py-2 whitespace-nowrap font-medium text-gray-900">
                                             <?php echo e($page->title); ?>
 
-                                            <?php if($page->is_homepage): ?>
-                                                <span class="ml-2 text-xs px-2 py-0.5 rounded border border-gray-200 bg-gray-50 text-gray-700">
-                                                    Home
-                                                </span>
-                                            <?php endif; ?>
                                         </td>
 
                                         <td class="px-3 py-2 whitespace-nowrap text-gray-700">
                                             <?php echo e($page->slug); ?>
 
-                                        </td>
-
-                                        <td class="px-3 py-2 whitespace-nowrap">
-                                            <span class="px-2 py-1 text-xs rounded border
-                                                <?php echo e($page->status === 'published'
-                                                    ? 'bg-green-50 text-green-800 border-green-200'
-                                                    : 'bg-yellow-50 text-yellow-800 border-yellow-200'); ?>">
-                                                <?php echo e(strtoupper($page->status)); ?>
-
-                                            </span>
                                         </td>
 
                                         <td class="px-3 py-2 whitespace-nowrap text-gray-700 text-sm">
@@ -90,46 +70,37 @@
 
                                         </td>
 
+                                        <td class="px-3 py-2 whitespace-nowrap text-gray-700">
+                                            <?php echo e(optional($page->deleted_at)->format('Y-m-d H:i')); ?>
+
+                                        </td>
+
                                         <td class="px-3 py-2 whitespace-nowrap text-right">
                                             <div class="flex items-center justify-end gap-4">
-                                                <?php if($page->status === 'published'): ?>
-                                                    <a href="<?php echo e(url('/' . ltrim($page->slug, '/'))); ?>"
-                                                       target="_blank"
-                                                       class="underline text-sm text-gray-600 hover:text-gray-900">
-                                                        View Live
-                                                    </a>
-                                                <?php else: ?>
-                                                    <a href="<?php echo e(route('pages.preview', $page)); ?>"
-                                                       target="_blank"
-                                                       class="underline text-sm text-gray-600 hover:text-gray-900">
-                                                        Preview Draft
-                                                    </a>
-                                                <?php endif; ?>
-
-                                                <a href="<?php echo e(route('admin.pages.edit', $page)); ?>"
-                                                   class="text-indigo-600 hover:text-indigo-900 font-semibold text-sm">
-                                                    Edit
+                                                <a href="<?php echo e(route('pages.preview', $page->id)); ?>"
+                                                   target="_blank"
+                                                   class="underline text-sm text-gray-600 hover:text-gray-900">
+                                                    Preview
                                                 </a>
 
-                                                <?php if($page->status === 'published' && !$page->is_homepage): ?>
-                                                    <form method="POST" action="<?php echo e(route('admin.pages.setHomepage', $page)); ?>" class="inline"
-                                                          onsubmit="return confirm('Set this page as the homepage (/)?');">
-                                                        <?php echo csrf_field(); ?>
-                                                        <button type="submit"
-                                                                class="text-gray-700 hover:text-gray-900 font-semibold text-sm">
-                                                            Set Home
-                                                        </button>
-                                                    </form>
-                                                <?php endif; ?>
+                                                <form method="POST" action="<?php echo e(route('admin.pages.restore', ['pageTrash' => $page->id])); ?>"
+                                                      onsubmit="return confirm('Restore this page?');"
+                                                      class="inline">
+                                                    <?php echo csrf_field(); ?>
+                                                    <button type="submit"
+                                                            class="text-green-700 hover:text-green-900 font-semibold text-sm">
+                                                        Restore
+                                                    </button>
+                                                </form>
 
-                                                <form method="POST" action="<?php echo e(route('admin.pages.destroy', $page)); ?>"
-                                                      onsubmit="return confirm('Move this page to trash?');"
+                                                <form method="POST" action="<?php echo e(route('admin.pages.forceDestroy', ['pageTrash' => $page->id])); ?>"
+                                                      onsubmit="return confirm('Delete permanently? This cannot be undone.');"
                                                       class="inline">
                                                     <?php echo csrf_field(); ?>
                                                     <?php echo method_field('DELETE'); ?>
                                                     <button type="submit"
                                                             class="text-red-600 hover:text-red-800 font-semibold text-sm">
-                                                        Trash
+                                                        Delete Permanently
                                                     </button>
                                                 </form>
                                             </div>
@@ -138,7 +109,7 @@
                                 <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                                     <tr>
                                         <td colspan="6" class="px-3 py-6 text-center text-gray-500">
-                                            No pages yet.
+                                            Trash is empty.
                                         </td>
                                     </tr>
                                 <?php endif; ?>
@@ -165,4 +136,4 @@
 <?php if (isset($__componentOriginale0f1cdd055772eb1d4a99981c240763e)): ?>
 <?php $component = $__componentOriginale0f1cdd055772eb1d4a99981c240763e; ?>
 <?php unset($__componentOriginale0f1cdd055772eb1d4a99981c240763e); ?>
-<?php endif; ?><?php /**PATH C:\laragon\www\2kocms\resources\views/admin/pages/index.blade.php ENDPATH**/ ?>
+<?php endif; ?><?php /**PATH C:\laragon\www\2kocms\resources\views/admin/pages/trash.blade.php ENDPATH**/ ?>

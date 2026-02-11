@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Page;
+use App\Models\Setting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -44,10 +45,19 @@ class PageAdminController extends Controller
             unset($data['published_at']);
         }
 
-        $data['is_homepage'] = (bool) $request->boolean('is_homepage');
+        // Only set homepage if the form explicitly includes it.
+        // (Prevents accidentally clearing homepage when the UI doesn't include this field.)
+        if ($request->has('is_homepage')) {
+            $data['is_homepage'] = (bool) $request->boolean('is_homepage');
+        }
         $data = array_filter($data, fn ($v) => $v !== null);
 
         $page = Page::create($data);
+
+        // Enforce single homepage if flagged during create.
+        if (!empty($data['is_homepage'])) {
+            $this->makeHomepage($page);
+        }
 
         $seo = $this->validatedSeo($request);
         $page->seo()->create($seo);
@@ -83,10 +93,18 @@ class PageAdminController extends Controller
             unset($data['published_at']);
         }
 
-        $data['is_homepage'] = (bool) $request->boolean('is_homepage');
+        // Only update homepage flag if the UI explicitly sends it.
+        if ($request->has('is_homepage')) {
+            $data['is_homepage'] = (bool) $request->boolean('is_homepage');
+        }
         $data = array_filter($data, fn ($v) => $v !== null);
 
         $page->update($data);
+
+        // Enforce single homepage if flagged during update.
+        if (!empty($data['is_homepage'])) {
+            $this->makeHomepage($page);
+        }
 
         $seo = $this->validatedSeo($request);
         if ($page->seo) {
@@ -96,6 +114,38 @@ class PageAdminController extends Controller
         }
 
         return back()->with('status', $page->status === 'published' ? 'Page updated ✅' : 'Draft updated ✅');
+    }
+
+    /**
+     * WordPress-style: Set a specific page as the homepage.
+     * - Only published pages can be set as homepage.
+     * - Keeps a single homepage (clears the flag on all others, including trashed).
+     * - Also stores the selection in settings for future flexibility.
+     */
+    public function setHomepage(Page $page): RedirectResponse
+    {
+        if ($page->status !== 'published') {
+            return back()->withErrors([
+                'homepage_page_id' => 'Only published pages can be set as the homepage.',
+            ]);
+        }
+
+        $this->makeHomepage($page);
+
+        return back()->with('status', 'Homepage updated ✅');
+    }
+
+    private function makeHomepage(Page $page): void
+    {
+        // Clear existing homepage flags everywhere (including trashed) to keep it single.
+        Page::withTrashed()->where('id', '!=', $page->id)->update(['is_homepage' => false]);
+
+        // Ensure selected page is marked as homepage.
+        $page->is_homepage = true;
+        $page->save();
+
+        // Persist selection in settings (used by '/' resolver).
+        Setting::set('homepage_page_id', (string) $page->id);
     }
 
     /**

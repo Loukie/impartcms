@@ -1,19 +1,28 @@
 @php
     $siteName = \App\Models\Setting::get('site_name', config('app.name'));
     $logoPath = \App\Models\Setting::get('site_logo_path', null);
+    $showNameWithLogo = (bool) ((int) \App\Models\Setting::get('admin_show_name_with_logo', '0'));
+
+    $hasLogo = !empty($logoPath);
+    $showText = !$hasLogo || $showNameWithLogo;
 
     $isActive = fn(string $pattern) => request()->routeIs($pattern);
 @endphp
 
 <div class="rounded-lg border border-gray-200 bg-white p-4">
-    <div class="flex items-center gap-3">
-        @if($logoPath)
-            <img src="{{ asset('storage/' . $logoPath) }}" alt="Logo" class="h-8 w-auto">
+    <div class="flex items-center gap-3 {{ $showText ? '' : 'justify-center' }}">
+        @if($hasLogo)
+            <img src="{{ asset('storage/' . $logoPath) }}" alt="{{ $siteName }} logo" class="h-8 w-auto">
         @endif
-        <div class="min-w-0">
-            <div class="font-semibold text-gray-900 truncate">{{ $siteName }}</div>
-            <div class="text-xs text-gray-500">Admin</div>
-        </div>
+
+        @if($showText)
+            <div class="min-w-0">
+                <div class="font-semibold text-gray-900 truncate">{{ $siteName }}</div>
+                <div class="text-xs text-gray-500">Admin</div>
+            </div>
+        @else
+            <span class="sr-only">{{ $siteName }} Admin</span>
+        @endif
     </div>
 
     <div class="mt-4 border-t pt-4 space-y-1">
