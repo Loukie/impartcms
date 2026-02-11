@@ -6,8 +6,15 @@
                 <p class="text-sm text-gray-600 mt-1">Manage members and admin access.</p>
             </div>
 
-            <div class="text-xs text-gray-600">
-                Admins: <span class="font-semibold text-gray-900">{{ $adminCount }}</span>
+            <div class="flex items-center gap-3">
+                <a href="{{ route('admin.users.create') }}"
+                   class="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-md font-semibold text-xs uppercase tracking-widest hover:bg-gray-800">
+                    New User
+                </a>
+
+                <div class="text-xs text-gray-600">
+                    Admins: <span class="font-semibold text-gray-900">{{ $adminCount }}</span>
+                </div>
             </div>
         </div>
     </x-slot>

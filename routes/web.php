@@ -77,6 +77,8 @@ Route::middleware(['auth', 'can:access-admin'])
 
         // Users
         Route::get('/users', [UserAdminController::class, 'index'])->name('users.index');
+        Route::get('/users/create', [UserAdminController::class, 'create'])->name('users.create');
+        Route::post('/users', [UserAdminController::class, 'store'])->name('users.store');
         Route::get('/users/{user}/edit', [UserAdminController::class, 'edit'])->name('users.edit');
         Route::put('/users/{user}', [UserAdminController::class, 'update'])->name('users.update');
         Route::post('/users/{user}/toggle-admin', [UserAdminController::class, 'toggleAdmin'])->name('users.toggleAdmin');

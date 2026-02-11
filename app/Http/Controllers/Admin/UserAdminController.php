@@ -23,6 +23,32 @@ class UserAdminController extends Controller
         ]);
     }
 
+    public function create(): View
+    {
+        return view('admin.users.create', [
+            'adminCount' => $this->adminCount(),
+        ]);
+    }
+
+    public function store(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:120'],
+            'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'is_admin' => ['nullable', 'boolean'],
+        ]);
+
+        $user = new User();
+        $user->name = $validated['name'];
+        $user->email = $validated['email'];
+        $user->password = Hash::make($validated['password']);
+        $user->is_admin = (bool) ($validated['is_admin'] ?? false);
+        $user->save();
+
+        return redirect()->route('admin.users.edit', $user)->with('status', 'User created.');
+    }
+
     public function edit(User $user): View
     {
         return view('admin.users.edit', [
