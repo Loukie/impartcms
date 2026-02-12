@@ -12,10 +12,73 @@ use Illuminate\View\View;
 
 class PageAdminController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
+        $q = trim((string) $request->query('q', ''));
+        $status = (string) $request->query('status', ''); // '', 'published', 'draft'
+        $homepage = (string) $request->query('homepage', ''); // '', '1'
+        $sort = (string) $request->query('sort', 'updated_desc');
+
+        $base = Page::query(); // SoftDeletes excluded by default.
+
+        if ($q !== '') {
+            $base->where(function ($query) use ($q) {
+                $query->where('title', 'like', '%' . $q . '%')
+                    ->orWhere('slug', 'like', '%' . $q . '%');
+            });
+        }
+
+        if ($homepage === '1') {
+            $base->where('is_homepage', true);
+        }
+
+        // Counts (WordPress-style tabs). Reflect current search + homepage filter.
+        $countsBase = clone $base;
+        $counts = [
+            'all' => (clone $countsBase)->count(),
+            'published' => (clone $countsBase)->where('status', 'published')->count(),
+            'draft' => (clone $countsBase)->where('status', 'draft')->count(),
+        ];
+
+        // Apply status filter
+        if (in_array($status, ['published', 'draft'], true)) {
+            $base->where('status', $status);
+        } else {
+            $status = '';
+        }
+
+        // Sorting
+        switch ($sort) {
+            case 'updated_asc':
+                $base->orderBy('updated_at');
+                break;
+            case 'created_desc':
+                $base->orderByDesc('created_at');
+                break;
+            case 'created_asc':
+                $base->orderBy('created_at');
+                break;
+            case 'title_asc':
+                $base->orderBy('title');
+                break;
+            case 'title_desc':
+                $base->orderByDesc('title');
+                break;
+            case 'updated_desc':
+            default:
+                $sort = 'updated_desc';
+                $base->orderByDesc('updated_at');
+                break;
+        }
+        $base->orderByDesc('id');
+
         return view('admin.pages.index', [
-            'pages' => Page::query()->orderBy('id', 'desc')->paginate(20),
+            'pages' => $base->paginate(20)->withQueryString(),
+            'counts' => $counts,
+            'currentQuery' => $q,
+            'currentStatus' => $status,
+            'currentHomepage' => $homepage,
+            'currentSort' => $sort,
         ]);
     }
 

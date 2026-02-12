@@ -27,16 +27,84 @@
                 </div>
             @endif
 
-
             @if ($errors->any())
-                <div class=\"mb-4 p-3 rounded bg-red-50 text-red-800 border border-red-200\">
+                <div class="mb-4 p-3 rounded bg-red-50 text-red-800 border border-red-200">
                     {{ $errors->first() }}
                 </div>
             @endif
 
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6">
-                    <div class="overflow-x-auto">
+                    @php
+                        $baseTabQuery = request()->except('page', 'status');
+                        $isAll = ($currentStatus ?? '') === '';
+                        $isPublished = ($currentStatus ?? '') === 'published';
+                        $isDraft = ($currentStatus ?? '') === 'draft';
+                    @endphp
+
+                    <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                        <div class="text-sm text-gray-600">
+                            <a href="{{ route('admin.pages.index', $baseTabQuery) }}"
+                               class="{{ $isAll ? 'font-semibold text-gray-900' : 'hover:text-gray-900' }}">
+                                All <span class="text-gray-500">({{ $counts['all'] ?? 0 }})</span>
+                            </a>
+                            <span class="mx-2 text-gray-300">|</span>
+                            <a href="{{ route('admin.pages.index', array_merge($baseTabQuery, ['status' => 'published'])) }}"
+                               class="{{ $isPublished ? 'font-semibold text-gray-900' : 'hover:text-gray-900' }}">
+                                Published <span class="text-gray-500">({{ $counts['published'] ?? 0 }})</span>
+                            </a>
+                            <span class="mx-2 text-gray-300">|</span>
+                            <a href="{{ route('admin.pages.index', array_merge($baseTabQuery, ['status' => 'draft'])) }}"
+                               class="{{ $isDraft ? 'font-semibold text-gray-900' : 'hover:text-gray-900' }}">
+                                Drafts <span class="text-gray-500">({{ $counts['draft'] ?? 0 }})</span>
+                            </a>
+                        </div>
+
+                        <form method="GET" action="{{ route('admin.pages.index') }}" class="flex flex-col sm:flex-row gap-3 sm:items-end">
+                            <input type="hidden" name="status" value="{{ $currentStatus }}">
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Show</label>
+                                <select name="homepage" class="mt-1 rounded-md border-gray-300">
+                                    <option value="" {{ ($currentHomepage ?? '') === '' ? 'selected' : '' }}>All pages</option>
+                                    <option value="1" {{ ($currentHomepage ?? '') === '1' ? 'selected' : '' }}>Homepage only</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Sort</label>
+                                <select name="sort" class="mt-1 rounded-md border-gray-300">
+                                    <option value="updated_desc" {{ ($currentSort ?? '') === 'updated_desc' ? 'selected' : '' }}>Recently updated</option>
+                                    <option value="updated_asc" {{ ($currentSort ?? '') === 'updated_asc' ? 'selected' : '' }}>Least recently updated</option>
+                                    <option value="created_desc" {{ ($currentSort ?? '') === 'created_desc' ? 'selected' : '' }}>Newest</option>
+                                    <option value="created_asc" {{ ($currentSort ?? '') === 'created_asc' ? 'selected' : '' }}>Oldest</option>
+                                    <option value="title_asc" {{ ($currentSort ?? '') === 'title_asc' ? 'selected' : '' }}>Title A→Z</option>
+                                    <option value="title_desc" {{ ($currentSort ?? '') === 'title_desc' ? 'selected' : '' }}>Title Z→A</option>
+                                </select>
+                            </div>
+
+                            <div class="sm:ml-4">
+                                <label class="block text-sm font-medium text-gray-700">Search</label>
+                                <div class="mt-1 flex items-center gap-2">
+                                    <input type="text" name="q" value="{{ $currentQuery }}"
+                                           placeholder="Search title or slug…"
+                                           class="w-full sm:w-64 rounded-md border-gray-300" />
+
+                                    <button type="submit"
+                                            class="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-md font-semibold text-xs uppercase tracking-widest hover:bg-gray-800">
+                                        Apply
+                                    </button>
+
+                                    <a href="{{ route('admin.pages.index') }}"
+                                       class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 uppercase tracking-widest hover:bg-gray-50">
+                                        Reset
+                                    </a>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="mt-6 overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                                 <tr>
@@ -115,16 +183,16 @@
                                                 @endif
 
                                                 @if(!$page->is_homepage)
-                                                <form method="POST" action="{{ route('admin.pages.destroy', $page) }}"
-                                                      onsubmit="return confirm('Move this page to trash?');"
-                                                      class="inline">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="submit"
-                                                            class="text-red-600 hover:text-red-800 font-semibold text-sm">
-                                                        Trash
-                                                    </button>
-                                                </form>
+                                                    <form method="POST" action="{{ route('admin.pages.destroy', $page) }}"
+                                                          onsubmit="return confirm('Move this page to trash?');"
+                                                          class="inline">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button type="submit"
+                                                                class="text-red-600 hover:text-red-800 font-semibold text-sm">
+                                                            Trash
+                                                        </button>
+                                                    </form>
                                                 @else
                                                     <span class="text-gray-400 font-semibold text-sm cursor-not-allowed"
                                                           title="You can’t trash the homepage. Set a different homepage first.">
@@ -137,7 +205,7 @@
                                 @empty
                                     <tr>
                                         <td colspan="6" class="px-3 py-6 text-center text-gray-500">
-                                            No pages yet.
+                                            No pages found.
                                         </td>
                                     </tr>
                                 @endforelse

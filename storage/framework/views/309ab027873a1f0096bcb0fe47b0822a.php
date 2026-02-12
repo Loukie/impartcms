@@ -37,9 +37,8 @@
                 </div>
             <?php endif; ?>
 
-
             <?php if($errors->any()): ?>
-                <div class=\"mb-4 p-3 rounded bg-red-50 text-red-800 border border-red-200\">
+                <div class="mb-4 p-3 rounded bg-red-50 text-red-800 border border-red-200">
                     <?php echo e($errors->first()); ?>
 
                 </div>
@@ -47,7 +46,76 @@
 
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6">
-                    <div class="overflow-x-auto">
+                    <?php
+                        $baseTabQuery = request()->except('page', 'status');
+                        $isAll = ($currentStatus ?? '') === '';
+                        $isPublished = ($currentStatus ?? '') === 'published';
+                        $isDraft = ($currentStatus ?? '') === 'draft';
+                    ?>
+
+                    <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                        <div class="text-sm text-gray-600">
+                            <a href="<?php echo e(route('admin.pages.index', $baseTabQuery)); ?>"
+                               class="<?php echo e($isAll ? 'font-semibold text-gray-900' : 'hover:text-gray-900'); ?>">
+                                All <span class="text-gray-500">(<?php echo e($counts['all'] ?? 0); ?>)</span>
+                            </a>
+                            <span class="mx-2 text-gray-300">|</span>
+                            <a href="<?php echo e(route('admin.pages.index', array_merge($baseTabQuery, ['status' => 'published']))); ?>"
+                               class="<?php echo e($isPublished ? 'font-semibold text-gray-900' : 'hover:text-gray-900'); ?>">
+                                Published <span class="text-gray-500">(<?php echo e($counts['published'] ?? 0); ?>)</span>
+                            </a>
+                            <span class="mx-2 text-gray-300">|</span>
+                            <a href="<?php echo e(route('admin.pages.index', array_merge($baseTabQuery, ['status' => 'draft']))); ?>"
+                               class="<?php echo e($isDraft ? 'font-semibold text-gray-900' : 'hover:text-gray-900'); ?>">
+                                Drafts <span class="text-gray-500">(<?php echo e($counts['draft'] ?? 0); ?>)</span>
+                            </a>
+                        </div>
+
+                        <form method="GET" action="<?php echo e(route('admin.pages.index')); ?>" class="flex flex-col sm:flex-row gap-3 sm:items-end">
+                            <input type="hidden" name="status" value="<?php echo e($currentStatus); ?>">
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Show</label>
+                                <select name="homepage" class="mt-1 rounded-md border-gray-300">
+                                    <option value="" <?php echo e(($currentHomepage ?? '') === '' ? 'selected' : ''); ?>>All pages</option>
+                                    <option value="1" <?php echo e(($currentHomepage ?? '') === '1' ? 'selected' : ''); ?>>Homepage only</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Sort</label>
+                                <select name="sort" class="mt-1 rounded-md border-gray-300">
+                                    <option value="updated_desc" <?php echo e(($currentSort ?? '') === 'updated_desc' ? 'selected' : ''); ?>>Recently updated</option>
+                                    <option value="updated_asc" <?php echo e(($currentSort ?? '') === 'updated_asc' ? 'selected' : ''); ?>>Least recently updated</option>
+                                    <option value="created_desc" <?php echo e(($currentSort ?? '') === 'created_desc' ? 'selected' : ''); ?>>Newest</option>
+                                    <option value="created_asc" <?php echo e(($currentSort ?? '') === 'created_asc' ? 'selected' : ''); ?>>Oldest</option>
+                                    <option value="title_asc" <?php echo e(($currentSort ?? '') === 'title_asc' ? 'selected' : ''); ?>>Title A→Z</option>
+                                    <option value="title_desc" <?php echo e(($currentSort ?? '') === 'title_desc' ? 'selected' : ''); ?>>Title Z→A</option>
+                                </select>
+                            </div>
+
+                            <div class="sm:ml-4">
+                                <label class="block text-sm font-medium text-gray-700">Search</label>
+                                <div class="mt-1 flex items-center gap-2">
+                                    <input type="text" name="q" value="<?php echo e($currentQuery); ?>"
+                                           placeholder="Search title or slug…"
+                                           class="w-full sm:w-64 rounded-md border-gray-300" />
+
+                                    <button type="submit"
+                                            class="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-md font-semibold text-xs uppercase tracking-widest hover:bg-gray-800">
+                                        Apply
+                                    </button>
+
+                                    <a href="<?php echo e(route('admin.pages.index')); ?>"
+                                       class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 uppercase tracking-widest hover:bg-gray-50">
+                                        Reset
+                                    </a>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="mt-6 overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                                 <tr>
@@ -131,16 +199,16 @@
                                                 <?php endif; ?>
 
                                                 <?php if(!$page->is_homepage): ?>
-                                                <form method="POST" action="<?php echo e(route('admin.pages.destroy', $page)); ?>"
-                                                      onsubmit="return confirm('Move this page to trash?');"
-                                                      class="inline">
-                                                    <?php echo csrf_field(); ?>
-                                                    <?php echo method_field('DELETE'); ?>
-                                                    <button type="submit"
-                                                            class="text-red-600 hover:text-red-800 font-semibold text-sm">
-                                                        Trash
-                                                    </button>
-                                                </form>
+                                                    <form method="POST" action="<?php echo e(route('admin.pages.destroy', $page)); ?>"
+                                                          onsubmit="return confirm('Move this page to trash?');"
+                                                          class="inline">
+                                                        <?php echo csrf_field(); ?>
+                                                        <?php echo method_field('DELETE'); ?>
+                                                        <button type="submit"
+                                                                class="text-red-600 hover:text-red-800 font-semibold text-sm">
+                                                            Trash
+                                                        </button>
+                                                    </form>
                                                 <?php else: ?>
                                                     <span class="text-gray-400 font-semibold text-sm cursor-not-allowed"
                                                           title="You can’t trash the homepage. Set a different homepage first.">
@@ -153,7 +221,7 @@
                                 <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                                     <tr>
                                         <td colspan="6" class="px-3 py-6 text-center text-gray-500">
-                                            No pages yet.
+                                            No pages found.
                                         </td>
                                     </tr>
                                 <?php endif; ?>
@@ -180,4 +248,5 @@
 <?php if (isset($__componentOriginale0f1cdd055772eb1d4a99981c240763e)): ?>
 <?php $component = $__componentOriginale0f1cdd055772eb1d4a99981c240763e; ?>
 <?php unset($__componentOriginale0f1cdd055772eb1d4a99981c240763e); ?>
-<?php endif; ?><?php /**PATH C:\laragon\www\2kocms\resources\views/admin/pages/index.blade.php ENDPATH**/ ?>
+<?php endif; ?>
+<?php /**PATH C:\laragon\www\2kocms\resources\views/admin/pages/index.blade.php ENDPATH**/ ?>

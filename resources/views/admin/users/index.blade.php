@@ -35,7 +35,68 @@
 
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6">
-                    <div class="overflow-x-auto">
+                    @php
+                        $baseTabQuery = request()->except('page', 'role');
+                        $isAll = ($currentRole ?? '') === '';
+                        $isAdmins = ($currentRole ?? '') === 'admin';
+                        $isMembers = ($currentRole ?? '') === 'member';
+                    @endphp
+
+                    <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                        <div class="text-sm text-gray-600">
+                            <a href="{{ route('admin.users.index', $baseTabQuery) }}"
+                               class="{{ $isAll ? 'font-semibold text-gray-900' : 'hover:text-gray-900' }}">
+                                All <span class="text-gray-500">({{ $counts['all'] ?? 0 }})</span>
+                            </a>
+                            <span class="mx-2 text-gray-300">|</span>
+                            <a href="{{ route('admin.users.index', array_merge($baseTabQuery, ['role' => 'admin'])) }}"
+                               class="{{ $isAdmins ? 'font-semibold text-gray-900' : 'hover:text-gray-900' }}">
+                                Admins <span class="text-gray-500">({{ $counts['admins'] ?? 0 }})</span>
+                            </a>
+                            <span class="mx-2 text-gray-300">|</span>
+                            <a href="{{ route('admin.users.index', array_merge($baseTabQuery, ['role' => 'member'])) }}"
+                               class="{{ $isMembers ? 'font-semibold text-gray-900' : 'hover:text-gray-900' }}">
+                                Members <span class="text-gray-500">({{ $counts['members'] ?? 0 }})</span>
+                            </a>
+                        </div>
+
+                        <form method="GET" action="{{ route('admin.users.index') }}" class="flex flex-col sm:flex-row gap-3 sm:items-end">
+                            <input type="hidden" name="role" value="{{ $currentRole }}">
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Sort</label>
+                                <select name="sort" class="mt-1 rounded-md border-gray-300">
+                                    <option value="name_asc" {{ ($currentSort ?? '') === 'name_asc' ? 'selected' : '' }}>Name A→Z</option>
+                                    <option value="name_desc" {{ ($currentSort ?? '') === 'name_desc' ? 'selected' : '' }}>Name Z→A</option>
+                                    <option value="email_asc" {{ ($currentSort ?? '') === 'email_asc' ? 'selected' : '' }}>Email A→Z</option>
+                                    <option value="email_desc" {{ ($currentSort ?? '') === 'email_desc' ? 'selected' : '' }}>Email Z→A</option>
+                                    <option value="created_desc" {{ ($currentSort ?? '') === 'created_desc' ? 'selected' : '' }}>Newest</option>
+                                    <option value="created_asc" {{ ($currentSort ?? '') === 'created_asc' ? 'selected' : '' }}>Oldest</option>
+                                </select>
+                            </div>
+
+                            <div class="sm:ml-4">
+                                <label class="block text-sm font-medium text-gray-700">Search</label>
+                                <div class="mt-1 flex items-center gap-2">
+                                    <input type="text" name="q" value="{{ $currentQuery }}"
+                                           placeholder="Search name or email…"
+                                           class="w-full sm:w-64 rounded-md border-gray-300" />
+
+                                    <button type="submit"
+                                            class="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-md font-semibold text-xs uppercase tracking-widest hover:bg-gray-800">
+                                        Apply
+                                    </button>
+
+                                    <a href="{{ route('admin.users.index') }}"
+                                       class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 uppercase tracking-widest hover:bg-gray-50">
+                                        Reset
+                                    </a>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="mt-6 overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                             <tr>

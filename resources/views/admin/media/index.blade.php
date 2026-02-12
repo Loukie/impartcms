@@ -3,7 +3,7 @@
         <div class="flex items-center justify-between">
             <div>
                 <h2 class="font-semibold text-xl text-gray-800 leading-tight">Media</h2>
-                <p class="text-sm text-gray-600 mt-1">Upload and manage files. Public pages stay fast — the builder never runs on the front-end.</p>
+                <p class="text-sm text-gray-600 mt-1">Upload and manage files.</p>
             </div>
         </div>
     </x-slot>
@@ -24,43 +24,81 @@
 
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6">
+                    @php
+                        $baseTabQuery = request()->except('page', 'type');
+                        $isAll = ($currentType ?? '') === '';
+                        $isImages = ($currentType ?? '') === 'images';
+                        $isDocs = ($currentType ?? '') === 'docs';
+                    @endphp
 
-                    <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                        <form method="GET" class="flex flex-col sm:flex-row gap-3 sm:items-end">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Type</label>
-                                <select name="type" class="mt-1 rounded-md border-gray-300">
-                                    <option value="" {{ $currentType === '' ? 'selected' : '' }}>All</option>
-                                    <option value="images" {{ $currentType === 'images' ? 'selected' : '' }}>Images</option>
-                                    <option value="docs" {{ $currentType === 'docs' ? 'selected' : '' }}>Docs</option>
-                                </select>
-                            </div>
+                    <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                        <div class="text-sm text-gray-600">
+                            <a href="{{ route('admin.media.index', $baseTabQuery) }}"
+                               class="{{ $isAll ? 'font-semibold text-gray-900' : 'hover:text-gray-900' }}">
+                                All <span class="text-gray-500">({{ $counts['all'] ?? 0 }})</span>
+                            </a>
+                            <span class="mx-2 text-gray-300">|</span>
+                            <a href="{{ route('admin.media.index', array_merge($baseTabQuery, ['type' => 'images'])) }}"
+                               class="{{ $isImages ? 'font-semibold text-gray-900' : 'hover:text-gray-900' }}">
+                                Images <span class="text-gray-500">({{ $counts['images'] ?? 0 }})</span>
+                            </a>
+                            <span class="mx-2 text-gray-300">|</span>
+                            <a href="{{ route('admin.media.index', array_merge($baseTabQuery, ['type' => 'docs'])) }}"
+                               class="{{ $isDocs ? 'font-semibold text-gray-900' : 'hover:text-gray-900' }}">
+                                Docs <span class="text-gray-500">({{ $counts['docs'] ?? 0 }})</span>
+                            </a>
+                        </div>
+
+                        <form method="GET" action="{{ route('admin.media.index') }}" class="flex flex-col sm:flex-row gap-3 sm:items-end">
+                            <input type="hidden" name="type" value="{{ $currentType }}">
 
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Folder</label>
                                 <select name="folder" class="mt-1 rounded-md border-gray-300">
-                                    <option value="" {{ $currentFolder === '' ? 'selected' : '' }}>All</option>
+                                    <option value="" {{ ($currentFolder ?? '') === '' ? 'selected' : '' }}>All folders</option>
                                     @foreach($folders as $f)
-                                        <option value="{{ $f }}" {{ $currentFolder === $f ? 'selected' : '' }}>{{ $f }}</option>
+                                        <option value="{{ $f }}" {{ ($currentFolder ?? '') === $f ? 'selected' : '' }}>{{ $f }}</option>
                                     @endforeach
                                 </select>
                             </div>
 
-                            <div class="flex items-center gap-2">
-                                <button type="submit"
-                                        class="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-md font-semibold text-xs uppercase tracking-widest hover:bg-gray-800">
-                                    Filter
-                                </button>
-                                <a href="{{ route('admin.media.index') }}"
-                                   class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 uppercase tracking-widest hover:bg-gray-50">
-                                    Reset
-                                </a>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Sort</label>
+                                <select name="sort" class="mt-1 rounded-md border-gray-300">
+                                    <option value="newest" {{ ($currentSort ?? '') === 'newest' ? 'selected' : '' }}>Newest</option>
+                                    <option value="oldest" {{ ($currentSort ?? '') === 'oldest' ? 'selected' : '' }}>Oldest</option>
+                                    <option value="title_asc" {{ ($currentSort ?? '') === 'title_asc' ? 'selected' : '' }}>Title A→Z</option>
+                                    <option value="title_desc" {{ ($currentSort ?? '') === 'title_desc' ? 'selected' : '' }}>Title Z→A</option>
+                                    <option value="largest" {{ ($currentSort ?? '') === 'largest' ? 'selected' : '' }}>Largest</option>
+                                    <option value="smallest" {{ ($currentSort ?? '') === 'smallest' ? 'selected' : '' }}>Smallest</option>
+                                </select>
+                            </div>
+
+                            <div class="sm:ml-4">
+                                <label class="block text-sm font-medium text-gray-700">Search</label>
+                                <div class="mt-1 flex items-center gap-2">
+                                    <input type="text" name="q" value="{{ $currentQuery }}"
+                                           placeholder="Search filename or title…"
+                                           class="w-full sm:w-64 rounded-md border-gray-300" />
+
+                                    <button type="submit"
+                                            class="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-md font-semibold text-xs uppercase tracking-widest hover:bg-gray-800">
+                                        Apply
+                                    </button>
+
+                                    <a href="{{ route('admin.media.index') }}"
+                                       class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 uppercase tracking-widest hover:bg-gray-50">
+                                        Reset
+                                    </a>
+                                </div>
                             </div>
                         </form>
+                    </div>
 
-                        <form method="POST" action="{{ route('admin.media.store') }}" enctype="multipart/form-data" class="w-full lg:w-auto">
+                    <div class="mt-6">
+                        <form method="POST" action="{{ route('admin.media.store') }}" enctype="multipart/form-data">
                             @csrf
-                            <div class="flex flex-col sm:flex-row gap-3 sm:items-end">
+                            <div class="flex flex-col sm:flex-row gap-3 sm:items-end sm:justify-between">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700">Upload</label>
                                     <input name="files[]" type="file" multiple
@@ -77,7 +115,7 @@
                     </div>
 
                     <div class="mt-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                        @foreach($media as $item)
+                        @forelse($media as $item)
                             <a href="{{ route('admin.media.show', $item) }}"
                                class="group border rounded-lg overflow-hidden hover:shadow-sm">
                                 <div class="bg-gray-50 aspect-square flex items-center justify-center">
@@ -95,7 +133,11 @@
                                     <div class="text-[11px] text-gray-500 truncate">{{ $item->folder }}</div>
                                 </div>
                             </a>
-                        @endforeach
+                        @empty
+                            <div class="col-span-6 text-sm text-gray-500">
+                                No media found.
+                            </div>
+                        @endforelse
                     </div>
 
                     <div class="mt-6">

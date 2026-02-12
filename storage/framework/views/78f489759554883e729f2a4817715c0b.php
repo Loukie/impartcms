@@ -12,7 +12,7 @@
         <div class="flex items-center justify-between">
             <div>
                 <h2 class="font-semibold text-xl text-gray-800 leading-tight">Media</h2>
-                <p class="text-sm text-gray-600 mt-1">Upload and manage files. Public pages stay fast — the builder never runs on the front-end.</p>
+                <p class="text-sm text-gray-600 mt-1">Upload and manage files.</p>
             </div>
         </div>
      <?php $__env->endSlot(); ?>
@@ -35,43 +35,81 @@
 
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6">
+                    <?php
+                        $baseTabQuery = request()->except('page', 'type');
+                        $isAll = ($currentType ?? '') === '';
+                        $isImages = ($currentType ?? '') === 'images';
+                        $isDocs = ($currentType ?? '') === 'docs';
+                    ?>
 
-                    <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                        <form method="GET" class="flex flex-col sm:flex-row gap-3 sm:items-end">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Type</label>
-                                <select name="type" class="mt-1 rounded-md border-gray-300">
-                                    <option value="" <?php echo e($currentType === '' ? 'selected' : ''); ?>>All</option>
-                                    <option value="images" <?php echo e($currentType === 'images' ? 'selected' : ''); ?>>Images</option>
-                                    <option value="docs" <?php echo e($currentType === 'docs' ? 'selected' : ''); ?>>Docs</option>
-                                </select>
-                            </div>
+                    <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                        <div class="text-sm text-gray-600">
+                            <a href="<?php echo e(route('admin.media.index', $baseTabQuery)); ?>"
+                               class="<?php echo e($isAll ? 'font-semibold text-gray-900' : 'hover:text-gray-900'); ?>">
+                                All <span class="text-gray-500">(<?php echo e($counts['all'] ?? 0); ?>)</span>
+                            </a>
+                            <span class="mx-2 text-gray-300">|</span>
+                            <a href="<?php echo e(route('admin.media.index', array_merge($baseTabQuery, ['type' => 'images']))); ?>"
+                               class="<?php echo e($isImages ? 'font-semibold text-gray-900' : 'hover:text-gray-900'); ?>">
+                                Images <span class="text-gray-500">(<?php echo e($counts['images'] ?? 0); ?>)</span>
+                            </a>
+                            <span class="mx-2 text-gray-300">|</span>
+                            <a href="<?php echo e(route('admin.media.index', array_merge($baseTabQuery, ['type' => 'docs']))); ?>"
+                               class="<?php echo e($isDocs ? 'font-semibold text-gray-900' : 'hover:text-gray-900'); ?>">
+                                Docs <span class="text-gray-500">(<?php echo e($counts['docs'] ?? 0); ?>)</span>
+                            </a>
+                        </div>
+
+                        <form method="GET" action="<?php echo e(route('admin.media.index')); ?>" class="flex flex-col sm:flex-row gap-3 sm:items-end">
+                            <input type="hidden" name="type" value="<?php echo e($currentType); ?>">
 
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Folder</label>
                                 <select name="folder" class="mt-1 rounded-md border-gray-300">
-                                    <option value="" <?php echo e($currentFolder === '' ? 'selected' : ''); ?>>All</option>
+                                    <option value="" <?php echo e(($currentFolder ?? '') === '' ? 'selected' : ''); ?>>All folders</option>
                                     <?php $__currentLoopData = $folders; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $f): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                                        <option value="<?php echo e($f); ?>" <?php echo e($currentFolder === $f ? 'selected' : ''); ?>><?php echo e($f); ?></option>
+                                        <option value="<?php echo e($f); ?>" <?php echo e(($currentFolder ?? '') === $f ? 'selected' : ''); ?>><?php echo e($f); ?></option>
                                     <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                                 </select>
                             </div>
 
-                            <div class="flex items-center gap-2">
-                                <button type="submit"
-                                        class="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-md font-semibold text-xs uppercase tracking-widest hover:bg-gray-800">
-                                    Filter
-                                </button>
-                                <a href="<?php echo e(route('admin.media.index')); ?>"
-                                   class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 uppercase tracking-widest hover:bg-gray-50">
-                                    Reset
-                                </a>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Sort</label>
+                                <select name="sort" class="mt-1 rounded-md border-gray-300">
+                                    <option value="newest" <?php echo e(($currentSort ?? '') === 'newest' ? 'selected' : ''); ?>>Newest</option>
+                                    <option value="oldest" <?php echo e(($currentSort ?? '') === 'oldest' ? 'selected' : ''); ?>>Oldest</option>
+                                    <option value="title_asc" <?php echo e(($currentSort ?? '') === 'title_asc' ? 'selected' : ''); ?>>Title A→Z</option>
+                                    <option value="title_desc" <?php echo e(($currentSort ?? '') === 'title_desc' ? 'selected' : ''); ?>>Title Z→A</option>
+                                    <option value="largest" <?php echo e(($currentSort ?? '') === 'largest' ? 'selected' : ''); ?>>Largest</option>
+                                    <option value="smallest" <?php echo e(($currentSort ?? '') === 'smallest' ? 'selected' : ''); ?>>Smallest</option>
+                                </select>
+                            </div>
+
+                            <div class="sm:ml-4">
+                                <label class="block text-sm font-medium text-gray-700">Search</label>
+                                <div class="mt-1 flex items-center gap-2">
+                                    <input type="text" name="q" value="<?php echo e($currentQuery); ?>"
+                                           placeholder="Search filename or title…"
+                                           class="w-full sm:w-64 rounded-md border-gray-300" />
+
+                                    <button type="submit"
+                                            class="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-md font-semibold text-xs uppercase tracking-widest hover:bg-gray-800">
+                                        Apply
+                                    </button>
+
+                                    <a href="<?php echo e(route('admin.media.index')); ?>"
+                                       class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 uppercase tracking-widest hover:bg-gray-50">
+                                        Reset
+                                    </a>
+                                </div>
                             </div>
                         </form>
+                    </div>
 
-                        <form method="POST" action="<?php echo e(route('admin.media.store')); ?>" enctype="multipart/form-data" class="w-full lg:w-auto">
+                    <div class="mt-6">
+                        <form method="POST" action="<?php echo e(route('admin.media.store')); ?>" enctype="multipart/form-data">
                             <?php echo csrf_field(); ?>
-                            <div class="flex flex-col sm:flex-row gap-3 sm:items-end">
+                            <div class="flex flex-col sm:flex-row gap-3 sm:items-end sm:justify-between">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700">Upload</label>
                                     <input name="files[]" type="file" multiple
@@ -88,7 +126,7 @@
                     </div>
 
                     <div class="mt-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                        <?php $__currentLoopData = $media; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        <?php $__empty_1 = true; $__currentLoopData = $media; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                             <a href="<?php echo e(route('admin.media.show', $item)); ?>"
                                class="group border rounded-lg overflow-hidden hover:shadow-sm">
                                 <div class="bg-gray-50 aspect-square flex items-center justify-center">
@@ -107,7 +145,11 @@
                                     <div class="text-[11px] text-gray-500 truncate"><?php echo e($item->folder); ?></div>
                                 </div>
                             </a>
-                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
+                            <div class="col-span-6 text-sm text-gray-500">
+                                No media found.
+                            </div>
+                        <?php endif; ?>
                     </div>
 
                     <div class="mt-6">

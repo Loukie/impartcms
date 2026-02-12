@@ -13,14 +13,69 @@ use Illuminate\View\View;
 
 class UserAdminController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
+        $q = trim((string) $request->query('q', ''));
+        $role = (string) $request->query('role', ''); // '', 'admin', 'member'
+        $sort = (string) $request->query('sort', 'name_asc');
+
+        $base = User::query();
+
+        if ($q !== '') {
+            $base->where(function ($query) use ($q) {
+                $query->where('name', 'like', '%' . $q . '%')
+                    ->orWhere('email', 'like', '%' . $q . '%');
+            });
+        }
+
+        // Counts for tabs (reflect current search).
+        $countsBase = clone $base;
+        $counts = [
+            'all' => (clone $countsBase)->count(),
+            'admins' => (clone $countsBase)->where('is_admin', true)->count(),
+            'members' => (clone $countsBase)->where('is_admin', false)->count(),
+        ];
+
+        if ($role === 'admin') {
+            $base->where('is_admin', true);
+        } elseif ($role === 'member') {
+            $base->where('is_admin', false);
+        } else {
+            $role = '';
+        }
+
+        switch ($sort) {
+            case 'name_desc':
+                $base->orderByDesc('name');
+                break;
+            case 'email_asc':
+                $base->orderBy('email');
+                break;
+            case 'email_desc':
+                $base->orderByDesc('email');
+                break;
+            case 'created_desc':
+                $base->orderByDesc('created_at');
+                break;
+            case 'created_asc':
+                $base->orderBy('created_at');
+                break;
+            case 'name_asc':
+            default:
+                $sort = 'name_asc';
+                // WordPress-ish: show admins first, then name.
+                $base->orderByDesc('is_admin')->orderBy('name');
+                break;
+        }
+        $base->orderBy('id');
+
         return view('admin.users.index', [
-            'adminCount' => $this->adminCount(),
-            'users' => User::query()
-                ->orderByDesc('is_admin')
-                ->orderBy('name')
-                ->paginate(25),
+            'adminCount' => $counts['admins'],
+            'counts' => $counts,
+            'users' => $base->paginate(25)->withQueryString(),
+            'currentQuery' => $q,
+            'currentRole' => $role,
+            'currentSort' => $sort,
         ]);
     }
 

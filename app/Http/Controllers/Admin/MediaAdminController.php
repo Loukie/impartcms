@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\MediaFile;
 use App\Models\Page;
 use App\Models\SeoMeta;
-use App\Models\Setting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -19,21 +18,65 @@ class MediaAdminController extends Controller
     {
         $folder = (string) $request->query('folder', '');
         $type = (string) $request->query('type', '');
+        $q = trim((string) $request->query('q', ''));
+        $sort = (string) $request->query('sort', 'newest');
 
-        $query = MediaFile::query()->latest();
+        $base = MediaFile::query();
 
         if ($folder !== '') {
-            $query->where('folder', $folder);
+            $base->where('folder', $folder);
         }
 
+        if ($q !== '') {
+            $base->where(function ($query) use ($q) {
+                $query->where('title', 'like', '%' . $q . '%')
+                    ->orWhere('original_name', 'like', '%' . $q . '%')
+                    ->orWhere('filename', 'like', '%' . $q . '%');
+            });
+        }
+
+        // Counts for WordPress-style tabs (reflect current search + folder filter).
+        $countsBase = clone $base;
+        $counts = [
+            'all' => (clone $countsBase)->count(),
+            'images' => (clone $countsBase)->where('mime_type', 'like', 'image/%')->count(),
+            'docs' => (clone $countsBase)->where('mime_type', 'not like', 'image/%')->count(),
+        ];
+
         if ($type === 'images') {
-            $query->where('mime_type', 'like', 'image/%');
+            $base->where('mime_type', 'like', 'image/%');
         } elseif ($type === 'docs') {
-            $query->where('mime_type', 'not like', 'image/%');
+            $base->where('mime_type', 'not like', 'image/%');
+        } else {
+            $type = '';
+        }
+
+        switch ($sort) {
+            case 'oldest':
+                $base->orderBy('id');
+                break;
+            case 'title_asc':
+                $base->orderBy('title');
+                break;
+            case 'title_desc':
+                $base->orderByDesc('title');
+                break;
+            case 'largest':
+                $base->orderByDesc('size');
+                break;
+            case 'smallest':
+                $base->orderBy('size');
+                break;
+            case 'newest':
+            default:
+                $sort = 'newest';
+                $base->orderByDesc('id');
+                break;
         }
 
         return view('admin.media.index', [
-            'media' => $query->paginate(30)->withQueryString(),
+            'media' => $base->paginate(30)->withQueryString(),
+            'counts' => $counts,
             'folders' => MediaFile::query()
                 ->select('folder')
                 ->whereNotNull('folder')
@@ -43,6 +86,8 @@ class MediaAdminController extends Controller
                 ->all(),
             'currentFolder' => $folder,
             'currentType' => $type,
+            'currentQuery' => $q,
+            'currentSort' => $sort,
         ]);
     }
 
@@ -127,13 +172,7 @@ class MediaAdminController extends Controller
     {
         // Safety: refuse delete if it appears in any pages/seo.
         $usage = $this->detectUsage($media);
-        $inUse = (
-            (isset($usage['pages']) && method_exists($usage['pages'], 'isNotEmpty') && $usage['pages']->isNotEmpty())
-            || (isset($usage['seo_pages']) && method_exists($usage['seo_pages'], 'isNotEmpty') && $usage['seo_pages']->isNotEmpty())
-            || ((bool) ($usage['settings_logo'] ?? false))
-        );
-
-        if ($inUse) {
+        if (($usage['pages'] ?? collect())->isNotEmpty() || ($usage['seo_pages'] ?? collect())->isNotEmpty()) {
             return back()->withErrors([
                 'status' => 'This file appears to be in use. Remove it from pages first, then delete.'
             ]);
@@ -154,9 +193,6 @@ class MediaAdminController extends Controller
     {
         $relative = '/storage/' . ltrim($media->path, '/');
         $relative2 = 'storage/' . ltrim($media->path, '/');
-
-        $logoMediaId = (int) (Setting::get('site_logo_media_id', '0') ?? 0);
-        $usedAsLogo = $logoMediaId > 0 && $logoMediaId === (int) $media->id;
 
         $pages = Page::query()
             ->where(function ($q) use ($relative, $relative2) {
@@ -185,7 +221,6 @@ class MediaAdminController extends Controller
         return [
             'pages' => $pages,
             'seo_pages' => $seoPages,
-            'settings_logo' => $usedAsLogo,
         ];
     }
 }
