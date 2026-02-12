@@ -34,11 +34,6 @@ class SettingsController extends Controller
                 ->where('status', 'published')
                 ->orderBy('title')
                 ->get(['id', 'title', 'slug']),
-            'logoMediaOptions' => MediaFile::query()
-                ->where('mime_type', 'like', 'image/%')
-                ->latest()
-                ->limit(200)
-                ->get(['id', 'title', 'original_name', 'folder']),
         ]);
     }
 
@@ -76,15 +71,18 @@ class SettingsController extends Controller
             Setting::set('homepage_page_id', (string) $page->id);
         }
 
+        // Remove logo is explicit: clears both uploaded-logo + media-logo references.
         $removeLogo = (bool)($validated['remove_logo'] ?? false);
-
         if ($removeLogo) {
             $existing = Setting::get('site_logo_path', null);
             if ($existing && str_starts_with((string) $existing, 'settings/')) {
                 Storage::disk('public')->delete($existing);
             }
+
             Setting::set('site_logo_path', null);
             Setting::set('site_logo_media_id', '0');
+
+            return back()->with('status', 'Settings updated.');
         }
 
         // If a Media Library image is selected, use it as the logo.
@@ -103,6 +101,7 @@ class SettingsController extends Controller
             Setting::set('site_logo_media_id', (string) $media->id);
         }
 
+        // Uploaded logo overrides any Media-selected logo.
         if ($request->hasFile('site_logo')) {
             $existing = Setting::get('site_logo_path', null);
             if ($existing && str_starts_with((string) $existing, 'settings/')) {
@@ -111,8 +110,6 @@ class SettingsController extends Controller
 
             $path = $request->file('site_logo')->store('settings', 'public');
             Setting::set('site_logo_path', $path);
-
-            // Uploaded logo overrides any Media-selected logo.
             Setting::set('site_logo_media_id', '0');
         }
 

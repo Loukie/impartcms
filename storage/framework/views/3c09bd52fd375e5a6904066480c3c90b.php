@@ -188,6 +188,78 @@
         </main>
     </div>
 </div>
+
+
+    
+    <div id="impart-media-picker-modal" class="fixed inset-0 z-50 hidden" aria-hidden="true">
+        <div class="absolute inset-0 bg-black/60" data-impart-media-close></div>
+        <div class="relative mx-auto my-10 w-[min(1100px,calc(100%-2rem))] h-[min(80vh,760px)] bg-white rounded-xl shadow-xl overflow-hidden flex flex-col">
+            <div class="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-white">
+                <div class="text-sm font-semibold text-gray-900">Media library</div>
+                <button type="button" class="inline-flex items-center justify-center h-9 w-9 rounded-md hover:bg-gray-100" aria-label="Close" data-impart-media-close>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-5 w-5 text-gray-700">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 6l12 12M18 6L6 18" />
+                    </svg>
+                </button>
+            </div>
+
+            <iframe id="impart-media-picker-iframe" src="about:blank" class="flex-1 w-full" title="Media picker"></iframe>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            const modal = document.getElementById('impart-media-picker-modal');
+            const iframe = document.getElementById('impart-media-picker-iframe');
+            if (!modal || !iframe) return;
+
+            let activeCallback = null;
+
+            function open(options) {
+                const url = options?.url;
+                activeCallback = typeof options?.onSelect === 'function' ? options.onSelect : null;
+
+                iframe.src = url || 'about:blank';
+                modal.classList.remove('hidden');
+                modal.setAttribute('aria-hidden', 'false');
+            }
+
+            function close() {
+                modal.classList.add('hidden');
+                modal.setAttribute('aria-hidden', 'true');
+                iframe.src = 'about:blank';
+                activeCallback = null;
+            }
+
+            window.ImpartMediaPicker = { open, close };
+
+            modal.querySelectorAll('[data-impart-media-close]').forEach((el) => {
+                el.addEventListener('click', () => close());
+            });
+
+            // Close on ESC
+            window.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && !modal.classList.contains('hidden')) close();
+            });
+
+            // Receive selections from the iframe
+            window.addEventListener('message', (event) => {
+                if (event.origin !== window.location.origin) return;
+
+                const data = event.data || {};
+                if (data.type === 'impartcms-media-selected') {
+                    if (activeCallback) activeCallback(data.payload || {});
+                    close();
+                    return;
+                }
+
+                if (data.type === 'impartcms-media-cancel') {
+                    close();
+                }
+            });
+        })();
+    </script>
+
 </body>
 </html>
 <?php /**PATH C:\laragon\www\2kocms\resources\views/layouts/admin.blade.php ENDPATH**/ ?>

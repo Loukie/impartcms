@@ -40,6 +40,7 @@
                         $isAll = ($currentType ?? '') === '';
                         $isImages = ($currentType ?? '') === 'images';
                         $isDocs = ($currentType ?? '') === 'docs';
+                        $isFonts = ($currentType ?? '') === 'fonts';
                     ?>
 
                     <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -52,6 +53,11 @@
                             <a href="<?php echo e(route('admin.media.index', array_merge($baseTabQuery, ['type' => 'images']))); ?>"
                                class="<?php echo e($isImages ? 'font-semibold text-gray-900' : 'hover:text-gray-900'); ?>">
                                 Images <span class="text-gray-500">(<?php echo e($counts['images'] ?? 0); ?>)</span>
+                            </a>
+                            <span class="mx-2 text-gray-300">|</span>
+                            <a href="<?php echo e(route('admin.media.index', array_merge($baseTabQuery, ['type' => 'fonts']))); ?>"
+                               class="<?php echo e($isFonts ? 'font-semibold text-gray-900' : 'hover:text-gray-900'); ?>">
+                                Fonts <span class="text-gray-500">(<?php echo e($counts['fonts'] ?? 0); ?>)</span>
                             </a>
                             <span class="mx-2 text-gray-300">|</span>
                             <a href="<?php echo e(route('admin.media.index', array_merge($baseTabQuery, ['type' => 'docs']))); ?>"
@@ -114,8 +120,8 @@
                                     <label class="block text-sm font-medium text-gray-700">Upload</label>
                                     <input name="files[]" type="file" multiple
                                            class="mt-1 block w-full text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-gray-900 file:text-white hover:file:bg-gray-800"
-                                           accept="image/*,.pdf">
-                                    <div class="text-xs text-gray-500 mt-1">Images + PDFs (max 10MB each). Auto-organised into YYYY/MM.</div>
+                                           accept="image/*,.svg,.ico,.pdf,.woff,.woff2,.ttf,.otf,.eot">
+                                    <div class="text-xs text-gray-500 mt-1">Images, PDFs, and font files (max 10MB each). Auto-organised into YYYY/MM.</div>
                                 </div>
                                 <button type="submit"
                                         class="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-md font-semibold text-xs uppercase tracking-widest hover:bg-gray-800">

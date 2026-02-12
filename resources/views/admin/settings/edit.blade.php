@@ -72,19 +72,14 @@
                                 @endif
 
                                 <div class="mt-4">
-                                    <label class="block text-sm font-medium text-gray-700">Choose from Media library</label>
-                                    <select name="site_logo_media_id"
-                                            class="mt-1 block w-full rounded-md border-gray-300 focus:border-gray-500 focus:ring-gray-500">
-                                        <option value="">— Select an image from Media —</option>
-                                        @foreach($logoMediaOptions as $m)
-                                            <option value="{{ $m->id }}" {{ (int) old('site_logo_media_id', $logoMediaId) === (int) $m->id ? 'selected' : '' }}>
-                                                {{ $m->title ?: pathinfo($m->original_name, PATHINFO_FILENAME) }} ({{ $m->folder }})
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                    <p class="mt-1 text-xs text-gray-500">
-                                        Using a Media image as your logo will <span class="font-semibold">not</span> delete it when removed from Settings.
-                                    </p>
+                                    <x-admin.media-picker
+                                        name="site_logo_media_id"
+                                        label="Choose from Media library"
+                                        :value="old('site_logo_media_id', $logoMediaId)"
+                                        :preview-url="$logoMediaUrl"
+                                        accept="images"
+                                        button-text="Choose from Media library"
+                                        help="Using a Media image as your logo will not delete it when removed from Settings." />
                                     @error('site_logo_media_id') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                                 </div>
 

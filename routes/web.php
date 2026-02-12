@@ -89,9 +89,11 @@ Route::middleware(['auth', 'can:access-admin'])
         // Media
         Route::get('/media', [MediaAdminController::class, 'index'])->name('media.index');
         Route::post('/media', [MediaAdminController::class, 'store'])->name('media.store');
-        Route::get('/media/{media}', [MediaAdminController::class, 'show'])->name('media.show');
-        Route::put('/media/{media}', [MediaAdminController::class, 'update'])->name('media.update');
-        Route::delete('/media/{media}', [MediaAdminController::class, 'destroy'])->name('media.destroy');
+        // Media picker (WordPress-style modal)
+        Route::get('/media/picker', [MediaAdminController::class, 'picker'])->name('media.picker');
+        Route::get('/media/{media}', [MediaAdminController::class, 'show'])->whereNumber('media')->name('media.show');
+        Route::put('/media/{media}', [MediaAdminController::class, 'update'])->whereNumber('media')->name('media.update');
+        Route::delete('/media/{media}', [MediaAdminController::class, 'destroy'])->whereNumber('media')->name('media.destroy');
     });
 
 /**

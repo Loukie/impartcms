@@ -96,19 +96,26 @@ unset($__errorArgs, $__bag); ?>
                                 <?php endif; ?>
 
                                 <div class="mt-4">
-                                    <label class="block text-sm font-medium text-gray-700">Choose from Media library</label>
-                                    <select name="site_logo_media_id"
-                                            class="mt-1 block w-full rounded-md border-gray-300 focus:border-gray-500 focus:ring-gray-500">
-                                        <option value="">— Select an image from Media —</option>
-                                        <?php $__currentLoopData = $logoMediaOptions; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $m): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                                            <option value="<?php echo e($m->id); ?>" <?php echo e((int) old('site_logo_media_id', $logoMediaId) === (int) $m->id ? 'selected' : ''); ?>>
-                                                <?php echo e($m->title ?: pathinfo($m->original_name, PATHINFO_FILENAME)); ?> (<?php echo e($m->folder); ?>)
-                                            </option>
-                                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-                                    </select>
-                                    <p class="mt-1 text-xs text-gray-500">
-                                        Using a Media image as your logo will <span class="font-semibold">not</span> delete it when removed from Settings.
-                                    </p>
+                                    <?php if (isset($component)) { $__componentOriginal78e2226de3aca9b0c13f2dda29d8d009 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal78e2226de3aca9b0c13f2dda29d8d009 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.admin.media-picker','data' => ['name' => 'site_logo_media_id','label' => 'Choose from Media library','value' => old('site_logo_media_id', $logoMediaId),'previewUrl' => $logoMediaUrl,'accept' => 'images','buttonText' => 'Choose from Media library','help' => 'Using a Media image as your logo will not delete it when removed from Settings.']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('admin.media-picker'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['name' => 'site_logo_media_id','label' => 'Choose from Media library','value' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(old('site_logo_media_id', $logoMediaId)),'preview-url' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($logoMediaUrl),'accept' => 'images','button-text' => 'Choose from Media library','help' => 'Using a Media image as your logo will not delete it when removed from Settings.']); ?>
+<?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal78e2226de3aca9b0c13f2dda29d8d009)): ?>
+<?php $attributes = $__attributesOriginal78e2226de3aca9b0c13f2dda29d8d009; ?>
+<?php unset($__attributesOriginal78e2226de3aca9b0c13f2dda29d8d009); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal78e2226de3aca9b0c13f2dda29d8d009)): ?>
+<?php $component = $__componentOriginal78e2226de3aca9b0c13f2dda29d8d009; ?>
+<?php unset($__componentOriginal78e2226de3aca9b0c13f2dda29d8d009); ?>
+<?php endif; ?>
                                     <?php $__errorArgs = ['site_logo_media_id'];
 $__bag = $errors->getBag($__errorArgs[1] ?? 'default');
 if ($__bag->has($__errorArgs[0])) :
