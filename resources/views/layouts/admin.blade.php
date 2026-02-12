@@ -29,6 +29,22 @@
     $hasLogo = !empty($logoUrl);
     $showText = !$hasLogo || $showNameWithLogo;
 
+// Favicon (admin)
+$faviconPath = \App\Models\Setting::get('site_favicon_path', null);
+$faviconMediaId = (int) (\App\Models\Setting::get('site_favicon_media_id', '0') ?? 0);
+$faviconUrl = null;
+
+if ($faviconMediaId > 0) {
+    $f = \App\Models\MediaFile::query()->whereKey($faviconMediaId)->first();
+    if ($f && ($f->isImage() || (is_string($f->mime_type ?? null) && str_starts_with($f->mime_type, 'image/')))) {
+        $faviconUrl = $f->url;
+    }
+}
+
+if (!$faviconUrl && !empty($faviconPath)) {
+    $faviconUrl = asset('storage/' . $faviconPath);
+}
+
     $isActive = fn(string $pattern) => request()->routeIs($pattern);
 @endphp
 <head>
@@ -37,34 +53,34 @@
 
     <title>{{ $siteName }} Admin</title>
 
+    @if(!empty($faviconUrl))
+        <link rel="icon" href="{{ $faviconUrl }}">
+    @endif
+
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
     <style>
-        /*
-         * Admin-only: force full-width across ALL backend screens.
-         * Many views still wrap content in Breeze-style containers (max-w-* + mx-auto).
-         * This keeps the admin feeling modern and “full”, without touching each view.
-         */
-        .admin-shell .admin-content .max-w-7xl,
-        .admin-shell .admin-content .max-w-6xl,
-        .admin-shell .admin-content .max-w-5xl,
-        .admin-shell .admin-content .max-w-4xl,
-        .admin-shell .admin-content .max-w-3xl,
-        .admin-shell .admin-content .max-w-2xl,
-        .admin-shell .admin-content .max-w-xl,
-        .admin-shell .admin-content .max-w-lg,
-        .admin-shell .admin-content .max-w-md,
-        .admin-shell .admin-content .max-w-sm,
-        .admin-shell .admin-content .max-w-xs,
-        .admin-shell .admin-content .container {
-            max-width: none !important;
-        }
+    /* Admin-only: remove Breeze-style max container widths so admin pages feel fuller */
+    .admin-shell .max-w-7xl,
+    .admin-shell .max-w-6xl,
+    .admin-shell .max-w-5xl,
+    .admin-shell .max-w-4xl,
+    .admin-shell .max-w-3xl,
+    .admin-shell .max-w-2xl,
+    .admin-shell .max-w-xl,
+    .admin-shell .max-w-lg,
+    .admin-shell .max-w-md,
+    .admin-shell .max-w-sm,
+    .admin-shell .max-w-xs,
+    .admin-shell .container {
+        max-width: none !important;
+    }
 
-        .admin-shell .admin-content .mx-auto {
-            margin-left: 0 !important;
-            margin-right: 0 !important;
-        }
-    </style>
+    .admin-shell .mx-auto {
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+    }
+</style>
 </head>
 <body class="min-h-screen bg-slate-50 admin-shell">
 <div class="min-h-screen flex">
@@ -181,82 +197,77 @@
             @endisset
         </header>
 
-        <main class="px-6 py-6 admin-content">
+        <main class="px-6 py-6">
             {{ $slot }}
         </main>
     </div>
 </div>
 
+{{-- Global Media Picker Modal (WordPress-style) --}}
+<div id="impart-media-modal" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-black/60" data-impart-media-close></div>
 
-    {{-- Global Media Picker Modal (WordPress-style) --}}
-    <div id="impart-media-picker-modal" class="fixed inset-0 z-50 hidden" aria-hidden="true">
-        <div class="absolute inset-0 bg-black/60" data-impart-media-close></div>
-        <div class="relative mx-auto my-10 w-[min(1100px,calc(100%-2rem))] h-[min(80vh,760px)] bg-white rounded-xl shadow-xl overflow-hidden flex flex-col">
-            <div class="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-white">
-                <div class="text-sm font-semibold text-gray-900">Media library</div>
-                <button type="button" class="inline-flex items-center justify-center h-9 w-9 rounded-md hover:bg-gray-100" aria-label="Close" data-impart-media-close>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-5 w-5 text-gray-700">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 6l12 12M18 6L6 18" />
-                    </svg>
-                </button>
-            </div>
-
-            <iframe id="impart-media-picker-iframe" src="about:blank" class="flex-1 w-full" title="Media picker"></iframe>
+    <div class="relative mx-auto mt-4 w-[95vw] max-w-[1440px] h-[92vh] bg-white rounded-xl shadow-2xl overflow-hidden flex flex-col">
+        <div class="flex items-center justify-between px-4 py-3 border-b border-slate-200">
+            <div class="text-sm font-semibold text-slate-900">Select media</div>
+            <button type="button" class="text-sm font-semibold text-slate-700 hover:text-slate-900" data-impart-media-close>
+                Cancel
+            </button>
         </div>
+        <iframe id="impart-media-iframe" class="flex-1 w-full" src="about:blank"></iframe>
     </div>
+</div>
 
-    <script>
-        (function () {
-            const modal = document.getElementById('impart-media-picker-modal');
-            const iframe = document.getElementById('impart-media-picker-iframe');
-            if (!modal || !iframe) return;
+<script>
+(function () {
+    const modal = document.getElementById('impart-media-modal');
+    const iframe = document.getElementById('impart-media-iframe');
 
-            let activeCallback = null;
+    let onSelect = null;
 
-            function open(options) {
-                const url = options?.url;
-                activeCallback = typeof options?.onSelect === 'function' ? options.onSelect : null;
+    function closeModal() {
+        modal.classList.add('hidden');
+        iframe.src = 'about:blank';
+        onSelect = null;
+    }
 
-                iframe.src = url || 'about:blank';
-                modal.classList.remove('hidden');
-                modal.setAttribute('aria-hidden', 'false');
+    function openModal(opts) {
+        const url = (opts && opts.url) ? opts.url : "{{ route('admin.media.index') }}?picker=1";
+        onSelect = (opts && typeof opts.onSelect === 'function') ? opts.onSelect : null;
+
+        iframe.src = url;
+        modal.classList.remove('hidden');
+    }
+
+    window.ImpartMediaPicker = {
+        open: openModal,
+        close: closeModal,
+    };
+
+    modal.addEventListener('click', (e) => {
+        if (e.target && e.target.hasAttribute('data-impart-media-close')) closeModal();
+    });
+
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !modal.classList.contains('hidden')) closeModal();
+    });
+
+    window.addEventListener('message', (event) => {
+        try {
+            if (event.origin !== window.location.origin) return;
+            const data = event.data || {};
+            if (data.type === 'impartcms-media-cancel') {
+                closeModal();
+                return;
             }
-
-            function close() {
-                modal.classList.add('hidden');
-                modal.setAttribute('aria-hidden', 'true');
-                iframe.src = 'about:blank';
-                activeCallback = null;
-            }
-
-            window.ImpartMediaPicker = { open, close };
-
-            modal.querySelectorAll('[data-impart-media-close]').forEach((el) => {
-                el.addEventListener('click', () => close());
-            });
-
-            // Close on ESC
-            window.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape' && !modal.classList.contains('hidden')) close();
-            });
-
-            // Receive selections from the iframe
-            window.addEventListener('message', (event) => {
-                if (event.origin !== window.location.origin) return;
-
-                const data = event.data || {};
-                if (data.type === 'impartcms-media-selected') {
-                    if (activeCallback) activeCallback(data.payload || {});
-                    close();
-                    return;
-                }
-
-                if (data.type === 'impartcms-media-cancel') {
-                    close();
-                }
-            });
-        })();
-    </script>
-
+            if (data.type !== 'impartcms-media-selected') return;
+            if (onSelect) onSelect(data);
+            closeModal();
+        } catch (e) {
+            // ignore
+        }
+    });
+})();
+</script>
 </body>
 </html>

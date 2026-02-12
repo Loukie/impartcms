@@ -1,7 +1,7 @@
 <?php
 
-use App\Http\Controllers\Admin\PageAdminController;
 use App\Http\Controllers\Admin\MediaAdminController;
+use App\Http\Controllers\Admin\PageAdminController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\UserAdminController;
 use App\Http\Controllers\FormSubmissionController;
@@ -24,6 +24,10 @@ Route::bind('pageTrash', function ($value) {
     return Page::withTrashed()->whereKey($value)->firstOrFail();
 });
 
+/**
+ * Public homepage
+ * PageController@show resolves homepage via is_homepage flag (published only).
+ */
 Route::get('/', [PageController::class, 'show'])->name('page.home');
 
 /**
@@ -59,7 +63,12 @@ Route::middleware(['auth', 'can:access-admin'])
     ->prefix(config('cms.admin_path', 'admin'))
     ->name('admin.')
     ->group(function () {
-        Route::get('/', fn () => redirect()->route('admin.pages.index'))->name('home');
+
+        /**
+         * Admin dashboard landing
+         * (This keeps /admin feeling like a "Dashboard" rather than forcing Pages.)
+         */
+        Route::get('/', fn () => view('admin.dashboard'))->name('dashboard');
 
         // Settings
         Route::get('/settings', [SettingsController::class, 'edit'])->name('settings.edit');
@@ -89,8 +98,13 @@ Route::middleware(['auth', 'can:access-admin'])
         // Media
         Route::get('/media', [MediaAdminController::class, 'index'])->name('media.index');
         Route::post('/media', [MediaAdminController::class, 'store'])->name('media.store');
-        // Media picker (WordPress-style modal)
+
+        /**
+         * ✅ Media picker (WordPress-style modal)
+         * MUST be above /media/{media}
+         */
         Route::get('/media/picker', [MediaAdminController::class, 'picker'])->name('media.picker');
+
         Route::get('/media/{media}', [MediaAdminController::class, 'show'])->whereNumber('media')->name('media.show');
         Route::put('/media/{media}', [MediaAdminController::class, 'update'])->whereNumber('media')->name('media.update');
         Route::delete('/media/{media}', [MediaAdminController::class, 'destroy'])->whereNumber('media')->name('media.destroy');

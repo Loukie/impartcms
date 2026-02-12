@@ -1,224 +1,156 @@
-<x-admin-layout>
-    <x-slot name="header">
-        <div class="flex items-center justify-between">
-            <div>
-                <h2 class="font-semibold text-xl text-gray-800 leading-tight">Media Details</h2>
-                <p class="text-sm text-gray-600 mt-1">View usage, copy URLs, and edit metadata.</p>
-            </div>
+<!doctype html>
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Select media</title>
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+</head>
+<body class="bg-slate-50">
+<div class="p-4">
 
-            <a href="{{ route('admin.media.index') }}"
-               class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 uppercase tracking-widest hover:bg-gray-50">
-                Back to Media
+    {{-- Top toolbar: left actions + right filters (same row) --}}
+    <div class="flex items-center justify-between gap-3 flex-wrap">
+        <div class="flex items-center gap-2">
+            <a href="{{ route('admin.media.picker', array_merge(request()->query(), ['tab' => 'library'])) }}"
+               class="px-3 py-2 rounded-md text-sm font-semibold border {{ ($tab ?? 'library') === 'library' ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-900' }}">
+                Library
             </a>
+
+            <a href="{{ route('admin.media.picker', array_merge(request()->query(), ['tab' => 'upload'])) }}"
+               class="px-3 py-2 rounded-md text-sm font-semibold border {{ ($tab ?? 'library') === 'upload' ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-900' }}">
+                Upload
+            </a>
+
+            <button type="button"
+                    class="px-3 py-2 rounded-md text-sm font-semibold border bg-white text-gray-900 hover:bg-gray-50"
+                    onclick="window.parent?.ImpartMediaPicker?.close?.()">
+                Cancel
+            </button>
         </div>
-    </x-slot>
 
-    <div class="py-8">
-        <div class="max-w-6xl mx-auto sm:px-6 lg:px-8">
-            @if (session('status'))
-                <div class="mb-4 p-3 rounded bg-green-50 text-green-800 border border-green-200">
-                    {{ session('status') }}
+        <form method="GET" class="flex items-center gap-2 flex-wrap">
+            <input type="hidden" name="tab" value="{{ $tab ?? 'library' }}">
+            <input type="hidden" name="type" value="{{ $currentType ?? '' }}">
+            <input type="hidden" name="sort" value="{{ $currentSort ?? 'newest' }}">
+
+            <select name="folder" class="rounded-md border-gray-300 text-sm">
+                <option value="">All folders</option>
+                @foreach(($folders ?? []) as $f)
+                    <option value="{{ $f }}" @selected(($currentFolder ?? '') === $f)>{{ $f }}</option>
+                @endforeach
+            </select>
+
+            <input name="q" value="{{ $currentQuery ?? '' }}" placeholder="Search…"
+                   class="rounded-md border-gray-300 text-sm w-64 max-w-full"/>
+
+            <button class="px-3 py-2 rounded-md bg-gray-900 text-white text-sm font-semibold hover:bg-gray-800">
+                Apply
+            </button>
+
+            <a href="{{ route('admin.media.picker') }}"
+               class="px-3 py-2 rounded-md border bg-white text-sm font-semibold hover:bg-gray-50">
+                Reset
+            </a>
+        </form>
+    </div>
+
+    {{-- Tabs --}}
+    <div class="mt-4 border-b border-slate-200 flex items-center gap-4 text-sm font-semibold">
+        @php
+            $tabs = [
+                '' => ['All', $counts['all'] ?? 0],
+                'images' => ['Images', $counts['images'] ?? 0],
+                'icons' => ['Icons', $counts['icons'] ?? 0],
+                'fonts' => ['Fonts', $counts['fonts'] ?? 0],
+                'docs' => ['Docs', $counts['docs'] ?? 0],
+            ];
+            $active = $currentType ?? '';
+        @endphp
+
+        @foreach($tabs as $key => [$label, $count])
+            <a href="{{ route('admin.media.picker', array_merge(request()->query(), ['type' => $key])) }}"
+               class="px-2 py-2 -mb-px border-b-2 {{ $active === $key ? 'border-gray-900 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-800' }}">
+                {{ $label }} <span class="text-gray-400">({{ $count }})</span>
+            </a>
+        @endforeach
+    </div>
+
+    {{-- Upload tab --}}
+    @if(($tab ?? 'library') === 'upload')
+        <div class="mt-4 bg-white border rounded-xl p-4">
+            <form method="POST" action="{{ route('admin.media.store') }}" enctype="multipart/form-data" class="flex items-center gap-3 flex-wrap">
+                @csrf
+                <input type="file" name="files[]" multiple class="text-sm">
+                <button class="px-3 py-2 rounded-md bg-gray-900 text-white text-sm font-semibold hover:bg-gray-800">
+                    Upload
+                </button>
+                <div class="text-xs text-gray-500">
+                    Images + Icons + Fonts + PDFs (max 10MB each)
                 </div>
-            @endif
+            </form>
 
-            @if ($errors->any())
-                <div class="mb-4 p-3 rounded bg-red-50 text-red-800 border border-red-200">
+            @if($errors->any())
+                <div class="mt-3 text-sm text-red-600">
                     {{ $errors->first() }}
                 </div>
             @endif
+        </div>
+    @endif
 
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div class="lg:col-span-2 bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                    <div class="p-6">
-                        <div class="rounded-lg border bg-gray-50 overflow-hidden">
-                            <div class="aspect-video flex items-center justify-center">
-                                @if($media->isImage())
-                                    <img src="{{ $media->url }}" alt="{{ $media->alt_text ?? $media->original_name }}" class="max-h-[420px] w-auto object-contain">
-                                @else
-                                    <div class="text-gray-600 text-sm">{{ $media->original_name }}</div>
-                                @endif
-                            </div>
+    {{-- Library grid --}}
+    <div class="mt-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        @foreach($media as $m)
+            @php
+                $url = $m->url ?? asset('storage/' . ltrim($m->path, '/'));
+                $isImage = method_exists($m, 'isImage') ? $m->isImage() : (str_starts_with((string) $m->mime_type, 'image/'));
+            @endphp
+
+            <div class="bg-white border rounded-xl overflow-hidden hover:shadow-sm transition">
+                <div class="aspect-square bg-slate-100 flex items-center justify-center overflow-hidden">
+                    @if($isImage)
+                        <img src="{{ $url }}" alt="" class="w-full h-full object-contain">
+                    @else
+                        <div class="text-xs text-slate-500 p-3 text-center break-all">
+                            {{ $m->original_name ?? $m->filename }}
                         </div>
-
-                        <div class="mt-4">
-                            <div class="text-sm font-semibold text-gray-900">Public URL</div>
-                            <div class="mt-2 flex items-center gap-2">
-                                <input id="media-url" readonly value="{{ $media->url }}"
-                                       class="w-full rounded-md border-gray-300 text-sm">
-                                <button type="button" id="copy-url"
-                                        class="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-md font-semibold text-xs uppercase tracking-widest hover:bg-gray-800">
-                                    Copy
-                                </button>
-                            </div>
-                            <div class="mt-2 text-xs text-gray-500">Tip: paste this URL into your page body or SEO image fields.</div>
-                        </div>
-
-                        <div class="mt-6 border-t pt-6">
-                            <form id="media-update-form" method="POST" action="{{ route('admin.media.update', $media) }}">
-                                @csrf
-                                @method('PUT')
-
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700">Title</label>
-                                        <input name="title" type="text" value="{{ old('title', $media->title) }}"
-                                               class="mt-1 w-full rounded-md border-gray-300">
-                                    </div>
-
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700">Alt text</label>
-                                        <input name="alt_text" type="text" value="{{ old('alt_text', $media->alt_text) }}"
-                                               class="mt-1 w-full rounded-md border-gray-300">
-                                        <div class="mt-1 text-xs text-gray-500">Used for accessibility + SEO (images only).</div>
-                                    </div>
-                                </div>
-
-                                <div class="mt-6">
-                                    <label class="block text-sm font-medium text-gray-700">Caption</label>
-                                    <textarea name="caption" rows="4" class="mt-1 w-full rounded-md border-gray-300">{{ old('caption', $media->caption) }}</textarea>
-                                </div>
-
-                            </form>
-
-                            @php
-                                $pageCount = $usage['pages']?->count() ?? 0;
-                                $seoCount = $usage['seo_pages']?->count() ?? 0;
-                                $logoCount = !empty($usage['settings_logo']) ? 1 : 0;
-                                $usedCount = $pageCount + $seoCount + $logoCount;
-                            @endphp
-
-                            <div class="mt-6 flex items-center justify-between">
-                                <button type="submit" form="media-update-form"
-                                        class="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-md font-semibold text-xs uppercase tracking-widest hover:bg-gray-800">
-                                    Save
-                                </button>
-
-                                <form id="media-delete-form" method="POST" action="{{ route('admin.media.destroy', $media) }}"
-                                      onsubmit="return confirm('Delete this media file? This cannot be undone.');">
-                                    @csrf
-                                    @method('DELETE')
-
-                                    <button type="submit"
-                                            class="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-md font-semibold text-xs uppercase tracking-widest hover:bg-red-700 {{ $usedCount > 0 ? 'opacity-50 cursor-not-allowed' : '' }}"
-                                            {{ $usedCount > 0 ? 'disabled' : '' }}>
-                                        Delete
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
+                    @endif
                 </div>
 
-                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                    <div class="p-6">
-                        <div class="text-sm font-semibold text-gray-900">File info</div>
-                        <dl class="mt-3 text-sm text-gray-700 space-y-2">
-                            <div class="flex justify-between gap-3">
-                                <dt class="text-gray-500">Name</dt>
-                                <dd class="text-right truncate max-w-[16rem]" title="{{ $media->original_name }}">{{ $media->original_name }}</dd>
-                            </div>
-                            <div class="flex justify-between gap-3">
-                                <dt class="text-gray-500">Folder</dt>
-                                <dd class="text-right">{{ $media->folder }}</dd>
-                            </div>
-                            <div class="flex justify-between gap-3">
-                                <dt class="text-gray-500">Type</dt>
-                                <dd class="text-right">{{ $media->mime_type }}</dd>
-                            </div>
-                            <div class="flex justify-between gap-3">
-                                <dt class="text-gray-500">Size</dt>
-                                <dd class="text-right">{{ number_format(($media->size ?? 0) / 1024, 1) }} KB</dd>
-                            </div>
-                            @if($media->width && $media->height)
-                                <div class="flex justify-between gap-3">
-                                    <dt class="text-gray-500">Dimensions</dt>
-                                    <dd class="text-right">{{ $media->width }} × {{ $media->height }}</dd>
-                                </div>
-                            @endif
-                        </dl>
-
-                        <div class="mt-6 border-t pt-6">
-                            <div class="text-sm font-semibold text-gray-900">Where used</div>
-
-                            @php
-                                $pageCount = $usage['pages']?->count() ?? 0;
-                                $seoCount = $usage['seo_pages']?->count() ?? 0;
-                                $logoUsed = !empty($usage['settings_logo']);
-                            @endphp
-
-                            @if(($pageCount + $seoCount + ($logoUsed ? 1 : 0)) === 0)
-                                <div class="mt-2 text-sm text-gray-600">No usage detected yet.</div>
-                                <div class="text-xs text-gray-500 mt-1">(We scan Page body + SEO OG/Twitter image URLs. Builder integration will make this perfect later.)</div>
-                            @else
-                                <div class="mt-2 text-xs text-gray-600">Detected usage (best-effort):</div>
-
-                                @if($logoUsed)
-                                    <div class="mt-3">
-                                        <div class="text-xs font-semibold text-gray-800">Settings</div>
-                                        <div class="mt-2 text-sm text-gray-700">Used as the site logo.</div>
-                                    </div>
-                                @endif
-
-                                @if($pageCount > 0)
-                                    <div class="mt-3">
-                                        <div class="text-xs font-semibold text-gray-800">Pages (Body)</div>
-                                        <ul class="mt-2 space-y-1">
-                                            @foreach($usage['pages'] as $p)
-                                                <li class="text-sm">
-                                                    <a class="underline text-gray-700 hover:text-gray-900" href="{{ route('admin.pages.edit', $p) }}">
-                                                        {{ $p->title }}
-                                                    </a>
-                                                    <span class="text-xs text-gray-500">({{ $p->status }})</span>
-                                                </li>
-                                            @endforeach
-                                        </ul>
-                                    </div>
-                                @endif
-
-                                @if($seoCount > 0)
-                                    <div class="mt-4">
-                                        <div class="text-xs font-semibold text-gray-800">Pages (SEO OG/Twitter)</div>
-                                        <ul class="mt-2 space-y-1">
-                                            @foreach($usage['seo_pages'] as $p)
-                                                <li class="text-sm">
-                                                    <a class="underline text-gray-700 hover:text-gray-900" href="{{ route('admin.pages.edit', $p) }}">
-                                                        {{ $p->title }}
-                                                    </a>
-                                                    <span class="text-xs text-gray-500">({{ $p->status }})</span>
-                                                </li>
-                                            @endforeach
-                                        </ul>
-                                    </div>
-                                @endif
-
-                                <div class="mt-4 p-3 rounded bg-yellow-50 text-yellow-800 border border-yellow-200 text-sm">
-                                    Delete is disabled while usage is detected.
-                                </div>
-                            @endif
-                        </div>
+                <div class="p-2 flex items-center justify-between gap-2">
+                    <div class="min-w-0">
+                        <div class="text-xs font-semibold text-slate-900 truncate">{{ $m->title ?? 'Untitled' }}</div>
+                        <div class="text-[11px] text-slate-500 truncate">{{ $m->folder ?? '' }}</div>
                     </div>
+
+                    <button type="button"
+                        class="px-2 py-1 rounded-md bg-gray-900 text-white text-xs font-semibold hover:bg-gray-800"
+                        onclick="selectMedia(@js([
+                            'id' => $m->id,
+                            'url' => $url,
+                            'title' => $m->title,
+                            'mime_type' => $m->mime_type,
+                        ]))">
+                        Select
+                    </button>
                 </div>
             </div>
-        </div>
+        @endforeach
     </div>
 
-    <script>
-        (function () {
-            const copyBtn = document.getElementById('copy-url');
-            const input = document.getElementById('media-url');
-            if (!copyBtn || !input) return;
+    <div class="mt-4">
+        {{ $media->links() }}
+    </div>
 
-            copyBtn.addEventListener('click', async () => {
-                try {
-                    await navigator.clipboard.writeText(input.value || '');
-                    copyBtn.textContent = 'Copied';
-                    setTimeout(() => (copyBtn.textContent = 'Copy'), 1200);
-                } catch (e) {
-                    input.select();
-                    document.execCommand('copy');
-                    window.getSelection()?.removeAllRanges();
-                }
-            });
-        })();
-    </script>
-</x-admin-layout>
+</div>
+
+<script>
+function selectMedia(payload) {
+    window.parent.postMessage(
+        { type: 'impart-media-selected', payload },
+        window.location.origin
+    );
+}
+</script>
+</body>
+</html>
