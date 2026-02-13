@@ -18,13 +18,13 @@ class SettingsController extends Controller
             ->where('status', 'published')
             ->value('id') ?? 0);
 
-        // Logo (uploaded OR Media library)
+        // Logo (legacy uploaded path OR Media library)
         $logoMediaId = (int) (Setting::get('site_logo_media_id', '0') ?? 0);
         $logoMedia = $logoMediaId > 0
             ? MediaFile::query()->whereKey($logoMediaId)->first()
             : null;
 
-        // Favicon (uploaded OR Media library)
+        // Favicon (legacy uploaded path OR Media library)
         $faviconMediaId = (int) (Setting::get('site_favicon_media_id', '0') ?? 0);
         $faviconMedia = $faviconMediaId > 0
             ? MediaFile::query()->whereKey($faviconMediaId)->first()
@@ -34,6 +34,7 @@ class SettingsController extends Controller
             'siteName' => Setting::get('site_name', config('app.name')),
             'showNameWithLogo' => (bool) ((int) Setting::get('admin_show_name_with_logo', '0')),
 
+            // Legacy values still supported for backwards compatibility (read-only unless cleared)
             'logoPath' => Setting::get('site_logo_path', null),
             'logoMediaId' => $logoMedia?->id,
             'logoMediaUrl' => ($logoMedia && (is_string($logoMedia->mime_type ?? null) && str_starts_with($logoMedia->mime_type, 'image/')))
@@ -59,15 +60,12 @@ class SettingsController extends Controller
         $validated = $request->validate([
             'site_name' => ['required', 'string', 'max:120'],
 
-            // Uploaded logo (optional)
-            'site_logo' => ['nullable', 'file', 'max:2048', 'mimes:jpg,jpeg,png,gif,webp,avif,svg'],
+            // Media library selections
             'site_logo_media_id' => ['nullable', 'integer', 'exists:media_files,id'],
-            'remove_logo' => ['nullable', 'boolean'],
+            'site_logo_clear' => ['nullable', 'boolean'],
 
-            // Uploaded favicon (optional)
-            'site_favicon' => ['nullable', 'file', 'max:1024', 'mimes:ico,png,svg,jpg,jpeg,webp'],
             'site_favicon_media_id' => ['nullable', 'integer', 'exists:media_files,id'],
-            'remove_favicon' => ['nullable', 'boolean'],
+            'site_favicon_clear' => ['nullable', 'boolean'],
 
             'admin_show_name_with_logo' => ['nullable', 'boolean'],
             'homepage_page_id' => ['nullable', 'integer', 'exists:pages,id'],
@@ -96,8 +94,8 @@ class SettingsController extends Controller
             Setting::set('homepage_page_id', (string) $page->id);
         }
 
-        // Remove logo (only clears setting; never deletes a Media library item)
-        if ((bool)($validated['remove_logo'] ?? false)) {
+        // Explicit clears (settings only — never deletes a Media library item)
+        if ((bool)($validated['site_logo_clear'] ?? false)) {
             $existing = Setting::get('site_logo_path', null);
             if ($existing && str_starts_with((string) $existing, 'settings/')) {
                 Storage::disk('public')->delete($existing);
@@ -106,8 +104,7 @@ class SettingsController extends Controller
             Setting::set('site_logo_media_id', '0');
         }
 
-        // Remove favicon (only clears setting; never deletes a Media library item)
-        if ((bool)($validated['remove_favicon'] ?? false)) {
+        if ((bool)($validated['site_favicon_clear'] ?? false)) {
             $existing = Setting::get('site_favicon_path', null);
             if ($existing && str_starts_with((string) $existing, 'settings/')) {
                 Storage::disk('public')->delete($existing);
@@ -116,7 +113,7 @@ class SettingsController extends Controller
             Setting::set('site_favicon_media_id', '0');
         }
 
-        // Logo selected from Media
+        // Media selections (override legacy uploaded paths)
         $selectedLogoMediaId = (int) ($validated['site_logo_media_id'] ?? 0);
         if ($selectedLogoMediaId > 0) {
             $media = MediaFile::query()->whereKey($selectedLogoMediaId)->first();
@@ -131,7 +128,6 @@ class SettingsController extends Controller
             Setting::set('site_logo_media_id', (string) $media->id);
         }
 
-        // Favicon selected from Media
         $selectedFaviconMediaId = (int) ($validated['site_favicon_media_id'] ?? 0);
         if ($selectedFaviconMediaId > 0) {
             $media = MediaFile::query()->whereKey($selectedFaviconMediaId)->first();
@@ -144,30 +140,6 @@ class SettingsController extends Controller
 
             Setting::set('site_favicon_path', null);
             Setting::set('site_favicon_media_id', (string) $media->id);
-        }
-
-        // Uploaded logo (overrides Media-selected logo)
-        if ($request->hasFile('site_logo')) {
-            $existing = Setting::get('site_logo_path', null);
-            if ($existing && str_starts_with((string) $existing, 'settings/')) {
-                Storage::disk('public')->delete($existing);
-            }
-
-            $path = $request->file('site_logo')->store('settings', 'public');
-            Setting::set('site_logo_path', $path);
-            Setting::set('site_logo_media_id', '0');
-        }
-
-        // Uploaded favicon (overrides Media-selected favicon)
-        if ($request->hasFile('site_favicon')) {
-            $existing = Setting::get('site_favicon_path', null);
-            if ($existing && str_starts_with((string) $existing, 'settings/')) {
-                Storage::disk('public')->delete($existing);
-            }
-
-            $path = $request->file('site_favicon')->store('settings', 'public');
-            Setting::set('site_favicon_path', $path);
-            Setting::set('site_favicon_media_id', '0');
         }
 
         return back()->with('status', 'Settings updated.');

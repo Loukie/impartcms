@@ -190,15 +190,23 @@ if (!$faviconUrl && !empty($faviconPath)) {
                 </form>
             </div>
 
-            @isset($header)
+            @if (isset($header))
                 <div class="px-6 pb-4">
                     {{ $header }}
                 </div>
-            @endisset
+            @elseif (View::hasSection('header'))
+                <div class="px-6 pb-4">
+                    @yield('header')
+                </div>
+            @endif
         </header>
 
         <main class="px-6 py-6">
-            {{ $slot }}
+            @if (isset($slot))
+                {{ $slot }}
+            @else
+                @yield('content')
+            @endif
         </main>
     </div>
 </div>

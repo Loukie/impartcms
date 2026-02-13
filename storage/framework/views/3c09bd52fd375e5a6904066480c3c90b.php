@@ -195,12 +195,20 @@ if (!$faviconUrl && !empty($faviconPath)) {
                     <?php echo e($header); ?>
 
                 </div>
+            <?php elseif(View::hasSection('header')): ?>
+                <div class="px-6 pb-4">
+                    <?php echo $__env->yieldContent('header'); ?>
+                </div>
             <?php endif; ?>
         </header>
 
         <main class="px-6 py-6">
-            <?php echo e($slot); ?>
+            <?php if(isset($slot)): ?>
+                <?php echo e($slot); ?>
 
+            <?php else: ?>
+                <?php echo $__env->yieldContent('content'); ?>
+            <?php endif; ?>
         </main>
     </div>
 </div>

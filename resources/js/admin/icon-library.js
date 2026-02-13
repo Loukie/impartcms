@@ -1,31 +1,33 @@
 /**
- * ImpartCMS Icon Library Renderer
+ * ImpartCMS Icon Library Renderer (Font Awesome only)
  *
  * Activates only when a page contains:
  *   <div id="impart-icon-library"></div>
  *
  * Expected DOM structure:
  * - #impart-fa-grid
- * - #impart-lucide-grid
  * - inputs:
  *   - #impart-icon-search
  *   - #impart-fa-style
  *   - #impart-icon-size
  *   - #impart-icon-colour
  *   - #impart-icon-loadmore-fa
- *   - #impart-icon-loadmore-lucide
  *
- * IMPORTANT:
- * We do NOT import Font Awesome metadata JSON files.
- * Newer Font Awesome packages can block deep JSON imports via `exports`,
- * which causes Vite/Rollup resolution failures. Instead we dynamically
- * import the free icon packs and build the list in JS.
+ * Behaviour:
+ * - In the media picker iframe: click → posts selection to parent.
+ * - On the Media page: click → copies icon class to clipboard + toast.
  */
-
-import { createIcons, icons as lucideIcons } from 'lucide';
 
 function qs(sel, root = document) {
     return root.querySelector(sel);
+}
+
+function isInIframe() {
+    try {
+        return window.self !== window.top;
+    } catch (e) {
+        return true;
+    }
 }
 
 function safeOrigin() {
@@ -37,7 +39,6 @@ function safeOrigin() {
 }
 
 function postSelected(payload) {
-    // Picker is rendered inside an iframe (admin modal). We send to parent.
     try {
         window.parent.postMessage(
             { type: 'impartcms-media-selected', payload },
@@ -103,7 +104,6 @@ async function loadFaItems() {
             }
         }
 
-        // Sort predictable
         items.sort((a, b) =>
             a.name === b.name
                 ? a.style.localeCompare(b.style)
@@ -116,10 +116,15 @@ async function loadFaItems() {
     return faItemsPromise;
 }
 
-function normaliseLucideItems() {
-    const names = Object.keys(lucideIcons || {});
-    names.sort();
-    return names.map((name) => ({ kind: 'lucide', name }));
+function normaliseHexColour(v) {
+    const c = (v || '').trim();
+    return /^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(c) ? c : '#111827';
+}
+
+function clampNumber(v, min, max, fallback) {
+    const n = parseInt(String(v || ''), 10);
+    if (Number.isNaN(n)) return fallback;
+    return Math.min(max, Math.max(min, n));
 }
 
 function createTile({ label, html, onClick }) {
@@ -144,41 +149,57 @@ function createTile({ label, html, onClick }) {
     return btn;
 }
 
+function showToast(root, text) {
+    const el = qs('#impart-icon-toast', root) || qs('#impart-icon-toast');
+    if (!el) return;
+
+    el.textContent = text;
+    el.classList.remove('hidden');
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(() => el.classList.add('hidden'), 1600);
+}
+
+async function copyToClipboard(text) {
+    try {
+        await navigator.clipboard.writeText(text);
+        return true;
+    } catch (e) {
+        // fallback
+        try {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.setAttribute('readonly', 'readonly');
+            ta.style.position = 'fixed';
+            ta.style.left = '-9999px';
+            document.body.appendChild(ta);
+            ta.select();
+            const ok = document.execCommand('copy');
+            document.body.removeChild(ta);
+            return ok;
+        } catch (e2) {
+            return false;
+        }
+    }
+}
+
 function mount() {
     const root = qs('#impart-icon-library');
     if (!root) return;
 
     const faGrid = qs('#impart-fa-grid', root);
-    const lucideGrid = qs('#impart-lucide-grid', root);
-
     const inpSearch = qs('#impart-icon-search', root);
     const selFaStyle = qs('#impart-fa-style', root);
     const inpSize = qs('#impart-icon-size', root);
     const inpColour = qs('#impart-icon-colour', root);
-
     const btnMoreFa = qs('#impart-icon-loadmore-fa', root);
-    const btnMoreLucide = qs('#impart-icon-loadmore-lucide', root);
 
-    if (!faGrid || !lucideGrid || !inpSearch || !selFaStyle || !inpSize || !inpColour) return;
+    if (!faGrid || !inpSearch || !selFaStyle || !inpSize || !inpColour) return;
 
-    const lucideItems = normaliseLucideItems();
+    const mode = (root.dataset.mode || '').toLowerCase() || (isInIframe() ? 'select' : 'copy');
+    const inIframe = isInIframe();
 
     let faItems = [];
-    let faLimit = 160;
-    let lucideLimit = 160;
-
-    function getSize() {
-        const n = parseInt(inpSize.value || '24', 10);
-        if (Number.isNaN(n)) return 24;
-        return Math.min(256, Math.max(8, n));
-    }
-
-    function getColour() {
-        const c = (inpColour.value || '#111827').trim();
-        return /^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(c)
-            ? c
-            : '#111827';
-    }
+    let faLimit = 220;
 
     function filterName(name, q) {
         if (!q) return true;
@@ -198,15 +219,15 @@ function mount() {
 
         const slice = filtered.slice(0, faLimit);
 
-        for (const it of slice) {
-            const size = getSize();
-            const colour = getColour();
+        const size = clampNumber(inpSize.value, 8, 256, 24);
+        const colour = normaliseHexColour(inpColour.value);
 
+        for (const it of slice) {
             const tile = createTile({
                 label: `${it.name} (${it.style})`,
                 html: `<i class="${it.className}" style="font-size:${size}px;color:${colour};line-height:1"></i>`,
-                onClick: () => {
-                    postSelected({
+                onClick: async () => {
+                    const payload = {
                         kind: 'icon',
                         icon: {
                             kind: 'fa',
@@ -216,7 +237,15 @@ function mount() {
                             size,
                             colour,
                         },
-                    });
+                    };
+
+                    if (inIframe || mode === 'select') {
+                        postSelected(payload);
+                        return;
+                    }
+
+                    const ok = await copyToClipboard(it.className);
+                    showToast(root, ok ? `Copied: ${it.className}` : `Copy failed: ${it.className}`);
                 },
             });
 
@@ -226,55 +255,7 @@ function mount() {
         btnMoreFa?.classList.toggle('hidden', filtered.length <= faLimit);
     }
 
-    function renderLucide() {
-        const q = (inpSearch.value || '').trim();
-
-        lucideGrid.innerHTML = '';
-
-        const filtered = lucideItems.filter((it) => filterName(it.name, q));
-        const slice = filtered.slice(0, lucideLimit);
-
-        for (const it of slice) {
-            const size = getSize();
-            const colour = getColour();
-
-            const tile = createTile({
-                label: it.name,
-                html: `<i data-lucide="${it.name}" style="width:${size}px;height:${size}px;color:${colour};display:inline-block"></i>`,
-                onClick: () => {
-                    postSelected({
-                        kind: 'icon',
-                        icon: {
-                            kind: 'lucide',
-                            name: it.name,
-                            value: it.name,
-                            size,
-                            colour,
-                        },
-                    });
-                },
-            });
-
-            lucideGrid.appendChild(tile);
-        }
-
-        // Convert placeholders (limit to the lucide grid for speed)
-        try {
-            createIcons({ icons: lucideIcons, root: lucideGrid });
-        } catch (e) {
-            // ignore
-        }
-
-        btnMoreLucide?.classList.toggle('hidden', filtered.length <= lucideLimit);
-    }
-
-    function renderAll() {
-        renderFa();
-        renderLucide();
-    }
-
     async function boot() {
-        // Quick loading message
         faGrid.innerHTML = '<div class="text-sm text-slate-500 p-2">Loading Font Awesome icons…</div>';
 
         try {
@@ -286,22 +267,18 @@ function mount() {
             return;
         }
 
-        renderAll();
+        renderFa();
     }
 
     // Events
-    inpSearch.addEventListener('input', () => renderAll());
+    inpSearch.addEventListener('input', () => renderFa());
     selFaStyle.addEventListener('change', () => renderFa());
-    inpSize.addEventListener('change', () => renderAll());
-    inpColour.addEventListener('change', () => renderAll());
+    inpSize.addEventListener('change', () => renderFa());
+    inpColour.addEventListener('change', () => renderFa());
 
     btnMoreFa?.addEventListener('click', () => {
-        faLimit += 160;
+        faLimit += 220;
         renderFa();
-    });
-    btnMoreLucide?.addEventListener('click', () => {
-        lucideLimit += 160;
-        renderLucide();
     });
 
     void boot();

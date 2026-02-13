@@ -6,8 +6,12 @@ $__propNames = \Illuminate\View\ComponentAttributeBag::extractPropNames(([
     'value' => null,
     'label' => 'Choose from Media library',
     'previewUrl' => null,
+    'type' => 'images', // images | docs (icons handled separately)
     'pickerUrl' => null,
-    'clearCheckboxId' => null,
+    'chooseText' => 'Choose from Media Library',
+    'uploadText' => 'Upload',
+    'clearText' => 'Clear',
+    'clearName' => null, // hidden boolean input to signal an explicit clear action
     'uid' => null,
 ]));
 
@@ -29,8 +33,12 @@ foreach (array_filter(([
     'value' => null,
     'label' => 'Choose from Media library',
     'previewUrl' => null,
+    'type' => 'images', // images | docs (icons handled separately)
     'pickerUrl' => null,
-    'clearCheckboxId' => null,
+    'chooseText' => 'Choose from Media Library',
+    'uploadText' => 'Upload',
+    'clearText' => 'Clear',
+    'clearName' => null, // hidden boolean input to signal an explicit clear action
     'uid' => null,
 ]), 'is_string', ARRAY_FILTER_USE_KEY) as $__key => $__value) {
     $$__key = $$__key ?? $__value;
@@ -48,9 +56,11 @@ unset($__defined_vars, $__key, $__value); ?>
     $uid = $uid ?: ('mp_' . \Illuminate\Support\Str::uuid()->toString());
     $inputId = $uid . '_input';
     $previewId = $uid . '_preview';
+    $clearId = $uid . '_clear';
 
-    $pickerUrl = $pickerUrl ?: route('admin.media.picker');
+    $pickerUrl = $pickerUrl ?: route('admin.media.picker', ['type' => $type]);
     $initialValue = old($name, $value);
+    $initialClear = old($clearName ?: '', '0');
 ?>
 
 <div class="space-y-2">
@@ -66,17 +76,23 @@ unset($__defined_vars, $__key, $__value); ?>
             <?php endif; ?>
         </div>
 
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
             <input type="hidden" id="<?php echo e($inputId); ?>" name="<?php echo e($name); ?>" value="<?php echo e($initialValue); ?>">
+
+            <?php if($clearName): ?>
+                <input type="hidden" id="<?php echo e($clearId); ?>" name="<?php echo e($clearName); ?>" value="<?php echo e($initialClear); ?>">
+            <?php endif; ?>
 
             <button
                 type="button"
                 class="inline-flex items-center px-3 py-2 rounded-md bg-gray-900 text-white text-sm font-semibold hover:bg-gray-800"
                 onclick="window.ImpartMediaPicker && window.ImpartMediaPicker.open({
-                    url: <?php echo \Illuminate\Support\Js::from($pickerUrl)->toHtml() ?>,
+                    url: <?php echo \Illuminate\Support\Js::from(route('admin.media.picker', array_merge(request()->query(), ['type' => $type, 'tab' => 'library'])))->toHtml() ?>,
                     onSelect: function (payload) {
                         const input = document.getElementById(<?php echo \Illuminate\Support\Js::from($inputId)->toHtml() ?>);
                         const preview = document.getElementById(<?php echo \Illuminate\Support\Js::from($previewId)->toHtml() ?>);
+                        const clear = <?php echo \Illuminate\Support\Js::from($clearName)->toHtml() ?> ? document.getElementById(<?php echo \Illuminate\Support\Js::from($clearId)->toHtml() ?>) : null;
+
                         if (!input) return;
 
                         input.value = payload.id || '';
@@ -91,16 +107,44 @@ unset($__defined_vars, $__key, $__value); ?>
                             }
                         }
 
-                        // If a remove checkbox exists, untick it when selecting from Media.
-                        const clearCbId = <?php echo \Illuminate\Support\Js::from($clearCheckboxId)->toHtml() ?>;
-                        if (clearCbId) {
-                            const cb = document.getElementById(clearCbId);
-                            if (cb) cb.checked = false;
-                        }
+                        if (clear) clear.value = '0';
                     }
                 })"
             >
-                Choose from Media Library
+                <?php echo e($chooseText); ?>
+
+            </button>
+
+            <button
+                type="button"
+                class="inline-flex items-center px-3 py-2 rounded-md border bg-white text-sm font-semibold hover:bg-gray-50"
+                onclick="window.ImpartMediaPicker && window.ImpartMediaPicker.open({
+                    url: <?php echo \Illuminate\Support\Js::from(route('admin.media.picker', array_merge(request()->query(), ['type' => $type, 'tab' => 'upload'])))->toHtml() ?>,
+                    onSelect: function (payload) {
+                        const input = document.getElementById(<?php echo \Illuminate\Support\Js::from($inputId)->toHtml() ?>);
+                        const preview = document.getElementById(<?php echo \Illuminate\Support\Js::from($previewId)->toHtml() ?>);
+                        const clear = <?php echo \Illuminate\Support\Js::from($clearName)->toHtml() ?> ? document.getElementById(<?php echo \Illuminate\Support\Js::from($clearId)->toHtml() ?>) : null;
+
+                        if (!input) return;
+
+                        input.value = payload.id || '';
+
+                        if (preview) {
+                            if (payload.url) {
+                                preview.src = payload.url;
+                                preview.classList.remove('hidden');
+                            } else {
+                                preview.src = '';
+                                preview.classList.add('hidden');
+                            }
+                        }
+
+                        if (clear) clear.value = '0';
+                    }
+                })"
+            >
+                <?php echo e($uploadText); ?>
+
             </button>
 
             <button
@@ -109,11 +153,15 @@ unset($__defined_vars, $__key, $__value); ?>
                 onclick="
                     const input = document.getElementById(<?php echo \Illuminate\Support\Js::from($inputId)->toHtml() ?>);
                     const preview = document.getElementById(<?php echo \Illuminate\Support\Js::from($previewId)->toHtml() ?>);
+                    const clear = <?php echo \Illuminate\Support\Js::from($clearName)->toHtml() ?> ? document.getElementById(<?php echo \Illuminate\Support\Js::from($clearId)->toHtml() ?>) : null;
+
                     if (input) input.value = '';
                     if (preview) { preview.src=''; preview.classList.add('hidden'); }
+                    if (clear) clear.value = '1';
                 "
             >
-                Clear
+                <?php echo e($clearText); ?>
+
             </button>
         </div>
     </div>

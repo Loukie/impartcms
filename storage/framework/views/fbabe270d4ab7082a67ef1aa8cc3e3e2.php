@@ -82,12 +82,14 @@ unset($__errorArgs, $__bag); ?>
                             </div>
                         </div>
 
-                        
+                                                
                         <div class="mt-8 border-t pt-8">
                             <div class="flex items-center justify-between">
                                 <div>
                                     <div class="text-sm font-semibold text-gray-900">Logo</div>
-                                    <p class="text-xs text-gray-500 mt-1">If no logo → show site name text. If logo → logo-only by default (optional logo + text).</p>
+                                    <p class="text-xs text-gray-500 mt-1">
+                                        If no logo → show site name text · If logo → logo-only by default (optional logo + text).
+                                    </p>
                                 </div>
                             </div>
 
@@ -98,18 +100,17 @@ unset($__errorArgs, $__bag); ?>
                                     : (!empty($logoPath) ? asset('storage/' . $logoPath) : null);
                             ?>
 
-                            <div class="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                <div>
-                                    <?php if (isset($component)) { $__componentOriginal78e2226de3aca9b0c13f2dda29d8d009 = $component; } ?>
+                            <div class="mt-4">
+                                <?php if (isset($component)) { $__componentOriginal78e2226de3aca9b0c13f2dda29d8d009 = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal78e2226de3aca9b0c13f2dda29d8d009 = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.admin.media-picker','data' => ['label' => 'Choose from Media library','name' => 'site_logo_media_id','value' => old('site_logo_media_id', $logoMediaId),'previewUrl' => $logoPreviewUrl,'type' => 'images','buttonText' => 'Choose logo','clearText' => 'Clear selection','clearCheckboxId' => 'remove_logo']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.admin.media-picker','data' => ['label' => 'Choose from Media library','name' => 'site_logo_media_id','value' => old('site_logo_media_id', $logoMediaId),'previewUrl' => $logoPreviewUrl,'type' => 'images','chooseText' => 'Choose from Media Library','uploadText' => 'Upload','clearText' => 'Clear','clearName' => 'site_logo_clear']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
 <?php $component->withName('admin.media-picker'); ?>
 <?php if ($component->shouldRender()): ?>
 <?php $__env->startComponent($component->resolveView(), $component->data()); ?>
 <?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
 <?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
 <?php endif; ?>
-<?php $component->withAttributes(['label' => 'Choose from Media library','name' => 'site_logo_media_id','value' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(old('site_logo_media_id', $logoMediaId)),'preview-url' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($logoPreviewUrl),'type' => 'images','button-text' => 'Choose logo','clear-text' => 'Clear selection','clear-checkbox-id' => 'remove_logo']); ?>
+<?php $component->withAttributes(['label' => 'Choose from Media library','name' => 'site_logo_media_id','value' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(old('site_logo_media_id', $logoMediaId)),'preview-url' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($logoPreviewUrl),'type' => 'images','choose-text' => 'Choose from Media Library','upload-text' => 'Upload','clear-text' => 'Clear','clear-name' => 'site_logo_clear']); ?>
 <?php echo $__env->renderComponent(); ?>
 <?php endif; ?>
 <?php if (isset($__attributesOriginal78e2226de3aca9b0c13f2dda29d8d009)): ?>
@@ -120,10 +121,10 @@ unset($__errorArgs, $__bag); ?>
 <?php $component = $__componentOriginal78e2226de3aca9b0c13f2dda29d8d009; ?>
 <?php unset($__componentOriginal78e2226de3aca9b0c13f2dda29d8d009); ?>
 <?php endif; ?>
-                                    <p class="mt-1 text-xs text-gray-500">
-                                        Selecting a Media image as your logo will <span class="font-semibold">not</span> delete it when removed from Settings.
-                                    </p>
-                                    <?php $__errorArgs = ['site_logo_media_id'];
+                                <p class="mt-1 text-xs text-gray-500">
+                                    Selecting a Media image as your logo will <span class="font-semibold">not</span> delete it when removed from Settings.
+                                </p>
+                                <?php $__errorArgs = ['site_logo_media_id'];
 $__bag = $errors->getBag($__errorArgs[1] ?? 'default');
 if ($__bag->has($__errorArgs[0])) :
 if (isset($message)) { $__messageOriginal = $message; }
@@ -131,33 +132,10 @@ $message = $__bag->first($__errorArgs[0]); ?> <p class="mt-1 text-sm text-red-60
 if (isset($__messageOriginal)) { $message = $__messageOriginal; }
 endif;
 unset($__errorArgs, $__bag); ?>
-                                </div>
-
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700">Upload logo (optional)</label>
-                                    <input type="file" name="site_logo" accept="image/*,.svg" class="mt-1 block w-full text-sm text-gray-700">
-                                    <p class="mt-1 text-xs text-gray-500">Uploads are stored under <code class="font-mono">storage/app/public/settings</code>.</p>
-                                    <?php $__errorArgs = ['site_logo'];
-$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
-if ($__bag->has($__errorArgs[0])) :
-if (isset($message)) { $__messageOriginal = $message; }
-$message = $__bag->first($__errorArgs[0]); ?> <p class="mt-1 text-sm text-red-600"><?php echo e($message); ?></p> <?php unset($message);
-if (isset($__messageOriginal)) { $message = $__messageOriginal; }
-endif;
-unset($__errorArgs, $__bag); ?>
-
-                                    <div class="mt-4">
-                                        <label class="inline-flex items-center gap-2 text-sm text-gray-700">
-                                            <input id="remove_logo" type="checkbox" name="remove_logo" value="1"
-                                                   class="rounded border-gray-300 text-gray-900 focus:ring-gray-500">
-                                            Remove logo (clears logo setting only)
-                                        </label>
-                                    </div>
-                                </div>
                             </div>
                         </div>
 
-                        
+                                                
                         <div class="mt-8 border-t pt-8">
                             <div class="flex items-center justify-between">
                                 <div>
@@ -173,18 +151,17 @@ unset($__errorArgs, $__bag); ?>
                                     : (!empty($faviconPath) ? asset('storage/' . $faviconPath) : null);
                             ?>
 
-                            <div class="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                <div>
-                                    <?php if (isset($component)) { $__componentOriginal78e2226de3aca9b0c13f2dda29d8d009 = $component; } ?>
+                            <div class="mt-4">
+                                <?php if (isset($component)) { $__componentOriginal78e2226de3aca9b0c13f2dda29d8d009 = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal78e2226de3aca9b0c13f2dda29d8d009 = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.admin.media-picker','data' => ['label' => 'Choose from Media library','name' => 'site_favicon_media_id','value' => old('site_favicon_media_id', $faviconMediaId),'previewUrl' => $faviconPreviewUrl,'type' => '','buttonText' => 'Choose favicon','clearText' => 'Clear selection','clearCheckboxId' => 'remove_favicon']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.admin.media-picker','data' => ['label' => 'Choose from Media library','name' => 'site_favicon_media_id','value' => old('site_favicon_media_id', $faviconMediaId),'previewUrl' => $faviconPreviewUrl,'type' => 'images','chooseText' => 'Choose from Media Library','uploadText' => 'Upload','clearText' => 'Clear','clearName' => 'site_favicon_clear']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
 <?php $component->withName('admin.media-picker'); ?>
 <?php if ($component->shouldRender()): ?>
 <?php $__env->startComponent($component->resolveView(), $component->data()); ?>
 <?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
 <?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
 <?php endif; ?>
-<?php $component->withAttributes(['label' => 'Choose from Media library','name' => 'site_favicon_media_id','value' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(old('site_favicon_media_id', $faviconMediaId)),'preview-url' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($faviconPreviewUrl),'type' => '','button-text' => 'Choose favicon','clear-text' => 'Clear selection','clear-checkbox-id' => 'remove_favicon']); ?>
+<?php $component->withAttributes(['label' => 'Choose from Media library','name' => 'site_favicon_media_id','value' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(old('site_favicon_media_id', $faviconMediaId)),'preview-url' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($faviconPreviewUrl),'type' => 'images','choose-text' => 'Choose from Media Library','upload-text' => 'Upload','clear-text' => 'Clear','clear-name' => 'site_favicon_clear']); ?>
 <?php echo $__env->renderComponent(); ?>
 <?php endif; ?>
 <?php if (isset($__attributesOriginal78e2226de3aca9b0c13f2dda29d8d009)): ?>
@@ -195,10 +172,8 @@ unset($__errorArgs, $__bag); ?>
 <?php $component = $__componentOriginal78e2226de3aca9b0c13f2dda29d8d009; ?>
 <?php unset($__componentOriginal78e2226de3aca9b0c13f2dda29d8d009); ?>
 <?php endif; ?>
-                                    <p class="mt-1 text-xs text-gray-500">
-                                        Recommended: <span class="font-semibold">ICO</span> or <span class="font-semibold">PNG</span> (32×32 / 48×48). Media items are never deleted via Settings.
-                                    </p>
-                                    <?php $__errorArgs = ['site_favicon_media_id'];
+                                <p class="mt-1 text-xs text-gray-500">Recommended: ICO or PNG (32×32 / 48×48). Media items are never deleted via Settings.</p>
+                                <?php $__errorArgs = ['site_favicon_media_id'];
 $__bag = $errors->getBag($__errorArgs[1] ?? 'default');
 if ($__bag->has($__errorArgs[0])) :
 if (isset($message)) { $__messageOriginal = $message; }
@@ -206,34 +181,10 @@ $message = $__bag->first($__errorArgs[0]); ?> <p class="mt-1 text-sm text-red-60
 if (isset($__messageOriginal)) { $message = $__messageOriginal; }
 endif;
 unset($__errorArgs, $__bag); ?>
-                                </div>
-
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700">Upload favicon (optional)</label>
-                                    <input type="file" name="site_favicon" accept=".ico,image/*,.svg" class="mt-1 block w-full text-sm text-gray-700">
-                                    <p class="mt-1 text-xs text-gray-500">Uploads are stored under <code class="font-mono">storage/app/public/settings</code>.</p>
-                                    <?php $__errorArgs = ['site_favicon'];
-$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
-if ($__bag->has($__errorArgs[0])) :
-if (isset($message)) { $__messageOriginal = $message; }
-$message = $__bag->first($__errorArgs[0]); ?> <p class="mt-1 text-sm text-red-600"><?php echo e($message); ?></p> <?php unset($message);
-if (isset($__messageOriginal)) { $message = $__messageOriginal; }
-endif;
-unset($__errorArgs, $__bag); ?>
-
-                                    <div class="mt-4">
-                                        <label class="inline-flex items-center gap-2 text-sm text-gray-700">
-                                            <input id="remove_favicon" type="checkbox" name="remove_favicon" value="1"
-                                                   class="rounded border-gray-300 text-gray-900 focus:ring-gray-500">
-                                            Remove favicon (clears favicon setting only)
-                                        </label>
-                                    </div>
-                                </div>
                             </div>
                         </div>
-                    </section>
 
-                    
+                        
                     <section class="border-t pt-10">
                         <div class="flex items-center justify-between">
                             <h3 class="text-sm font-semibold text-gray-900">Homepage</h3>

@@ -3,8 +3,12 @@
     'value' => null,
     'label' => 'Choose from Media library',
     'previewUrl' => null,
+    'type' => 'images', // images | docs (icons handled separately)
     'pickerUrl' => null,
-    'clearCheckboxId' => null,
+    'chooseText' => 'Choose from Media Library',
+    'uploadText' => 'Upload',
+    'clearText' => 'Clear',
+    'clearName' => null, // hidden boolean input to signal an explicit clear action
     'uid' => null,
 ])
 
@@ -12,9 +16,11 @@
     $uid = $uid ?: ('mp_' . \Illuminate\Support\Str::uuid()->toString());
     $inputId = $uid . '_input';
     $previewId = $uid . '_preview';
+    $clearId = $uid . '_clear';
 
-    $pickerUrl = $pickerUrl ?: route('admin.media.picker');
+    $pickerUrl = $pickerUrl ?: route('admin.media.picker', ['type' => $type]);
     $initialValue = old($name, $value);
+    $initialClear = old($clearName ?: '', '0');
 @endphp
 
 <div class="space-y-2">
@@ -30,17 +36,23 @@
             @endif
         </div>
 
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
             <input type="hidden" id="{{ $inputId }}" name="{{ $name }}" value="{{ $initialValue }}">
+
+            @if($clearName)
+                <input type="hidden" id="{{ $clearId }}" name="{{ $clearName }}" value="{{ $initialClear }}">
+            @endif
 
             <button
                 type="button"
                 class="inline-flex items-center px-3 py-2 rounded-md bg-gray-900 text-white text-sm font-semibold hover:bg-gray-800"
                 onclick="window.ImpartMediaPicker && window.ImpartMediaPicker.open({
-                    url: @js($pickerUrl),
+                    url: @js(route('admin.media.picker', array_merge(request()->query(), ['type' => $type, 'tab' => 'library']))),
                     onSelect: function (payload) {
                         const input = document.getElementById(@js($inputId));
                         const preview = document.getElementById(@js($previewId));
+                        const clear = @js($clearName) ? document.getElementById(@js($clearId)) : null;
+
                         if (!input) return;
 
                         input.value = payload.id || '';
@@ -55,16 +67,42 @@
                             }
                         }
 
-                        // If a remove checkbox exists, untick it when selecting from Media.
-                        const clearCbId = @js($clearCheckboxId);
-                        if (clearCbId) {
-                            const cb = document.getElementById(clearCbId);
-                            if (cb) cb.checked = false;
-                        }
+                        if (clear) clear.value = '0';
                     }
                 })"
             >
-                Choose from Media Library
+                {{ $chooseText }}
+            </button>
+
+            <button
+                type="button"
+                class="inline-flex items-center px-3 py-2 rounded-md border bg-white text-sm font-semibold hover:bg-gray-50"
+                onclick="window.ImpartMediaPicker && window.ImpartMediaPicker.open({
+                    url: @js(route('admin.media.picker', array_merge(request()->query(), ['type' => $type, 'tab' => 'upload']))),
+                    onSelect: function (payload) {
+                        const input = document.getElementById(@js($inputId));
+                        const preview = document.getElementById(@js($previewId));
+                        const clear = @js($clearName) ? document.getElementById(@js($clearId)) : null;
+
+                        if (!input) return;
+
+                        input.value = payload.id || '';
+
+                        if (preview) {
+                            if (payload.url) {
+                                preview.src = payload.url;
+                                preview.classList.remove('hidden');
+                            } else {
+                                preview.src = '';
+                                preview.classList.add('hidden');
+                            }
+                        }
+
+                        if (clear) clear.value = '0';
+                    }
+                })"
+            >
+                {{ $uploadText }}
             </button>
 
             <button
@@ -73,11 +111,14 @@
                 onclick="
                     const input = document.getElementById(@js($inputId));
                     const preview = document.getElementById(@js($previewId));
+                    const clear = @js($clearName) ? document.getElementById(@js($clearId)) : null;
+
                     if (input) input.value = '';
                     if (preview) { preview.src=''; preview.classList.add('hidden'); }
+                    if (clear) clear.value = '1';
                 "
             >
-                Clear
+                {{ $clearText }}
             </button>
         </div>
     </div>

@@ -1,15 +1,27 @@
 <x-admin-layout>
     <x-slot name="header">
-        <div class="flex items-center justify-between">
-            <div>
-                <h2 class="font-semibold text-xl text-gray-800 leading-tight">Media</h2>
-                <p class="text-sm text-gray-600 mt-1">Upload and manage files.</p>
-            </div>
+        <div>
+            <h2 class="font-semibold text-xl text-gray-800 leading-tight">Media</h2>
+            <p class="text-sm text-gray-600 mt-1">Upload and manage files.</p>
         </div>
     </x-slot>
 
+    @php
+        $currentType = $currentType ?? 'images';
+        $isImages = $currentType === 'images';
+        $isIcons = $currentType === 'icons';
+        $isDocs = $currentType === 'docs';
+
+        $baseTabQuery = [
+            'folder' => $currentFolder ?? '',
+            'q' => $currentQuery ?? '',
+            'sort' => $currentSort ?? 'newest',
+        ];
+    @endphp
+
     <div class="py-8">
         <div class="max-w-6xl mx-auto sm:px-6 lg:px-8">
+
             @if (session('status'))
                 <div class="mb-4 p-3 rounded bg-green-50 text-green-800 border border-green-200">
                     {{ session('status') }}
@@ -23,137 +35,123 @@
             @endif
 
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6">
-                    @php
-                        $baseTabQuery = request()->except('page', 'type');
-                        $isAll = ($currentType ?? '') === '';
-                        $isImages = ($currentType ?? '') === 'images';
-                        $isIcons = ($currentType ?? '') === 'icons';
-                        $isFonts = ($currentType ?? '') === 'fonts';
-                        $isDocs = ($currentType ?? '') === 'docs';
-                    @endphp
+                <div class="p-6" x-data="{ showUpload: {{ $errors->any() ? 'true' : 'false' }} }">
 
-                    <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                        <div class="text-sm text-gray-600">
-                            <a href="{{ route('admin.media.index', $baseTabQuery) }}"
-                               class="{{ $isAll ? 'font-semibold text-gray-900' : 'hover:text-gray-900' }}">
-                                All <span class="text-gray-500">({{ $counts['all'] ?? 0 }})</span>
-                            </a>
-                            <span class="mx-2 text-gray-300">|</span>
+                    {{-- Tabs + Filters --}}
+                    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                        <div class="flex items-center gap-2 text-sm font-semibold">
                             <a href="{{ route('admin.media.index', array_merge($baseTabQuery, ['type' => 'images'])) }}"
-                               class="{{ $isImages ? 'font-semibold text-gray-900' : 'hover:text-gray-900' }}">
-                                Images <span class="text-gray-500">({{ $counts['images'] ?? 0 }})</span>
+                               class="{{ $isImages ? 'text-gray-900' : 'text-gray-500 hover:text-gray-900' }}">
+                                Images <span class="text-gray-400">({{ $counts['images'] ?? 0 }})</span>
                             </a>
-                            <span class="mx-2 text-gray-300">|</span>
+                            <span class="text-gray-300">|</span>
                             <a href="{{ route('admin.media.index', array_merge($baseTabQuery, ['type' => 'icons'])) }}"
-                               class="{{ $isIcons ? 'font-semibold text-gray-900' : 'hover:text-gray-900' }}">
-                                Icons <span class="text-gray-500">({{ $counts['icons'] ?? 0 }})</span>
+                               class="{{ $isIcons ? 'text-gray-900' : 'text-gray-500 hover:text-gray-900' }}">
+                                Icons
                             </a>
-                            <span class="mx-2 text-gray-300">|</span>
-                            <a href="{{ route('admin.media.index', array_merge($baseTabQuery, ['type' => 'fonts'])) }}"
-                               class="{{ $isFonts ? 'font-semibold text-gray-900' : 'hover:text-gray-900' }}">
-                                Fonts <span class="text-gray-500">({{ $counts['fonts'] ?? 0 }})</span>
-                            </a>
-                            <span class="mx-2 text-gray-300">|</span>
+                            <span class="text-gray-300">|</span>
                             <a href="{{ route('admin.media.index', array_merge($baseTabQuery, ['type' => 'docs'])) }}"
-                               class="{{ $isDocs ? 'font-semibold text-gray-900' : 'hover:text-gray-900' }}">
-                                Docs <span class="text-gray-500">({{ $counts['docs'] ?? 0 }})</span>
+                               class="{{ $isDocs ? 'text-gray-900' : 'text-gray-500 hover:text-gray-900' }}">
+                                Docs <span class="text-gray-400">({{ $counts['docs'] ?? 0 }})</span>
                             </a>
                         </div>
 
-                        <form method="GET" action="{{ route('admin.media.index') }}" class="flex flex-col sm:flex-row gap-3 sm:items-end">
-                            <input type="hidden" name="type" value="{{ $currentType }}">
+                        {{-- Right-side controls --}}
+                        <div class="flex items-center gap-2 flex-wrap">
+                            @if (!$isIcons)
+                                <form method="GET" action="{{ route('admin.media.index') }}" class="flex items-center gap-2 flex-wrap">
+                                    <input type="hidden" name="type" value="{{ $currentType }}">
 
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Folder</label>
-                                <select name="folder" class="mt-1 rounded-md border-gray-300">
-                                    <option value="" {{ ($currentFolder ?? '') === '' ? 'selected' : '' }}>All folders</option>
-                                    @foreach($folders as $f)
-                                        <option value="{{ $f }}" {{ ($currentFolder ?? '') === $f ? 'selected' : '' }}>{{ $f }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
+                                    <div class="flex items-center gap-2">
+                                        <label class="text-xs font-semibold text-gray-600">Folder</label>
+                                        <select name="folder" class="border rounded-md text-sm px-3 py-2">
+                                            <option value="">All folders</option>
+                                            @foreach(($folders ?? []) as $folder)
+                                                <option value="{{ $folder }}" @selected(($currentFolder ?? '') === $folder)>{{ $folder }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
 
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Sort</label>
-                                <select name="sort" class="mt-1 rounded-md border-gray-300">
-                                    <option value="newest" {{ ($currentSort ?? '') === 'newest' ? 'selected' : '' }}>Newest</option>
-                                    <option value="oldest" {{ ($currentSort ?? '') === 'oldest' ? 'selected' : '' }}>Oldest</option>
-                                    <option value="title_asc" {{ ($currentSort ?? '') === 'title_asc' ? 'selected' : '' }}>Title A→Z</option>
-                                    <option value="title_desc" {{ ($currentSort ?? '') === 'title_desc' ? 'selected' : '' }}>Title Z→A</option>
-                                    <option value="largest" {{ ($currentSort ?? '') === 'largest' ? 'selected' : '' }}>Largest</option>
-                                    <option value="smallest" {{ ($currentSort ?? '') === 'smallest' ? 'selected' : '' }}>Smallest</option>
-                                </select>
-                            </div>
+                                    <div class="flex items-center gap-2">
+                                        <label class="text-xs font-semibold text-gray-600">Sort</label>
+                                        <select name="sort" class="border rounded-md text-sm px-3 py-2">
+                                            <option value="newest" @selected(($currentSort ?? 'newest') === 'newest')>Newest</option>
+                                            <option value="oldest" @selected(($currentSort ?? '') === 'oldest')>Oldest</option>
+                                            <option value="title_asc" @selected(($currentSort ?? '') === 'title_asc')>Title (A→Z)</option>
+                                            <option value="title_desc" @selected(($currentSort ?? '') === 'title_desc')>Title (Z→A)</option>
+                                        </select>
+                                    </div>
 
-                            <div class="sm:ml-4">
-                                <label class="block text-sm font-medium text-gray-700">Search</label>
-                                <div class="mt-1 flex items-center gap-2">
-                                    <input type="text" name="q" value="{{ $currentQuery }}"
-                                           placeholder="Search filename or title…"
-                                           class="w-full sm:w-64 rounded-md border-gray-300" />
+                                    <input
+                                        type="text"
+                                        name="q"
+                                        value="{{ $currentQuery ?? '' }}"
+                                        class="border rounded-md text-sm px-3 py-2"
+                                        placeholder="Search filename or title..."
+                                    />
 
-                                    <button type="submit"
-                                            class="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-md font-semibold text-xs uppercase tracking-widest hover:bg-gray-800">
-                                        Apply
-                                    </button>
+                                    <button class="px-3 py-2 rounded-md bg-gray-900 text-white text-xs font-semibold">Apply</button>
+                                    <a href="{{ route('admin.media.index', ['type' => $currentType]) }}" class="px-3 py-2 rounded-md border text-xs font-semibold">Reset</a>
+                                </form>
 
-                                    <a href="{{ route('admin.media.index') }}"
-                                       class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 uppercase tracking-widest hover:bg-gray-50">
-                                        Reset
-                                    </a>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-
-                    <div class="mt-6">
-                        <form method="POST" action="{{ route('admin.media.store') }}" enctype="multipart/form-data">
-                            @csrf
-                            <div class="flex flex-col sm:flex-row gap-3 sm:items-end sm:justify-between">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700">Upload</label>
-                                    <input name="files[]" type="file" multiple
-                                           class="mt-1 block w-full text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-gray-900 file:text-white hover:file:bg-gray-800"
-                                           accept="image/*,.svg,.ico,.pdf,.woff,.woff2,.ttf,.otf,.eot">
-                                    <div class="text-xs text-gray-500 mt-1">Images, PDFs, and font files (max 10MB each). Auto-organised into YYYY/MM.</div>
-                                </div>
-                                <button type="submit"
-                                        class="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-md font-semibold text-xs uppercase tracking-widest hover:bg-gray-800">
+                                <button type="button"
+                                        class="ml-auto px-3 py-2 rounded-md bg-gray-900 text-white text-xs font-semibold"
+                                        @click="showUpload = !showUpload">
                                     Upload
                                 </button>
-                            </div>
-                        </form>
+                            @endif
+                        </div>
                     </div>
 
-                    <div class="mt-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                        @forelse($media as $item)
-                            <a href="{{ route('admin.media.show', $item) }}"
-                               class="group border rounded-lg overflow-hidden hover:shadow-sm">
-                                <div class="bg-gray-50 aspect-square flex items-center justify-center">
-                                    @if($item->isImage())
-                                        <img src="{{ $item->url }}" alt="{{ $item->alt_text ?? $item->original_name }}"
-                                             class="h-full w-full object-cover group-hover:opacity-95">
-                                    @else
-                                        <div class="text-xs text-gray-600 px-2 text-center">
-                                            {{ strtoupper(pathinfo($item->original_name, PATHINFO_EXTENSION) ?: 'FILE') }}
-                                        </div>
-                                    @endif
-                                </div>
-                                <div class="p-2">
-                                    <div class="text-xs font-medium text-gray-900 truncate">{{ $item->title ?: $item->original_name }}</div>
-                                    <div class="text-[11px] text-gray-500 truncate">{{ $item->folder }}</div>
-                                </div>
-                            </a>
-                        @empty
-                            <div class="col-span-6 text-sm text-gray-500">
-                                No media found.
+                    {{-- Upload (collapsed by default; not shown on Icons tab) --}}
+                    @if (!$isIcons)
+                        <div class="mt-4" x-show="showUpload" x-cloak>
+                            <form method="POST" action="{{ route('admin.media.store') }}" enctype="multipart/form-data" class="flex flex-col sm:flex-row sm:items-center gap-3">
+                                @csrf
+                                <input type="file" name="files[]" multiple class="block w-full text-sm" />
+                                <button type="submit" class="px-4 py-2 rounded-md bg-gray-900 text-white text-xs font-semibold">Upload</button>
+                            </form>
+                            <div class="mt-2 text-xs text-gray-500">
+                                Images and documents (max 10MB each). Auto-organised into YYYY/MM.
                             </div>
-                        @endforelse
-                    </div>
+                        </div>
+                    @endif
 
+                    {{-- Content --}}
                     <div class="mt-6">
-                        {{ $media->links() }}
+                        @if ($isIcons)
+                            {{-- Font Awesome browser (same UI as the Media Picker popup) --}}
+                            @include('admin.media.partials.fa-icons', ['mode' => 'copy'])
+                        @else
+                            {{-- Media grid --}}
+                            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                                @forelse ($media as $item)
+                                    <a href="{{ route('admin.media.show', $item) }}" class="group block border rounded-lg overflow-hidden bg-white hover:shadow">
+                                        <div class="aspect-square bg-gray-50 flex items-center justify-center overflow-hidden">
+                                            @if ($item->is_image)
+                                                <img src="{{ $item->url }}" alt="{{ $item->title ?? $item->original_name ?? '' }}" class="w-full h-full object-contain p-2" />
+                                            @else
+                                                <div class="text-xs font-semibold text-gray-600">{{ strtoupper($item->extension ?? 'FILE') }}</div>
+                                            @endif
+                                        </div>
+                                        <div class="p-2">
+                                            <div class="text-sm font-semibold text-gray-900 truncate group-hover:text-gray-900">
+                                                {{ $item->title ?: ($item->original_name ?? 'Untitled') }}
+                                            </div>
+                                            <div class="text-[11px] text-gray-500 truncate">
+                                                {{ $item->folder ?? '' }}
+                                            </div>
+                                        </div>
+                                    </a>
+                                @empty
+                                    <div class="text-sm text-gray-500 col-span-full">No media found.</div>
+                                @endforelse
+                            </div>
+
+                            <div class="mt-6">
+                                {{ $media->links() }}
+                            </div>
+                        @endif
                     </div>
                 </div>
             </div>

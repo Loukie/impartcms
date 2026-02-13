@@ -64,12 +64,14 @@
                             </div>
                         </div>
 
-                        {{-- LOGO --}}
+                                                {{-- LOGO --}}
                         <div class="mt-8 border-t pt-8">
                             <div class="flex items-center justify-between">
                                 <div>
                                     <div class="text-sm font-semibold text-gray-900">Logo</div>
-                                    <p class="text-xs text-gray-500 mt-1">If no logo → show site name text. If logo → logo-only by default (optional logo + text).</p>
+                                    <p class="text-xs text-gray-500 mt-1">
+                                        If no logo → show site name text · If logo → logo-only by default (optional logo + text).
+                                    </p>
                                 </div>
                             </div>
 
@@ -80,42 +82,26 @@
                                     : (!empty($logoPath) ? asset('storage/' . $logoPath) : null);
                             @endphp
 
-                            <div class="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                <div>
-                                    <x-admin.media-picker
-                                        label="Choose from Media library"
-                                        name="site_logo_media_id"
-                                        :value="old('site_logo_media_id', $logoMediaId)"
-                                        :preview-url="$logoPreviewUrl"
-                                        type="images"
-                                        button-text="Choose logo"
-                                        clear-text="Clear selection"
-                                        clear-checkbox-id="remove_logo"
-                                    />
-                                    <p class="mt-1 text-xs text-gray-500">
-                                        Selecting a Media image as your logo will <span class="font-semibold">not</span> delete it when removed from Settings.
-                                    </p>
-                                    @error('site_logo_media_id') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
-                                </div>
-
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700">Upload logo (optional)</label>
-                                    <input type="file" name="site_logo" accept="image/*,.svg" class="mt-1 block w-full text-sm text-gray-700">
-                                    <p class="mt-1 text-xs text-gray-500">Uploads are stored under <code class="font-mono">storage/app/public/settings</code>.</p>
-                                    @error('site_logo') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
-
-                                    <div class="mt-4">
-                                        <label class="inline-flex items-center gap-2 text-sm text-gray-700">
-                                            <input id="remove_logo" type="checkbox" name="remove_logo" value="1"
-                                                   class="rounded border-gray-300 text-gray-900 focus:ring-gray-500">
-                                            Remove logo (clears logo setting only)
-                                        </label>
-                                    </div>
-                                </div>
+                            <div class="mt-4">
+                                <x-admin.media-picker
+                                    label="Choose from Media library"
+                                    name="site_logo_media_id"
+                                    :value="old('site_logo_media_id', $logoMediaId)"
+                                    :preview-url="$logoPreviewUrl"
+                                    type="images"
+                                    choose-text="Choose from Media Library"
+                                    upload-text="Upload"
+                                    clear-text="Clear"
+                                    clear-name="site_logo_clear"
+                                />
+                                <p class="mt-1 text-xs text-gray-500">
+                                    Selecting a Media image as your logo will <span class="font-semibold">not</span> delete it when removed from Settings.
+                                </p>
+                                @error('site_logo_media_id') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                             </div>
                         </div>
 
-                        {{-- FAVICON --}}
+                                                {{-- FAVICON --}}
                         <div class="mt-8 border-t pt-8">
                             <div class="flex items-center justify-between">
                                 <div>
@@ -131,43 +117,24 @@
                                     : (!empty($faviconPath) ? asset('storage/' . $faviconPath) : null);
                             @endphp
 
-                            <div class="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                <div>
-                                    <x-admin.media-picker
-                                        label="Choose from Media library"
-                                        name="site_favicon_media_id"
-                                        :value="old('site_favicon_media_id', $faviconMediaId)"
-                                        :preview-url="$faviconPreviewUrl"
-                                        type=""
-                                        button-text="Choose favicon"
-                                        clear-text="Clear selection"
-                                        clear-checkbox-id="remove_favicon"
-                                    />
-                                    <p class="mt-1 text-xs text-gray-500">
-                                        Recommended: <span class="font-semibold">ICO</span> or <span class="font-semibold">PNG</span> (32×32 / 48×48). Media items are never deleted via Settings.
-                                    </p>
-                                    @error('site_favicon_media_id') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
-                                </div>
-
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700">Upload favicon (optional)</label>
-                                    <input type="file" name="site_favicon" accept=".ico,image/*,.svg" class="mt-1 block w-full text-sm text-gray-700">
-                                    <p class="mt-1 text-xs text-gray-500">Uploads are stored under <code class="font-mono">storage/app/public/settings</code>.</p>
-                                    @error('site_favicon') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
-
-                                    <div class="mt-4">
-                                        <label class="inline-flex items-center gap-2 text-sm text-gray-700">
-                                            <input id="remove_favicon" type="checkbox" name="remove_favicon" value="1"
-                                                   class="rounded border-gray-300 text-gray-900 focus:ring-gray-500">
-                                            Remove favicon (clears favicon setting only)
-                                        </label>
-                                    </div>
-                                </div>
+                            <div class="mt-4">
+                                <x-admin.media-picker
+                                    label="Choose from Media library"
+                                    name="site_favicon_media_id"
+                                    :value="old('site_favicon_media_id', $faviconMediaId)"
+                                    :preview-url="$faviconPreviewUrl"
+                                    type="images"
+                                    choose-text="Choose from Media Library"
+                                    upload-text="Upload"
+                                    clear-text="Clear"
+                                    clear-name="site_favicon_clear"
+                                />
+                                <p class="mt-1 text-xs text-gray-500">Recommended: ICO or PNG (32×32 / 48×48). Media items are never deleted via Settings.</p>
+                                @error('site_favicon_media_id') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                             </div>
                         </div>
-                    </section>
 
-                    {{-- HOMEPAGE --}}
+                        {{-- HOMEPAGE --}}
                     <section class="border-t pt-10">
                         <div class="flex items-center justify-between">
                             <h3 class="text-sm font-semibold text-gray-900">Homepage</h3>

@@ -44,4 +44,30 @@ class MediaFile extends Model
     {
         return is_string($this->mime_type) && str_starts_with($this->mime_type, 'image/');
     }
+
+    /**
+     * Blade convenience: $media->is_image (bool)
+     */
+    public function getIsImageAttribute(): bool
+    {
+        return $this->isImage();
+    }
+
+    /**
+     * Blade convenience: $media->extension (string)
+     */
+    public function getExtensionAttribute(): string
+    {
+        $path = (string) ($this->path ?? $this->filename ?? '');
+        $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION) ?: '');
+        return $ext;
+    }
+
+    /**
+     * Blade convenience: $media->size_bytes (int)
+     */
+    public function getSizeBytesAttribute(): int
+    {
+        return (int) ($this->size ?? 0);
+    }
 }
