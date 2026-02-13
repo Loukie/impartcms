@@ -56,7 +56,19 @@
                                               placeholder="Write content here...">{{ old('body') }}</textarea>
                                     <p class="mt-1 text-xs text-gray-500">
                                         Tip: embed forms with <code class="px-1 py-0.5 bg-gray-100 rounded">[form slug="contact"]</code>
+                                        and icons with <code class="px-1 py-0.5 bg-gray-100 rounded">[icon kind="fa" value="fa-solid fa-house" size="24" colour="#111827"]</code>
                                     </p>
+
+                                    <div class="mt-3">
+                                        <button type="button" id="icon-preview-toggle"
+                                                class="text-xs font-semibold text-gray-700 hover:text-gray-900 underline">
+                                            Toggle icon shortcode preview
+                                        </button>
+                                        <div id="icon-shortcode-preview" class="mt-2 hidden bg-slate-50 border rounded-xl p-3">
+                                            <div class="text-[11px] text-gray-500 mb-2">Shows the first 30 <span class="font-semibold">[icon]</span> shortcodes found in the body.</div>
+                                            <div id="icon-shortcode-preview-grid" class="flex flex-wrap gap-2"></div>
+                                        </div>
+                                    </div>
                                     @error('body') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                                 </div>
 
@@ -353,6 +365,81 @@
 
             setActiveTab('general');
             updatePreview();
+        })();
+
+        // Icon shortcode preview (admin convenience)
+        (function () {
+            const toggle = document.getElementById('icon-preview-toggle');
+            const panel = document.getElementById('icon-shortcode-preview');
+            const grid = document.getElementById('icon-shortcode-preview-grid');
+            const textarea = document.querySelector('textarea[name="body"]');
+
+            if (!toggle || !panel || !grid || !textarea) return;
+
+            function parseAttrs(raw) {
+                const attrs = {};
+                const re = /(\w+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g;
+                let m;
+                while ((m = re.exec(raw)) !== null) {
+                    attrs[m[1].toLowerCase()] = (m[2] ?? m[3] ?? '');
+                }
+                return attrs;
+            }
+
+            function render() {
+                const text = textarea.value || '';
+                const matches = Array.from(text.matchAll(/\[icon\s+([^\]]+)\]/gi)).slice(0, 30);
+
+                grid.innerHTML = '';
+                if (matches.length === 0) {
+                    grid.innerHTML = '<div class="text-xs text-gray-500">No [icon] shortcodes found.</div>';
+                    return;
+                }
+
+                for (const match of matches) {
+                    const attrs = parseAttrs(match[1] || '');
+
+                    if (attrs.data) {
+                        try {
+                            const decoded = JSON.parse(attrs.data);
+                            Object.assign(attrs, decoded);
+                        } catch (e) {
+                            // ignore
+                        }
+                    }
+
+                    const kind = (attrs.kind || '').toLowerCase();
+                    const value = attrs.value || attrs.icon || attrs.name || '';
+                    const size = parseInt(attrs.size || '24', 10) || 24;
+                    const colour = attrs.colour || attrs.color || '#111827';
+
+                    const wrap = document.createElement('div');
+                    wrap.className = 'inline-flex items-center justify-center w-10 h-10 rounded-lg border bg-white';
+
+                    if (kind === 'fa' && value) {
+                        wrap.innerHTML = `<i class="${value}" style="font-size:${size}px;color:${colour};line-height:1"></i>`;
+                    } else if (kind === 'lucide' && value) {
+                        wrap.innerHTML = `<i data-lucide="${value}" style="width:${size}px;height:${size}px;color:${colour};display:inline-block"></i>`;
+                    } else {
+                        wrap.innerHTML = '<span class="text-xs text-gray-400">?</span>';
+                    }
+
+                    grid.appendChild(wrap);
+                }
+
+                if (window.ImpartLucide && window.ImpartLucide.render) {
+                    window.ImpartLucide.render(panel);
+                }
+            }
+
+            toggle.addEventListener('click', () => {
+                panel.classList.toggle('hidden');
+                if (!panel.classList.contains('hidden')) render();
+            });
+
+            textarea.addEventListener('input', () => {
+                if (!panel.classList.contains('hidden')) render();
+            });
         })();
     </script>
 </x-admin-layout>

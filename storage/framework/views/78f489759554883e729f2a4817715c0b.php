@@ -39,8 +39,9 @@
                         $baseTabQuery = request()->except('page', 'type');
                         $isAll = ($currentType ?? '') === '';
                         $isImages = ($currentType ?? '') === 'images';
-                        $isDocs = ($currentType ?? '') === 'docs';
+                        $isIcons = ($currentType ?? '') === 'icons';
                         $isFonts = ($currentType ?? '') === 'fonts';
+                        $isDocs = ($currentType ?? '') === 'docs';
                     ?>
 
                     <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -53,6 +54,11 @@
                             <a href="<?php echo e(route('admin.media.index', array_merge($baseTabQuery, ['type' => 'images']))); ?>"
                                class="<?php echo e($isImages ? 'font-semibold text-gray-900' : 'hover:text-gray-900'); ?>">
                                 Images <span class="text-gray-500">(<?php echo e($counts['images'] ?? 0); ?>)</span>
+                            </a>
+                            <span class="mx-2 text-gray-300">|</span>
+                            <a href="<?php echo e(route('admin.media.index', array_merge($baseTabQuery, ['type' => 'icons']))); ?>"
+                               class="<?php echo e($isIcons ? 'font-semibold text-gray-900' : 'hover:text-gray-900'); ?>">
+                                Icons <span class="text-gray-500">(<?php echo e($counts['icons'] ?? 0); ?>)</span>
                             </a>
                             <span class="mx-2 text-gray-300">|</span>
                             <a href="<?php echo e(route('admin.media.index', array_merge($baseTabQuery, ['type' => 'fonts']))); ?>"

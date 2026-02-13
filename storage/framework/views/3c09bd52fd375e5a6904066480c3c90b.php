@@ -209,7 +209,9 @@ if (!$faviconUrl && !empty($faviconPath)) {
 <div id="impart-media-modal" class="fixed inset-0 z-50 hidden">
     <div class="absolute inset-0 bg-black/60" data-impart-media-close></div>
 
-    <div class="relative mx-auto mt-4 w-[95vw] max-w-[1440px] h-[92vh] bg-white rounded-xl shadow-2xl overflow-hidden flex flex-col">
+    
+    <div class="relative min-h-screen w-full flex items-center justify-center p-4 sm:p-6">
+        <div class="w-full max-w-[1440px] h-[92vh] bg-white rounded-xl shadow-2xl overflow-hidden flex flex-col">
         <div class="flex items-center justify-between px-4 py-3 border-b border-slate-200">
             <div class="text-sm font-semibold text-slate-900">Select media</div>
             <button type="button" class="text-sm font-semibold text-slate-700 hover:text-slate-900" data-impart-media-close>
@@ -217,6 +219,7 @@ if (!$faviconUrl && !empty($faviconPath)) {
             </button>
         </div>
         <iframe id="impart-media-iframe" class="flex-1 w-full" src="about:blank"></iframe>
+        </div>
     </div>
 </div>
 
@@ -231,14 +234,16 @@ if (!$faviconUrl && !empty($faviconPath)) {
         modal.classList.add('hidden');
         iframe.src = 'about:blank';
         onSelect = null;
+        document.documentElement.style.overflow = '';
     }
 
     function openModal(opts) {
-        const url = (opts && opts.url) ? opts.url : "<?php echo e(route('admin.media.index')); ?>?picker=1";
+        const url = (opts && opts.url) ? opts.url : "<?php echo e(route('admin.media.picker')); ?>";
         onSelect = (opts && typeof opts.onSelect === 'function') ? opts.onSelect : null;
 
         iframe.src = url;
         modal.classList.remove('hidden');
+        document.documentElement.style.overflow = 'hidden';
     }
 
     window.ImpartMediaPicker = {
@@ -258,12 +263,15 @@ if (!$faviconUrl && !empty($faviconPath)) {
         try {
             if (event.origin !== window.location.origin) return;
             const data = event.data || {};
-            if (data.type === 'impartcms-media-cancel') {
+            if (data.type === 'impartcms-media-cancel' || data.type === 'impart-media-cancel') {
                 closeModal();
                 return;
             }
-            if (data.type !== 'impartcms-media-selected') return;
-            if (onSelect) onSelect(data);
+            if (data.type !== 'impartcms-media-selected' && data.type !== 'impart-media-selected') return;
+
+            // Normalise payload shape (old patches may post payload directly)
+            const payload = (data && typeof data === 'object' && 'payload' in data) ? data.payload : data;
+            if (onSelect) onSelect(payload);
             closeModal();
         } catch (e) {
             // ignore

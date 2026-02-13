@@ -28,6 +28,16 @@
 
     <title>{{ $title }}</title>
 
+    @php
+        // Only load the app bundle when we detect icon shortcodes in the body.
+        // This keeps pages without icons lightweight.
+        $hasIconShortcodes = is_string($page->body ?? null) && str_contains($page->body, '[icon');
+    @endphp
+
+    @if($hasIconShortcodes)
+        @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @endif
+
     @if($description !== '')
         <meta name="description" content="{{ $description }}">
     @endif

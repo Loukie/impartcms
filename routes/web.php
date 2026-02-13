@@ -65,10 +65,10 @@ Route::middleware(['auth', 'can:access-admin'])
     ->group(function () {
 
         /**
-         * Admin dashboard landing
-         * (This keeps /admin feeling like a "Dashboard" rather than forcing Pages.)
+         * Admin landing
+         * Keep this stable: /admin should never 500 even if a view gets renamed.
          */
-        Route::get('/', fn () => view('admin.dashboard'))->name('dashboard');
+        Route::get('/', fn () => redirect()->route('dashboard'))->name('home');
 
         // Settings
         Route::get('/settings', [SettingsController::class, 'edit'])->name('settings.edit');

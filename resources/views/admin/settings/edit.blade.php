@@ -189,6 +189,38 @@
                         </div>
                     </section>
 
+                    {{-- SHORTCODES --}}
+                    <section class="border-t pt-10">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-sm font-semibold text-gray-900">Shortcodes</h3>
+                            <p class="text-xs text-gray-500">Manual embeds (forms + icons)</p>
+                        </div>
+
+                        <div class="mt-5 grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <div class="bg-slate-50 border rounded-xl p-4">
+                                <div class="text-xs font-semibold text-gray-800 uppercase tracking-wide">Icon shortcode</div>
+                                <div class="mt-2 text-sm text-gray-700">
+                                    Use this inside any page body.
+                                </div>
+                                <pre class="mt-3 text-xs bg-white border rounded-lg p-3 overflow-auto"><code>[icon kind="fa" value="fa-solid fa-house" size="24" colour="#111827"]
+[icon kind="lucide" value="home" size="24" colour="#111827"]</code></pre>
+                                <div class="mt-3 text-xs text-gray-600">
+                                    Alternative JSON form (use <span class="font-semibold">single quotes</span> so JSON quotes don’t break the shortcode):
+                                </div>
+                                <pre class="mt-2 text-xs bg-white border rounded-lg p-3 overflow-auto"><code>[icon data='{"kind":"fa","value":"fa-solid fa-house","size":24,"colour":"#111827"}']</code></pre>
+                            </div>
+
+                            <div class="bg-slate-50 border rounded-xl p-4">
+                                <div class="text-xs font-semibold text-gray-800 uppercase tracking-wide">Form shortcode</div>
+                                <div class="mt-2 text-sm text-gray-700">
+                                    Embed an active form by slug.
+                                </div>
+                                <pre class="mt-3 text-xs bg-white border rounded-lg p-3 overflow-auto"><code>[form slug="contact"]
+[form slug="contact" to="hello@example.com"]</code></pre>
+                            </div>
+                        </div>
+                    </section>
+
                     <div class="pt-6 border-t flex items-center justify-end gap-3">
                         <button type="submit" class="inline-flex items-center px-4 py-2 rounded-md bg-gray-900 text-white text-sm font-semibold hover:bg-gray-800">
                             Save settings
