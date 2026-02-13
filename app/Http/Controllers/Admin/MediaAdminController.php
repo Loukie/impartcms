@@ -10,39 +10,21 @@ use App\Models\Setting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class MediaAdminController extends Controller
 {
+    private array $iconExts = ['svg', 'ico'];
+    private array $fontExts = ['woff2', 'woff', 'ttf', 'otf', 'eot'];
+
     public function index(Request $request): View
     {
         $folder = (string) $request->query('folder', '');
-        $type = (string) $request->query('type', 'images');
+        $type = (string) $request->query('type', '');
         $q = trim((string) $request->query('q', ''));
         $sort = (string) $request->query('sort', 'newest');
-
-        // Icons tab is a Font Awesome browser (no DB query)
-        if ($type === 'icons') {
-            return view('admin.media.index', [
-                'media' => MediaFile::query()->whereRaw('1=0')->paginate(1),
-                'counts' => [
-                    'images' => $this->countImages(clone MediaFile::query()->when($folder !== '', fn($qq) => $qq->where('folder', $folder))->when($q !== '', fn($qq) => $this->applySearch($qq, $q))),
-                    'docs' => $this->countDocs(clone MediaFile::query()->when($folder !== '', fn($qq) => $qq->where('folder', $folder))->when($q !== '', fn($qq) => $this->applySearch($qq, $q))),
-                ],
-                'folders' => MediaFile::query()
-                    ->select('folder')
-                    ->whereNotNull('folder')
-                    ->distinct()
-                    ->orderByDesc('folder')
-                    ->pluck('folder')
-                    ->all(),
-                'currentFolder' => $folder,
-                'currentType' => 'icons',
-                'currentQuery' => $q,
-                'currentSort' => $sort,
-            ]);
-        }
 
         $base = MediaFile::query();
 
@@ -51,12 +33,21 @@ class MediaAdminController extends Controller
         }
 
         if ($q !== '') {
-            $this->applySearch($base, $q);
+            $base->where(function ($query) use ($q) {
+                $query->where('title', 'like', '%' . $q . '%')
+                    ->orWhere('original_name', 'like', '%' . $q . '%')
+                    ->orWhere('filename', 'like', '%' . $q . '%');
+            });
         }
 
+        // WordPress-style counts (reflect current search + folder filter)
         $countsBase = clone $base;
+
         $counts = [
+            'all' => (clone $countsBase)->count(),
             'images' => $this->countImages(clone $countsBase),
+            'icons' => $this->countIcons(clone $countsBase),
+            'fonts' => $this->countFonts(clone $countsBase),
             'docs' => $this->countDocs(clone $countsBase),
         ];
 
@@ -106,37 +97,15 @@ class MediaAdminController extends Controller
 
     /**
      * Minimal picker view (used inside the modal iframe).
+     * Route should point to this: GET /admin/media/picker  -> name admin.media.picker
      */
     public function picker(Request $request): View
     {
         $folder = (string) $request->query('folder', '');
-        $type = (string) $request->query('type', 'images');
+        $type = (string) $request->query('type', '');
         $q = trim((string) $request->query('q', ''));
         $sort = (string) $request->query('sort', 'newest');
         $tab = (string) $request->query('tab', 'library');
-
-        // Icons tab is a Font Awesome browser (no DB query)
-        if ($type === 'icons') {
-            return view('admin.media.picker', [
-                'media' => MediaFile::query()->whereRaw('1=0')->paginate(1),
-                'counts' => [
-                    'images' => $this->countImages(clone MediaFile::query()->when($folder !== '', fn($qq) => $qq->where('folder', $folder))->when($q !== '', fn($qq) => $this->applySearch($qq, $q))),
-                    'docs' => $this->countDocs(clone MediaFile::query()->when($folder !== '', fn($qq) => $qq->where('folder', $folder))->when($q !== '', fn($qq) => $this->applySearch($qq, $q))),
-                ],
-                'folders' => MediaFile::query()
-                    ->select('folder')
-                    ->whereNotNull('folder')
-                    ->distinct()
-                    ->orderByDesc('folder')
-                    ->pluck('folder')
-                    ->all(),
-                'currentFolder' => $folder,
-                'currentType' => 'icons',
-                'currentQuery' => $q,
-                'currentSort' => $sort,
-                'tab' => in_array($tab, ['library', 'upload'], true) ? $tab : 'library',
-            ]);
-        }
 
         $base = MediaFile::query();
 
@@ -145,12 +114,19 @@ class MediaAdminController extends Controller
         }
 
         if ($q !== '') {
-            $this->applySearch($base, $q);
+            $base->where(function ($query) use ($q) {
+                $query->where('title', 'like', '%' . $q . '%')
+                    ->orWhere('original_name', 'like', '%' . $q . '%')
+                    ->orWhere('filename', 'like', '%' . $q . '%');
+            });
         }
 
         $countsBase = clone $base;
         $counts = [
+            'all' => (clone $countsBase)->count(),
             'images' => $this->countImages(clone $countsBase),
+            'icons' => $this->countIcons(clone $countsBase),
+            'fonts' => $this->countFonts(clone $countsBase),
             'docs' => $this->countDocs(clone $countsBase),
         ];
 
@@ -215,24 +191,44 @@ class MediaAdminController extends Controller
 
             $mime = $file->getMimeType() ?: 'application/octet-stream';
             $size = (int) $file->getSize();
+            $width = null;
+            $height = null;
 
-            MediaFile::create([
-                'title' => pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME),
+            // Best-effort dimensions for raster images.
+            if (is_string($mime) && str_starts_with($mime, 'image/')) {
+                try {
+                    $full = Storage::disk($disk)->path($path);
+                    $info = @getimagesize($full);
+                    if (is_array($info)) {
+                        $width = (int) ($info[0] ?? 0) ?: null;
+                        $height = (int) ($info[1] ?? 0) ?: null;
+                    }
+                } catch (\Throwable $e) {
+                    // Ignore; still save record.
+                }
+            }
+
+            MediaFile::query()->create([
+                'disk' => $disk,
+                'path' => $path,
+                'folder' => $folder,
                 'original_name' => $file->getClientOriginalName(),
                 'filename' => $filename,
-                'path' => $path,
                 'mime_type' => $mime,
                 'size' => $size,
-                'folder' => $folder,
+                'width' => $width,
+                'height' => $height,
+                'title' => pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME),
+                'created_by' => $request->user()?->id,
             ]);
         }
 
-        return back()->with('status', 'Uploaded.');
+        return back()->with('status', 'Media uploaded.');
     }
 
     public function show(MediaFile $media): View
     {
-        $usage = $this->findUsage($media);
+        $usage = $this->detectUsage($media);
 
         return view('admin.media.show', [
             'media' => $media,
@@ -243,124 +239,235 @@ class MediaAdminController extends Controller
     public function update(Request $request, MediaFile $media): RedirectResponse
     {
         $validated = $request->validate([
-            'title' => ['nullable', 'string', 'max:120'],
-            'alt_text' => ['nullable', 'string', 'max:160'],
+            'title' => ['nullable', 'string', 'max:180'],
+            'alt_text' => ['nullable', 'string', 'max:255'],
+            'caption' => ['nullable', 'string', 'max:2000'],
         ]);
 
-        $media->title = $validated['title'] ?? $media->title;
-        $media->alt_text = $validated['alt_text'] ?? $media->alt_text;
+        $media->title = $validated['title'] ?? null;
+        $media->alt_text = $validated['alt_text'] ?? null;
+        $media->caption = $validated['caption'] ?? null;
         $media->save();
 
-        return back()->with('status', 'Saved.');
+        return back()->with('status', 'Media updated.');
     }
 
     public function destroy(MediaFile $media): RedirectResponse
     {
-        // Protect deletion if referenced in Pages/SEO/Settings
-        $usage = $this->findUsage($media);
+        // Safety: refuse delete if it appears in any pages/seo/settings.
+        $usage = $this->detectUsage($media);
 
-        if (!empty($usage['settings'])) {
+        $pagesUsed = ($usage['pages'] ?? collect())->isNotEmpty();
+        $seoUsed = ($usage['seo_pages'] ?? collect())->isNotEmpty();
+        $settingsUsed = !empty($usage['settings'] ?? []);
+
+        if ($pagesUsed || $seoUsed || $settingsUsed) {
             return back()->withErrors([
-                'delete' => 'This file is currently used in Settings (' . implode(', ', $usage['settings']) . '). Remove it there first.',
+                'status' => 'This file appears to be in use. Remove it from pages/settings first, then delete.',
             ]);
         }
 
-        if ($usage['pages']->count() || $usage['seo_pages']->count()) {
-            return back()->withErrors([
-                'delete' => 'This file is referenced in content/SEO. Remove references first.',
-            ]);
-        }
-
-        if ($media->path && Storage::disk('public')->exists($media->path)) {
-            Storage::disk('public')->delete($media->path);
-        }
-
+        Storage::disk($media->disk ?? 'public')->delete($media->path);
         $media->delete();
 
-        return redirect()->route('admin.media.index')->with('status', 'Deleted.');
+        return redirect()->route('admin.media.index')->with('status', 'Media deleted.');
     }
 
-    private function applySearch($query, string $q): void
+    /**
+     * Best-effort “Where used” detection for now.
+     * - Scans Page.body and SeoMeta OG/Twitter image URLs.
+     * - Also checks Settings logo/favicon media ids.
+     */
+        private function detectUsage(MediaFile $media): array
     {
-        $query->where(function ($qq) use ($q) {
-            $qq->where('title', 'like', '%' . $q . '%')
-                ->orWhere('original_name', 'like', '%' . $q . '%')
-                ->orWhere('filename', 'like', '%' . $q . '%');
-        });
+        $empty = [
+            'pages' => collect(),
+            'seo_pages' => collect(),
+            'settings' => [],
+        ];
+
+        try {
+            if (!Schema::hasTable('pages')) {
+                return $empty;
+            }
+
+            $columns = Schema::getColumnListing('pages');
+
+            // Try to find a sensible "body/content" column to scan.
+            $bodyCol = null;
+            foreach (['body', 'content', 'content_html', 'html'] as $c) {
+                if (in_array($c, $columns, true)) {
+                    $bodyCol = $c;
+                    break;
+                }
+            }
+
+            $selectCols = [];
+            foreach (['id', 'title', 'slug', 'status', 'updated_at'] as $c) {
+                if (in_array($c, $columns, true)) {
+                    $selectCols[] = $c;
+                }
+            }
+            if (in_array('deleted_at', $columns, true)) {
+                $selectCols[] = 'deleted_at';
+            }
+            if (empty($selectCols)) {
+                $selectCols = ['id'];
+            }
+
+            $needle = $media->url;
+            $like = '%' . $needle . '%';
+
+            // Pages: find usage in body/content column (if present)
+            $pages = collect();
+            if ($bodyCol) {
+                try {
+                    $q = Page::query()->select($selectCols)
+                        ->where($bodyCol, 'like', $like);
+
+                    if (in_array('title', $columns, true)) {
+                        $q->orderBy('title');
+                    } else {
+                        $q->orderBy($selectCols[0]);
+                    }
+
+                    $pages = $q->limit(200)->get();
+                } catch (\Throwable $e) {
+                    $pages = collect();
+                }
+            }
+
+            // SEO usage: only if likely columns exist
+            $seoPages = collect();
+            $seoCols = [];
+            foreach (['og_image', 'twitter_image', 'featured_image', 'meta_image', 'seo', 'meta', 'schema_json'] as $c) {
+                if (in_array($c, $columns, true)) {
+                    $seoCols[] = $c;
+                }
+            }
+            if (!empty($seoCols)) {
+                try {
+                    $q = Page::query()->select($selectCols);
+                    $q->where(function ($qq) use ($seoCols, $like) {
+                        foreach ($seoCols as $c) {
+                            $qq->orWhere($c, 'like', $like);
+                        }
+                    });
+
+                    if (in_array('title', $columns, true)) {
+                        $q->orderBy('title');
+                    } else {
+                        $q->orderBy($selectCols[0]);
+                    }
+
+                    $seoPages = $q->limit(200)->get();
+                } catch (\Throwable $e) {
+                    $seoPages = collect();
+                }
+            }
+
+            // Settings usage (safe)
+            $settings = [];
+            try {
+                $settings = Setting::query()
+                    ->where('value', 'like', $like)
+                    ->pluck('key')
+                    ->all();
+            } catch (\Throwable $e) {
+                $settings = [];
+            }
+
+            return [
+                'pages' => $pages,
+                'seo_pages' => $seoPages,
+                'settings' => $settings,
+            ];
+        } catch (\Throwable $e) {
+            return $empty;
+        }
     }
+
 
     private function applyTypeFilter($query, string $type): string
     {
+        if ($type === 'images') {
+            $query->where('mime_type', 'like', 'image/%')
+                ->where(function ($qq) {
+                    foreach ($this->iconExts as $ext) {
+                        $qq->where('filename', 'not like', '%.' . $ext);
+                    }
+                });
+            return 'images';
+        }
+
+        if ($type === 'icons') {
+            $query->where(function ($qq) {
+                foreach ($this->iconExts as $ext) {
+                    $qq->orWhere('filename', 'like', '%.' . $ext);
+                }
+            });
+            return 'icons';
+        }
+
+        if ($type === 'fonts') {
+            $query->where(function ($qq) {
+                foreach ($this->fontExts as $ext) {
+                    $qq->orWhere('filename', 'like', '%.' . $ext);
+                }
+            });
+            return 'fonts';
+        }
+
         if ($type === 'docs') {
-            $query->where('mime_type', 'not like', 'image/%');
+            $query->where('mime_type', 'not like', 'image/%')
+                ->where(function ($qq) {
+                    foreach ($this->fontExts as $ext) {
+                        $qq->where('filename', 'not like', '%.' . $ext);
+                    }
+                });
             return 'docs';
         }
 
-        // Default: images
-        $query->where('mime_type', 'like', 'image/%');
-        return 'images';
+        return '';
+    }
+
+    private function countIcons($query): int
+    {
+        return $query->where(function ($qq) {
+            foreach ($this->iconExts as $ext) {
+                $qq->orWhere('filename', 'like', '%.' . $ext);
+            }
+        })->count();
+    }
+
+    private function countFonts($query): int
+    {
+        return $query->where(function ($qq) {
+            foreach ($this->fontExts as $ext) {
+                $qq->orWhere('filename', 'like', '%.' . $ext);
+            }
+        })->count();
     }
 
     private function countImages($query): int
     {
-        return $query->where('mime_type', 'like', 'image/%')->count();
+        return $query->where('mime_type', 'like', 'image/%')
+            ->where(function ($qq) {
+                foreach ($this->iconExts as $ext) {
+                    $qq->where('filename', 'not like', '%.' . $ext);
+                }
+            })
+            ->count();
     }
 
     private function countDocs($query): int
     {
-        return $query->where('mime_type', 'not like', 'image/%')->count();
-    }
-
-    private function findUsage(MediaFile $media): array
-    {
-        $relative = ltrim((string) $media->path, '/');
-        $relative2 = ltrim((string) ('storage/' . $relative), '/');
-
-        $pages = Page::withTrashed()
-            ->where(function ($q) use ($relative, $relative2) {
-                $q->where('featured_image_url', 'like', '%' . $relative . '%')
-                    ->orWhere('featured_image_url', 'like', '%' . $relative2 . '%')
-                    ->orWhere('body', 'like', '%' . $relative . '%')
-                    ->orWhere('body', 'like', '%' . $relative2 . '%');
+        return $query->where('mime_type', 'not like', 'image/%')
+            ->where(function ($qq) {
+                foreach ($this->fontExts as $ext) {
+                    $qq->where('filename', 'not like', '%.' . $ext);
+                }
             })
-            ->orderBy('title')
-            ->get(['id', 'title', 'slug', 'status', 'deleted_at']);
-
-        $seoPageIds = SeoMeta::query()
-            ->where(function ($q) use ($relative, $relative2) {
-                $q->where('og_image_url', 'like', '%' . $relative . '%')
-                    ->orWhere('og_image_url', 'like', '%' . $relative2 . '%')
-                    ->orWhere('twitter_image_url', 'like', '%' . $relative . '%')
-                    ->orWhere('twitter_image_url', 'like', '%' . $relative2 . '%');
-            })
-            ->pluck('page_id')
-            ->unique()
-            ->values()
-            ->all();
-
-        $seoPages = empty($seoPageIds)
-            ? collect()
-            : Page::query()
-                ->whereIn('id', $seoPageIds)
-                ->orderBy('title')
-                ->get(['id', 'title', 'slug', 'status', 'deleted_at']);
-
-        $settingsHits = [];
-
-        $logoId = (int) (Setting::get('site_logo_media_id', '0') ?? 0);
-        if ($logoId > 0 && $logoId === (int) $media->id) {
-            $settingsHits[] = 'site_logo_media_id';
-        }
-
-        $faviconId = (int) (Setting::get('site_favicon_media_id', '0') ?? 0);
-        if ($faviconId > 0 && $faviconId === (int) $media->id) {
-            $settingsHits[] = 'site_favicon_media_id';
-        }
-
-        return [
-            'pages' => $pages,
-            'seo_pages' => $seoPages,
-            'settings' => $settingsHits,
-        ];
+            ->count();
     }
 }

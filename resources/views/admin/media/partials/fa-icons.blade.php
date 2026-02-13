@@ -3,14 +3,15 @@
         <div class="text-sm font-semibold text-gray-900">Font Awesome Icons</div>
         <div class="text-xs text-gray-500">
             @if(request()->routeIs('admin.media.index'))
-                Click an icon to copy its class (e.g. <span class="font-mono">fa-solid fa-house</span>)
+                Click an icon to copy its shortcode (e.g. <span class="font-mono">[icon kind=&quot;fa&quot; value=&quot;fa-solid fa-house&quot; size=&quot;24&quot; colour=&quot;#4CBB17&quot;]</span>)
             @else
-                Click an icon to select it.
+                Click an icon to select it (or switch to “Copy shortcode”).
             @endif
         </div>
     </div>
 
-    <div id="impart-icon-library" class="mt-4" data-mode="{{ request()->routeIs('admin.media.index') ? 'copy' : 'select' }}">
+    <div id="impart-icon-library" class="mt-4"
+         data-mode="{{ request()->routeIs('admin.media.index') ? 'copy' : 'select' }}">
         <div class="flex flex-col lg:flex-row gap-3 lg:items-end">
             <div class="flex-1">
                 <label class="block text-sm font-medium text-slate-700">Search</label>
@@ -36,8 +37,20 @@
 
             <div>
                 <label class="block text-sm font-medium text-slate-700">Colour</label>
-                <input id="impart-icon-colour" type="text" value="#111827"
-                       class="mt-1 w-40 rounded-md border-slate-300" />
+                <div class="mt-1 flex items-center gap-2">
+                    <input id="impart-icon-colour" type="color" value="#111827"
+                           class="h-10 w-12 rounded-md border border-slate-300 p-1" />
+                    <input id="impart-icon-colour-text" type="text" value="#111827"
+                           class="w-28 rounded-md border-slate-300" />
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-slate-700">Action</label>
+                <select id="impart-icon-action" class="mt-1 rounded-md border-slate-300">
+                    <option value="copy">Copy shortcode</option>
+                    <option value="select">Select</option>
+                </select>
             </div>
         </div>
 

@@ -1,233 +1,174 @@
-/**
- * ImpartCMS Icon Library Renderer (Font Awesome only)
- *
- * Activates only when a page contains:
- *   <div id="impart-icon-library"></div>
- *
- * Expected DOM structure:
- * - #impart-fa-grid
- * - inputs:
- *   - #impart-icon-search
- *   - #impart-fa-style
- *   - #impart-icon-size
- *   - #impart-icon-colour
- *   - #impart-icon-loadmore-fa
- *
- * Behaviour:
- * - In the media picker iframe: click → posts selection to parent.
- * - On the Media page: click → copies icon class to clipboard + toast.
- */
+// Font Awesome Icon Library (local JSON bundle in resources/js/admin/fa-icon-list.js)
+// Renders a searchable, filterable grid.
+// - "Copy shortcode" mode: click copies ImpartCMS [icon ...] shortcode
+// - "Select" mode (used inside media picker iframe): click selects icon and returns to opener via postMessage
 
-function qs(sel, root = document) {
-    return root.querySelector(sel);
+import faIconList from './fa-icon-list';
+
+function qs(sel, root = document) { return root.querySelector(sel); }
+
+function normaliseHexColour(input) {
+    const s = String(input || '').trim();
+    if (!s) return '#111827';
+    if (s[0] === '#') return s.length === 7 ? s : ('#' + s.slice(1).padEnd(6, '0').slice(0, 6));
+    return ('#' + s.padEnd(6, '0').slice(0, 6));
 }
 
-function isInIframe() {
-    try {
-        return window.self !== window.top;
-    } catch (e) {
-        return true;
-    }
-}
-
-function safeOrigin() {
-    try {
-        return window.location.origin;
-    } catch (e) {
-        return '*';
-    }
-}
-
-function postSelected(payload) {
-    try {
-        window.parent.postMessage(
-            { type: 'impartcms-media-selected', payload },
-            safeOrigin()
-        );
-    } catch (e) {
-        // ignore
-    }
-}
-
-function isFaIconDefinition(v) {
-    return (
-        v &&
-        typeof v === 'object' &&
-        typeof v.iconName === 'string' &&
-        typeof v.prefix === 'string' &&
-        Array.isArray(v.icon)
-    );
-}
-
-const FA_STYLE = {
-    solid: {
-        pack: () => import('@fortawesome/free-solid-svg-icons'),
-        classPrefix: 'fa-solid',
-    },
-    regular: {
-        pack: () => import('@fortawesome/free-regular-svg-icons'),
-        classPrefix: 'fa-regular',
-    },
-    brands: {
-        pack: () => import('@fortawesome/free-brands-svg-icons'),
-        classPrefix: 'fa-brands',
-    },
-};
-
-let faItemsPromise = null;
-
-async function loadFaItems() {
-    if (faItemsPromise) return faItemsPromise;
-
-    faItemsPromise = (async () => {
-        const items = [];
-        const seen = new Set();
-
-        for (const style of Object.keys(FA_STYLE)) {
-            const { pack, classPrefix } = FA_STYLE[style];
-            const mod = await pack();
-
-            for (const def of Object.values(mod)) {
-                if (!isFaIconDefinition(def)) continue;
-
-                const name = def.iconName;
-                const key = `${style}:${name}`;
-                if (seen.has(key)) continue;
-                seen.add(key);
-
-                items.push({
-                    kind: 'fa',
-                    name,
-                    style,
-                    className: `${classPrefix} fa-${name}`,
-                });
-            }
-        }
-
-        items.sort((a, b) =>
-            a.name === b.name
-                ? a.style.localeCompare(b.style)
-                : a.name.localeCompare(b.name)
-        );
-
-        return items;
-    })();
-
-    return faItemsPromise;
-}
-
-function normaliseHexColour(v) {
-    const c = (v || '').trim();
-    return /^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(c) ? c : '#111827';
-}
-
-function clampNumber(v, min, max, fallback) {
-    const n = parseInt(String(v || ''), 10);
-    if (Number.isNaN(n)) return fallback;
-    return Math.min(max, Math.max(min, n));
-}
-
-function createTile({ label, html, onClick }) {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className =
-        'group bg-white border rounded-xl p-2 hover:shadow-sm transition flex flex-col items-center gap-2';
-
-    const icon = document.createElement('div');
-    icon.className =
-        'w-full aspect-square bg-slate-50 rounded-lg flex items-center justify-center overflow-hidden';
-    icon.innerHTML = html;
-
-    const name = document.createElement('div');
-    name.className = 'w-full text-[11px] text-slate-600 truncate text-center';
-    name.textContent = label;
-
-    btn.appendChild(icon);
-    btn.appendChild(name);
-
-    btn.addEventListener('click', onClick);
-    return btn;
-}
-
-function showToast(root, text) {
-    const el = qs('#impart-icon-toast', root) || qs('#impart-icon-toast');
+function toast(root, msg) {
+    const el = qs('#impart-icon-toast', root);
     if (!el) return;
-
-    el.textContent = text;
+    el.textContent = msg;
     el.classList.remove('hidden');
-    clearTimeout(showToast._t);
-    showToast._t = setTimeout(() => el.classList.add('hidden'), 1600);
+    clearTimeout(el._t);
+    el._t = setTimeout(() => el.classList.add('hidden'), 1400);
 }
 
-async function copyToClipboard(text) {
+function copyToClipboard(text) {
     try {
-        await navigator.clipboard.writeText(text);
+        navigator.clipboard.writeText(text);
         return true;
     } catch (e) {
-        // fallback
         try {
             const ta = document.createElement('textarea');
             ta.value = text;
-            ta.setAttribute('readonly', 'readonly');
             ta.style.position = 'fixed';
-            ta.style.left = '-9999px';
+            ta.style.opacity = '0';
             document.body.appendChild(ta);
             ta.select();
-            const ok = document.execCommand('copy');
+            document.execCommand('copy');
             document.body.removeChild(ta);
-            return ok;
+            return true;
         } catch (e2) {
             return false;
         }
     }
 }
 
-function mount() {
-    const root = qs('#impart-icon-library');
-    if (!root) return;
+function buildFaShortcode(className, size, colour) {
+    const sz = parseInt(size || 24, 10) || 24;
+    const col = normaliseHexColour(colour || '#111827');
+    return `[icon kind="fa" value="${className}" size="${sz}" colour="${col}"]`;
+}
 
-    const faGrid = qs('#impart-fa-grid', root);
+function postSelected(payload) {
+    window.parent.postMessage({
+        type: 'impartcms-media-selected',
+        payload,
+    }, window.location.origin);
+}
+
+function renderFAIcon(el, className, sizePx, colour) {
+    el.innerHTML = '';
+    const i = document.createElement('i');
+    i.className = className;
+    i.style.fontSize = `${sizePx}px`;
+    i.style.color = colour;
+    i.style.lineHeight = '1';
+    el.appendChild(i);
+}
+
+function mountFaIconLibrary(root) {
+    const grid = qs('#impart-fa-grid', root);
     const inpSearch = qs('#impart-icon-search', root);
-    const selFaStyle = qs('#impart-fa-style', root);
+    const selStyle = qs('#impart-fa-style', root);
     const inpSize = qs('#impart-icon-size', root);
+
     const inpColour = qs('#impart-icon-colour', root);
-    const btnMoreFa = qs('#impart-icon-loadmore-fa', root);
+    const inpColourText = qs('#impart-icon-colour-text', root);
+    const selAction = qs('#impart-icon-action', root);
 
-    if (!faGrid || !inpSearch || !selFaStyle || !inpSize || !inpColour) return;
+    const btnMore = qs('#impart-icon-loadmore-fa', root);
 
-    const mode = (root.dataset.mode || '').toLowerCase() || (isInIframe() ? 'select' : 'copy');
-    const inIframe = isInIframe();
+    if (!grid || !inpSearch || !selStyle || !inpSize) return;
 
-    let faItems = [];
-    let faLimit = 220;
+    const inIframe = window.self !== window.top;
 
-    function filterName(name, q) {
-        if (!q) return true;
-        return name.toLowerCase().includes(q.toLowerCase());
+    // Default mode: page = copy, picker iframe = select
+    let currentMode = (root.dataset.mode || '').toLowerCase() || (inIframe ? 'select' : 'copy');
+    if (selAction) selAction.value = currentMode;
+
+    // Colour inputs sync
+    const syncColourToText = () => {
+        if (!inpColour || !inpColourText) return;
+        inpColourText.value = inpColour.value;
+    };
+    const syncTextToColour = () => {
+        if (!inpColour || !inpColourText) return;
+        const norm = normaliseHexColour(inpColourText.value);
+        inpColourText.value = norm;
+        inpColour.value = norm;
+    };
+    if (inpColour && inpColourText) {
+        inpColour.addEventListener('input', syncColourToText);
+        inpColourText.addEventListener('change', syncTextToColour);
+        // initial sync
+        syncColourToText();
     }
 
-    function renderFa() {
-        const q = (inpSearch.value || '').trim();
-        const style = (selFaStyle.value || 'all').trim();
-
-        faGrid.innerHTML = '';
-
-        const filtered = faItems.filter((it) => {
-            if (style !== 'all' && it.style !== style) return false;
-            return filterName(it.name, q);
+    if (selAction) {
+        selAction.addEventListener('change', () => {
+            currentMode = (selAction.value || 'copy').toLowerCase();
+            root.dataset.mode = currentMode;
         });
+    }
 
-        const slice = filtered.slice(0, faLimit);
+    let page = 0;
+    const pageSize = 120;
 
-        const size = clampNumber(inpSize.value, 8, 256, 24);
-        const colour = normaliseHexColour(inpColour.value);
+    function getColour() {
+        if (inpColour) return normaliseHexColour(inpColour.value);
+        if (inpColourText) return normaliseHexColour(inpColourText.value);
+        return '#111827';
+    }
 
-        for (const it of slice) {
-            const tile = createTile({
-                label: `${it.name} (${it.style})`,
-                html: `<i class="${it.className}" style="font-size:${size}px;color:${colour};line-height:1"></i>`,
-                onClick: async () => {
-                    const payload = {
+    function computeMatches() {
+        const q = (inpSearch.value || '').trim().toLowerCase();
+        const style = (selStyle.value || 'all').toLowerCase();
+
+        return faIconList.filter(it => {
+            const okQ = !q || it.name.toLowerCase().includes(q) || it.search.some(s => s.includes(q));
+            const okStyle = (style === 'all') || it.style === style;
+            return okQ && okStyle;
+        });
+    }
+
+    function renderPage(reset = false) {
+        const size = parseInt(inpSize.value || '24', 10) || 24;
+        const colour = getColour();
+
+        if (reset) {
+            page = 0;
+            grid.innerHTML = '';
+        }
+
+        const matches = computeMatches();
+        const start = page * pageSize;
+        const end = start + pageSize;
+        const slice = matches.slice(start, end);
+
+        slice.forEach(it => {
+            const card = document.createElement('button');
+            card.type = 'button';
+            card.className = 'group text-left border rounded-lg p-3 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500';
+            card.setAttribute('data-class', it.className);
+
+            const iconWrap = document.createElement('div');
+            iconWrap.className = 'h-12 flex items-center justify-center';
+            renderFAIcon(iconWrap, it.className, size, colour);
+
+            const label = document.createElement('div');
+            label.className = 'mt-2 text-[11px] text-slate-600 truncate';
+            label.textContent = `${it.name} (${it.style})`;
+
+            card.appendChild(iconWrap);
+            card.appendChild(label);
+
+            card.addEventListener('click', () => {
+                const shortcode = buildFaShortcode(it.className, size, colour);
+
+                // Select mode only really works when embedded in picker iframe.
+                if (currentMode === 'select' && inIframe) {
+                    postSelected({
                         kind: 'icon',
                         icon: {
                             kind: 'fa',
@@ -236,57 +177,43 @@ function mount() {
                             value: it.className,
                             size,
                             colour,
+                            shortcode,
                         },
-                    };
+                    });
+                    return;
+                }
 
-                    if (inIframe || mode === 'select') {
-                        postSelected(payload);
-                        return;
-                    }
-
-                    const ok = await copyToClipboard(it.className);
-                    showToast(root, ok ? `Copied: ${it.className}` : `Copy failed: ${it.className}`);
-                },
+                // Copy mode (default)
+                const ok = copyToClipboard(shortcode);
+                toast(root, ok ? 'Copied shortcode ✔' : 'Copy failed');
             });
 
-            faGrid.appendChild(tile);
-        }
+            grid.appendChild(card);
+        });
 
-        btnMoreFa?.classList.toggle('hidden', filtered.length <= faLimit);
+        const more = (end < matches.length);
+        if (btnMore) btnMore.classList.toggle('hidden', !more);
     }
 
-    async function boot() {
-        faGrid.innerHTML = '<div class="text-sm text-slate-500 p-2">Loading Font Awesome icons…</div>';
-
-        try {
-            faItems = await loadFaItems();
-        } catch (e) {
-            faItems = [];
-            faGrid.innerHTML =
-                '<div class="text-sm text-red-600 p-2">Font Awesome icon packs are not installed. Run: <code>npm i @fortawesome/free-solid-svg-icons @fortawesome/free-regular-svg-icons @fortawesome/free-brands-svg-icons</code></div>';
-            return;
-        }
-
-        renderFa();
+    function loadMore() {
+        page += 1;
+        renderPage(false);
     }
 
     // Events
-    inpSearch.addEventListener('input', () => renderFa());
-    selFaStyle.addEventListener('change', () => renderFa());
-    inpSize.addEventListener('change', () => renderFa());
-    inpColour.addEventListener('change', () => renderFa());
+    inpSearch.addEventListener('input', () => renderPage(true));
+    selStyle.addEventListener('change', () => renderPage(true));
+    inpSize.addEventListener('change', () => renderPage(true));
+    if (inpColour) inpColour.addEventListener('change', () => renderPage(true));
+    if (inpColourText) inpColourText.addEventListener('change', () => renderPage(true));
 
-    btnMoreFa?.addEventListener('click', () => {
-        faLimit += 220;
-        renderFa();
-    });
+    if (btnMore) btnMore.addEventListener('click', loadMore);
 
-    void boot();
+    // First render
+    renderPage(true);
 }
 
-// Mount on ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', mount);
-} else {
-    mount();
-}
+document.addEventListener('DOMContentLoaded', () => {
+    const root = qs('#impart-icon-library');
+    if (root) mountFaIconLibrary(root);
+});
