@@ -121,16 +121,26 @@ function mountFaIconLibrary(root) {
         return '#111827';
     }
 
-    function computeMatches() {
-        const q = (inpSearch.value || '').trim().toLowerCase();
-        const style = (selStyle.value || 'all').toLowerCase();
+	function computeMatches() {
+		const qRaw = (inpSearch.value || '').trim().toLowerCase();
+		const style = (selStyle.value || 'all').toLowerCase();
+		const terms = qRaw ? qRaw.split(/\s+/).filter(Boolean) : [];
 
-        return faIconList.filter(it => {
-            const okQ = !q || it.name.toLowerCase().includes(q) || it.search.some(s => s.includes(q));
-            const okStyle = (style === 'all') || it.style === style;
-            return okQ && okStyle;
-        });
-    }
+		return faIconList.filter(it => {
+			const name = String(it.name || '').toLowerCase();
+			const cls = String(it.className || it.value || '').toLowerCase();
+			const label = String(it.label || '').toLowerCase();
+			const st = String(it.style || '').toLowerCase();
+
+			const hay = `${name} ${label} ${cls} ${st}`.trim();
+
+			const okQ = terms.length === 0 || terms.every(t => hay.includes(t));
+			const okStyle = (style === 'all') || st === style;
+
+			return okQ && okStyle;
+		});
+	}
+
 
     function renderPage(reset = false) {
         const size = parseInt(inpSize.value || '24', 10) || 24;
