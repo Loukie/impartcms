@@ -1,19 +1,19 @@
-@php
+<?php
     /**
      * Public embed renderer for a Form.
      * - Uses schema stored on $form->fields (array)
      * - Includes honeypot + basic helpers (phone country dropdown)
      */
     $fields = is_array($form->fields ?? null) ? $form->fields : [];
-@endphp
+?>
 
 <div class="my-6">
-    <form method="POST" action="{{ route('forms.submit', $form) }}" class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-        @csrf
-        <input type="hidden" name="_page_id" value="{{ $page?->id }}">
-        <input type="hidden" name="_override_to" value="{{ $overrideTo }}">
+    <form method="POST" action="<?php echo e(route('forms.submit', $form)); ?>" class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <?php echo csrf_field(); ?>
+        <input type="hidden" name="_page_id" value="<?php echo e($page?->id); ?>">
+        <input type="hidden" name="_override_to" value="<?php echo e($overrideTo); ?>">
 
-        {{-- Honeypot (keep invisible for humans, obvious for bots) --}}
+        
         <div style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;">
             <label>Leave this field empty</label>
             <input type="text" name="__hp" tabindex="-1" autocomplete="off">
@@ -21,22 +21,23 @@
 
         <div class="flex items-start justify-between gap-4">
             <div>
-                <h3 class="text-lg font-semibold text-slate-900">{{ $form->name }}</h3>
-                @if(!empty($form->settings['description']))
-                    <p class="mt-1 text-sm text-slate-600">{{ $form->settings['description'] }}</p>
-                @endif
+                <h3 class="text-lg font-semibold text-slate-900"><?php echo e($form->name); ?></h3>
+                <?php if(!empty($form->settings['description'])): ?>
+                    <p class="mt-1 text-sm text-slate-600"><?php echo e($form->settings['description']); ?></p>
+                <?php endif; ?>
             </div>
         </div>
 
-        @if(session('status'))
+        <?php if(session('status')): ?>
             <div class="mt-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
-                {{ session('status') }}
+                <?php echo e(session('status')); ?>
+
             </div>
-        @endif
+        <?php endif; ?>
 
         <div class="mt-5 space-y-4">
-            @foreach($fields as $field)
-                @php
+            <?php $__currentLoopData = $fields; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $field): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                <?php
                     $name = $field['name'] ?? null;
                     $label = $field['label'] ?? $name;
                     $type = $field['type'] ?? 'text';
@@ -44,71 +45,72 @@
                     $placeholder = $field['placeholder'] ?? '';
                     $help = $field['help'] ?? '';
                     $options = is_array($field['options'] ?? null) ? $field['options'] : [];
-                @endphp
+                ?>
 
-                @if($type === 'heading')
+                <?php if($type === 'heading'): ?>
                     <div class="pt-2">
-                        <div class="text-base font-semibold text-slate-900">{{ $label }}</div>
-                        @if($help)
-                            <div class="mt-1 text-sm text-slate-600">{{ $help }}</div>
-                        @endif
+                        <div class="text-base font-semibold text-slate-900"><?php echo e($label); ?></div>
+                        <?php if($help): ?>
+                            <div class="mt-1 text-sm text-slate-600"><?php echo e($help); ?></div>
+                        <?php endif; ?>
                     </div>
-                    @continue
-                @endif
+                    <?php continue; ?>
+                <?php endif; ?>
 
-                @if($type === 'html')
-                    <div class="prose prose-slate max-w-none">{!! $field['html'] ?? '' !!}</div>
-                    @continue
-                @endif
+                <?php if($type === 'html'): ?>
+                    <div class="prose prose-slate max-w-none"><?php echo $field['html'] ?? ''; ?></div>
+                    <?php continue; ?>
+                <?php endif; ?>
 
-                @if(!$name)
-                    @continue
-                @endif
+                <?php if(!$name): ?>
+                    <?php continue; ?>
+                <?php endif; ?>
 
                 <div>
                     <label class="block text-sm font-medium text-slate-900">
-                        {{ $label }}
-                        @if($required)
+                        <?php echo e($label); ?>
+
+                        <?php if($required): ?>
                             <span class="text-rose-600">*</span>
-                        @endif
+                        <?php endif; ?>
                     </label>
 
-                    @if($help)
-                        <div class="mt-1 text-xs text-slate-500">{{ $help }}</div>
-                    @endif
+                    <?php if($help): ?>
+                        <div class="mt-1 text-xs text-slate-500"><?php echo e($help); ?></div>
+                    <?php endif; ?>
 
-                    @if($type === 'textarea')
+                    <?php if($type === 'textarea'): ?>
                         <textarea
-                            name="{{ $name }}"
+                            name="<?php echo e($name); ?>"
                             rows="4"
                             class="mt-2 block w-full rounded-lg border-slate-300 shadow-sm focus:border-slate-900 focus:ring-slate-900"
-                            placeholder="{{ $placeholder }}"
-                            @if($required) required @endif
-                        >{{ old($name) }}</textarea>
-                    @elseif($type === 'select')
+                            placeholder="<?php echo e($placeholder); ?>"
+                            <?php if($required): ?> required <?php endif; ?>
+                        ><?php echo e(old($name)); ?></textarea>
+                    <?php elseif($type === 'select'): ?>
                         <select
-                            name="{{ $name }}"
+                            name="<?php echo e($name); ?>"
                             class="mt-2 block w-full rounded-lg border-slate-300 shadow-sm focus:border-slate-900 focus:ring-slate-900"
-                            @if($required) required @endif
+                            <?php if($required): ?> required <?php endif; ?>
                         >
                             <option value="">Select…</option>
-                            @foreach($options as $opt)
-                                @php
+                            <?php $__currentLoopData = $options; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $opt): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                <?php
                                     $ov = is_array($opt) ? ($opt['value'] ?? $opt['label'] ?? '') : (string) $opt;
                                     $ol = is_array($opt) ? ($opt['label'] ?? $ov) : (string) $opt;
-                                @endphp
-                                <option value="{{ $ov }}" @selected(old($name) == $ov)>{{ $ol }}</option>
-                            @endforeach
+                                ?>
+                                <option value="<?php echo e($ov); ?>" <?php if(old($name) == $ov): echo 'selected'; endif; ?>><?php echo e($ol); ?></option>
+                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                         </select>
-                    @elseif($type === 'cards' || $type === 'cards_multi')
-                        @php
+                    <?php elseif($type === 'cards' || $type === 'cards_multi'): ?>
+                        <?php
                             $isMulti = $type === 'cards_multi';
                             $oldVal = old($name);
                             $oldArr = is_array($oldVal) ? $oldVal : (is_string($oldVal) ? [$oldVal] : []);
-                        @endphp
+                        ?>
                         <div class="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            @foreach($options as $idx => $opt)
-                                @php
+                            <?php $__currentLoopData = $options; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $idx => $opt): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                <?php
                                     $ov = is_array($opt) ? ($opt['value'] ?? $opt['label'] ?? ('option_' . $idx)) : (string) $opt;
                                     $ol = is_array($opt) ? ($opt['label'] ?? $ov) : (string) $opt;
                                     $mediaId = is_array($opt) ? (int) ($opt['media_id'] ?? 0) : 0;
@@ -118,36 +120,36 @@
                                         if ($m && $m->isImage()) $mediaUrl = $m->url;
                                     }
                                     $checked = $isMulti ? in_array($ov, $oldArr, true) : ((string)$oldVal === (string)$ov);
-                                @endphp
+                                ?>
                                 <label class="group flex gap-3 rounded-xl border border-slate-200 p-3 cursor-pointer hover:border-slate-400">
                                     <input
-                                        type="{{ $isMulti ? 'checkbox' : 'radio' }}"
-                                        name="{{ $isMulti ? $name.'[]' : $name }}"
-                                        value="{{ $ov }}"
+                                        type="<?php echo e($isMulti ? 'checkbox' : 'radio'); ?>"
+                                        name="<?php echo e($isMulti ? $name.'[]' : $name); ?>"
+                                        value="<?php echo e($ov); ?>"
                                         class="mt-1"
-                                        @checked($checked)
-                                        @if($required && !$isMulti) required @endif
+                                        <?php if($checked): echo 'checked'; endif; ?>
+                                        <?php if($required && !$isMulti): ?> required <?php endif; ?>
                                     >
                                     <div class="flex-1 min-w-0">
-                                        <div class="text-sm font-semibold text-slate-900">{{ $ol }}</div>
-                                        @if(is_array($opt) && !empty($opt['description']))
-                                            <div class="mt-0.5 text-xs text-slate-600">{{ $opt['description'] }}</div>
-                                        @endif
+                                        <div class="text-sm font-semibold text-slate-900"><?php echo e($ol); ?></div>
+                                        <?php if(is_array($opt) && !empty($opt['description'])): ?>
+                                            <div class="mt-0.5 text-xs text-slate-600"><?php echo e($opt['description']); ?></div>
+                                        <?php endif; ?>
                                     </div>
-                                    @if($mediaUrl)
-                                        <img src="{{ $mediaUrl }}" alt="" class="h-12 w-12 rounded-lg object-cover border border-slate-200">
-                                    @endif
+                                    <?php if($mediaUrl): ?>
+                                        <img src="<?php echo e($mediaUrl); ?>" alt="" class="h-12 w-12 rounded-lg object-cover border border-slate-200">
+                                    <?php endif; ?>
                                 </label>
-                            @endforeach
+                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                         </div>
-                        @if($required && $isMulti)
+                        <?php if($required && $isMulti): ?>
                             <div class="mt-1 text-xs text-slate-500">Select at least one.</div>
-                        @endif
-                    @elseif($type === 'phone')
-                        @php
+                        <?php endif; ?>
+                    <?php elseif($type === 'phone'): ?>
+                        <?php
                             $oldPhone = old($name);
-                        @endphp
-                        <div class="mt-2 flex gap-2" data-phone-field data-phone-name="{{ $name }}">
+                        ?>
+                        <div class="mt-2 flex gap-2" data-phone-field data-phone-name="<?php echo e($name); ?>">
                             <select
                                 class="w-40 rounded-lg border-slate-300 shadow-sm focus:border-slate-900 focus:ring-slate-900"
                                 data-phone-country
@@ -157,29 +159,43 @@
                             <input
                                 type="tel"
                                 class="flex-1 rounded-lg border-slate-300 shadow-sm focus:border-slate-900 focus:ring-slate-900"
-                                placeholder="{{ $placeholder ?: 'Phone number' }}"
+                                placeholder="<?php echo e($placeholder ?: 'Phone number'); ?>"
                                 data-phone-number
                                 style="font-size:16px;"
                             >
-                            <input type="hidden" name="{{ $name }}" value="{{ $oldPhone }}" data-phone-hidden @if($required) required @endif>
+                            <input type="hidden" name="<?php echo e($name); ?>" value="<?php echo e($oldPhone); ?>" data-phone-hidden <?php if($required): ?> required <?php endif; ?>>
                         </div>
-                        @error($name)<div class="mt-1 text-sm text-rose-600">{{ $message }}</div>@enderror
-                    @else
+                        <?php $__errorArgs = [$name];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?><div class="mt-1 text-sm text-rose-600"><?php echo e($message); ?></div><?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                    <?php else: ?>
                         <input
-                            type="{{ $type === 'email' ? 'email' : 'text' }}"
-                            name="{{ $name }}"
-                            value="{{ old($name) }}"
+                            type="<?php echo e($type === 'email' ? 'email' : 'text'); ?>"
+                            name="<?php echo e($name); ?>"
+                            value="<?php echo e(old($name)); ?>"
                             class="mt-2 block w-full rounded-lg border-slate-300 shadow-sm focus:border-slate-900 focus:ring-slate-900"
-                            placeholder="{{ $placeholder }}"
-                            @if($required) required @endif
+                            placeholder="<?php echo e($placeholder); ?>"
+                            <?php if($required): ?> required <?php endif; ?>
                         >
-                    @endif
+                    <?php endif; ?>
 
-                    @error($name)
-                        <div class="mt-1 text-sm text-rose-600">{{ $message }}</div>
-                    @enderror
+                    <?php $__errorArgs = [$name];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                        <div class="mt-1 text-sm text-rose-600"><?php echo e($message); ?></div>
+                    <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
                 </div>
-            @endforeach
+            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
         </div>
 
         <div class="mt-6">
@@ -328,3 +344,4 @@
     });
 })();
 </script>
+<?php /**PATH C:\laragon\www\2kocms\resources\views/cms/forms/embed.blade.php ENDPATH**/ ?>

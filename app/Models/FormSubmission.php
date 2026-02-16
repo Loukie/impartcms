@@ -16,12 +16,18 @@ class FormSubmission extends Model
         'payload',
         'ip',
         'user_agent',
+        'to_email',
+        'mail_status',
+        'mail_sent_at',
+        'mail_error',
+        'spam_reason',
         'created_at',
     ];
 
     protected $casts = [
         'payload' => 'array',
         'created_at' => 'datetime',
+        'mail_sent_at' => 'datetime',
     ];
 
     public function form(): BelongsTo

@@ -2,6 +2,9 @@
 
 use App\Http\Controllers\Admin\MediaAdminController;
 use App\Http\Controllers\Admin\PageAdminController;
+use App\Http\Controllers\Admin\FormAdminController;
+use App\Http\Controllers\Admin\FormSettingsController;
+use App\Http\Controllers\Admin\FormSubmissionAdminController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\UserAdminController;
 use App\Http\Controllers\FormSubmissionController;
@@ -108,6 +111,17 @@ Route::middleware(['auth', 'can:access-admin'])
         Route::get('/media/{media}', [MediaAdminController::class, 'show'])->whereNumber('media')->name('media.show');
         Route::put('/media/{media}', [MediaAdminController::class, 'update'])->whereNumber('media')->name('media.update');
         Route::delete('/media/{media}', [MediaAdminController::class, 'destroy'])->whereNumber('media')->name('media.destroy');
+
+        // Forms
+        Route::get('/forms-settings', [FormSettingsController::class, 'edit'])->name('forms.settings.edit');
+        Route::put('/forms-settings', [FormSettingsController::class, 'update'])->name('forms.settings.update');
+        Route::post('/forms-settings/test-email', [FormSettingsController::class, 'sendTestEmail'])->name('forms.settings.testEmail');
+
+        Route::get('/forms/{form}/submissions', [FormSubmissionAdminController::class, 'index'])->name('forms.submissions.index');
+        Route::get('/forms/{form}/submissions/export', [FormSubmissionAdminController::class, 'exportCsv'])->name('forms.submissions.export');
+        Route::get('/forms/{form}/submissions/{submission}', [FormSubmissionAdminController::class, 'show'])->name('forms.submissions.show');
+
+        Route::resource('forms', FormAdminController::class);
     });
 
 /**

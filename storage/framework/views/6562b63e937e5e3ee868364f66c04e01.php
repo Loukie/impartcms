@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    @php
+    <?php
         // Be tolerant: $seo may be null if relation not loaded for some reason.
         $title = $seo?->meta_title ?? $page->title ?? config('app.name');
         $description = $seo?->meta_description ?? config('cms.default_meta_description', '');
@@ -24,11 +24,11 @@
 
         // twitter:card depends on whether we have an image
         $twCard = !empty($twImage) ? 'summary_large_image' : 'summary';
-    @endphp
+    ?>
 
-    <title>{{ $title }}</title>
+    <title><?php echo e($title); ?></title>
 
-    @php
+    <?php
         // Only load the app bundle when we detect shortcodes that need JS/CSS.
         // - [icon ...] needs FontAwesome/Lucide JS + styles
         // - [form ...] needs basic form styles + optional JS helpers (phone field)
@@ -36,53 +36,53 @@
         $body = is_string($page->body ?? null) ? (string) $page->body : '';
         $hasIconShortcodes = $body !== '' && str_contains($body, '[icon');
         $hasFormShortcodes = $body !== '' && str_contains($body, '[form');
-    @endphp
+    ?>
 
-    @if($hasIconShortcodes || $hasFormShortcodes)
-        @vite(['resources/css/app.css', 'resources/js/app.js'])
-    @endif
+    <?php if($hasIconShortcodes || $hasFormShortcodes): ?>
+        <?php echo app('Illuminate\Foundation\Vite')(['resources/css/app.css', 'resources/js/app.js']); ?>
+    <?php endif; ?>
 
-    @if($description !== '')
-        <meta name="description" content="{{ $description }}">
-    @endif
+    <?php if($description !== ''): ?>
+        <meta name="description" content="<?php echo e($description); ?>">
+    <?php endif; ?>
 
-    <link rel="canonical" href="{{ $canonical }}">
+    <link rel="canonical" href="<?php echo e($canonical); ?>">
 
-    <meta name="robots" content="{{ $robots }}">
+    <meta name="robots" content="<?php echo e($robots); ?>">
 
-    {{-- Open Graph --}}
-    <meta property="og:title" content="{{ $ogTitle }}">
-    @if($ogDescription !== '')
-        <meta property="og:description" content="{{ $ogDescription }}">
-    @endif
-    <meta property="og:type" content="{{ $ogType }}">
-    <meta property="og:url" content="{{ $canonical }}">
-    @if(!empty($ogImage))
-        <meta property="og:image" content="{{ $ogImage }}">
-    @endif
+    
+    <meta property="og:title" content="<?php echo e($ogTitle); ?>">
+    <?php if($ogDescription !== ''): ?>
+        <meta property="og:description" content="<?php echo e($ogDescription); ?>">
+    <?php endif; ?>
+    <meta property="og:type" content="<?php echo e($ogType); ?>">
+    <meta property="og:url" content="<?php echo e($canonical); ?>">
+    <?php if(!empty($ogImage)): ?>
+        <meta property="og:image" content="<?php echo e($ogImage); ?>">
+    <?php endif; ?>
 
-    {{-- Twitter --}}
-    <meta name="twitter:card" content="{{ $twCard }}">
-    <meta name="twitter:title" content="{{ $twTitle }}">
-    @if($twDescription !== '')
-        <meta name="twitter:description" content="{{ $twDescription }}">
-    @endif
-    @if(!empty($twImage))
-        <meta name="twitter:image" content="{{ $twImage }}">
-    @endif
+    
+    <meta name="twitter:card" content="<?php echo e($twCard); ?>">
+    <meta name="twitter:title" content="<?php echo e($twTitle); ?>">
+    <?php if($twDescription !== ''): ?>
+        <meta name="twitter:description" content="<?php echo e($twDescription); ?>">
+    <?php endif; ?>
+    <?php if(!empty($twImage)): ?>
+        <meta name="twitter:image" content="<?php echo e($twImage); ?>">
+    <?php endif; ?>
 </head>
 
 <body style="max-width:900px;margin:40px auto;font-family:system-ui;padding:0 16px;">
     <header style="margin-bottom:24px;">
         <a href="/" style="text-decoration:none;color:inherit;">
-            <strong>{{ config('app.name') }}</strong>
+            <strong><?php echo e(config('app.name')); ?></strong>
         </a>
     </header>
 
-    <h1>{{ $page->title }}</h1>
+    <h1><?php echo e($page->title); ?></h1>
 
     <div>
-        @cmsContent($page->body, $page)
+        <?php echo app("App\Support\Cms")->renderContent($page->body, $page); ?>
     </div>
 
     <footer style="margin-top:40px;border-top:1px solid #ddd;padding-top:16px;">
@@ -90,3 +90,4 @@
     </footer>
 </body>
 </html>
+<?php /**PATH C:\laragon\www\2kocms\resources\views/themes/default/page.blade.php ENDPATH**/ ?>

@@ -140,6 +140,16 @@ if (!$faviconUrl && !empty($faviconPath)) {
                 <span>Pages</span>
             </a>
 
+            {{-- Forms --}}
+            @if(\Illuminate\Support\Facades\Route::has('admin.forms.index'))
+                <a href="{{ route('admin.forms.index') }}" class="{{ $linkBase }} {{ $isActive('admin.forms.*') ? $linkActive : $linkInactive }}">
+                    <svg class="h-4 w-4 flex-none {{ $isActive('admin.forms.*') ? $iconActive : $iconInactive }}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                        <path d="M6 2.25A2.25 2.25 0 0 0 3.75 4.5v15A2.25 2.25 0 0 0 6 21.75h12A2.25 2.25 0 0 0 20.25 19.5v-15A2.25 2.25 0 0 0 18 2.25H6Zm2.25 5.25a.75.75 0 0 1 .75-.75h6a.75.75 0 0 1 0 1.5h-6a.75.75 0 0 1-.75-.75Zm0 4.5a.75.75 0 0 1 .75-.75h6a.75.75 0 0 1 0 1.5h-6a.75.75 0 0 1-.75-.75Zm0 4.5a.75.75 0 0 1 .75-.75h3a.75.75 0 0 1 0 1.5h-3a.75.75 0 0 1-.75-.75Z"/>
+                    </svg>
+                    <span>Forms</span>
+                </a>
+            @endif
+
             {{-- Media --}}
             @if(\Illuminate\Support\Facades\Route::has('admin.media.index'))
                 <a href="{{ route('admin.media.index') }}" class="{{ $linkBase }} {{ $isActive('admin.media.*') ? $linkActive : $linkInactive }}">
