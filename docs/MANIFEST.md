@@ -99,6 +99,8 @@ Sidebar rules:
   - Pages
   - Media
   - Users
+  - Header & Footer
+  - Custom code
   - Settings
 - Sidebar labels have icons (Dashboard/View site/Pages/Media/Users/Settings)
 
@@ -260,3 +262,25 @@ Hard refresh:
   - `@fortawesome/free-regular-svg-icons`
   - `@fortawesome/free-brands-svg-icons`
 - Ensure Vite assets are rebuilt after pulling changes.
+
+---
+
+## Patch: 2026-02-20 (Header & Footer blocks)
+
+### New: Header & Footer module
+- Added a dedicated **Header & Footer** section in the admin sidebar.
+- Create **multiple headers** and **multiple footers**, similar to the Custom code workflow.
+- Targeting options per block:
+  - **Global** (all pages)
+  - **Only selected pages**
+  - **All except selected pages**
+- Matching behaviour:
+  - Page-level override (selected on the Page edit screen) wins first.
+  - Otherwise, page-targeted blocks (Only/Except) automatically override Global.
+
+### Pages
+- Added **Header override** and **Footer override** dropdowns to Page create/edit.
+
+### Settings
+- Removed the old Header/Footer editor from **Settings** (content is now managed via Header & Footer module).
+- Existing Settings header/footer content is auto-imported into Layout Blocks on migration.

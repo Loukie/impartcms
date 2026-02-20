@@ -44,9 +44,24 @@
                         const colour = payload.icon.colour || '#111827';
 
                         if (kind === 'fa') {
-                            preview.innerHTML = `<i class="${payload.icon.value}" style="font-size:${size}px;color:${colour};line-height:1"></i>`;
-                        } else if (kind === 'lucide') {
-                            preview.innerHTML = `<i data-lucide="${payload.icon.value}" style="width:${size}px;height:${size}px;color:${colour};display:inline-block"></i>`;
+                            if (payload.icon.svg && String(payload.icon.svg).trim().indexOf('<svg') === 0) {
+                                preview.innerHTML = payload.icon.svg;
+                                const s = preview.querySelector('svg');
+                                if (s) {
+                                    s.removeAttribute('width');
+                                    s.removeAttribute('height');
+                                    s.setAttribute('aria-hidden', 'true');
+                                    s.setAttribute('focusable', 'false');
+                                    s.style.width = `${size}px`;
+                                    s.style.height = `${size}px`;
+                                    s.style.display = 'block';
+                                    s.style.color = colour;
+                                }
+	                            } else {
+	                                preview.innerHTML = `<i class='${payload.icon.value}' style='font-size:${size}px;color:${colour};line-height:1'></i>`;
+	                            }
+	                        } else if (kind === 'lucide') {
+	                            preview.innerHTML = `<i data-lucide='${payload.icon.value}' style='width:${size}px;height:${size}px;color:${colour};display:inline-block'></i>`;
                             window.ImpartLucide && window.ImpartLucide.render(preview);
                         } else {
                             preview.innerHTML = '';
@@ -93,9 +108,24 @@
         const colour = icon.colour || '#111827';
 
         if (kind === 'fa') {
-            preview.innerHTML = `<i class="${icon.value}" style="font-size:${size}px;color:${colour};line-height:1"></i>`;
+            if (icon.svg && String(icon.svg).trim().indexOf('<svg') === 0) {
+                preview.innerHTML = icon.svg;
+                const s = preview.querySelector('svg');
+                if (s) {
+                    s.removeAttribute('width');
+                    s.removeAttribute('height');
+                    s.setAttribute('aria-hidden', 'true');
+                    s.setAttribute('focusable', 'false');
+                    s.style.width = `${size}px`;
+                    s.style.height = `${size}px`;
+                    s.style.display = 'block';
+                    s.style.color = colour;
+                }
+	            } else {
+	                preview.innerHTML = `<i class='${icon.value}' style='font-size:${size}px;color:${colour};line-height:1'></i>`;
+            }
         } else if (kind === 'lucide') {
-            preview.innerHTML = `<i data-lucide="${icon.value}" style="width:${size}px;height:${size}px;color:${colour};display:inline-block"></i>`;
+	            preview.innerHTML = `<i data-lucide='${icon.value}' style='width:${size}px;height:${size}px;color:${colour};display:inline-block'></i>`;
             window.ImpartLucide && window.ImpartLucide.render(preview);
         }
     } catch (e) {

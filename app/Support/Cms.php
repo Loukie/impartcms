@@ -15,14 +15,16 @@ class Cms
     /**
      * Render content with shortcodes.
      * Supports:
-     * - [form slug="contact" to="a@x.com,b@y.com"]
+     * - [form slug="contact" to="a@x.com,b@y.com" cc="cc@x.com" bcc="bcc@x.com"]
      * - [icon kind="fa" value="fa-solid fa-house" size="24" colour="#111827"]
      * - [icon kind="lucide" value="home" size="24" colour="#111827"]
-     * - [icon data='{"kind":"fa","value":"fa-solid fa-house","size":24,"colour":"#111827"}']
+     * - [icon data='{"kind":"fa","value":"fa-solid fa-house","svg":"<svg...>","size":24,"colour":"#111827"}']
      *
-     * Security: normal text is escaped; only known shortcodes render HTML.
+     * Notes:
+     * - If cms.allow_raw_html is enabled, non-shortcode content is output as-is (HTML supported).
+     * - If disabled, non-shortcode content is escaped (safer for untrusted inputs).
      */
-    public function renderContent(string $content, ?Page $page = null): HtmlString
+    public function renderContent(string $content, ?Page $page = null, ?bool $forceRawHtml = null): HtmlString
     {
         // Split content into text + shortcode tokens while preserving the tokens
         $parts = preg_split(
@@ -33,6 +35,7 @@ class Cms
         );
 
         $out = '';
+        $allowRawHtml = $forceRawHtml ?? (bool) config('cms.allow_raw_html', true);
 
         foreach ($parts as $part) {
             // If this chunk is a [form ...] shortcode, render HTML
@@ -47,8 +50,14 @@ class Cms
                 continue;
             }
 
-            // Otherwise, treat as plain text and escape
-            $out .= nl2br(e($part));
+            // Otherwise, treat as plain content
+            if ($allowRawHtml) {
+                // HTML + plain text are output as-is.
+                $out .= $part;
+            } else {
+                // Safer mode: escape everything except known shortcodes.
+                $out .= nl2br(e($part));
+            }
         }
 
         return new HtmlString($out);
@@ -73,11 +82,15 @@ class Cms
         }
 
         $overrideTo = isset($attrs['to']) ? trim((string) $attrs['to']) : null;
+        $overrideCc = isset($attrs['cc']) ? trim((string) $attrs['cc']) : null;
+        $overrideBcc = isset($attrs['bcc']) ? trim((string) $attrs['bcc']) : null;
 
         return view('cms.forms.embed', [
             'form' => $form,
             'page' => $page,
             'overrideTo' => $overrideTo,
+            'overrideCc' => $overrideCc,
+            'overrideBcc' => $overrideBcc,
         ])->render();
     }
 
@@ -87,7 +100,7 @@ class Cms
      * Examples:
      *  - [icon kind="fa" value="fa-solid fa-house" size="24" colour="#111827"]
      *  - [icon kind="lucide" value="home" size="24" colour="#111827"]
-     *  - [icon data='{"kind":"fa","value":"fa-solid fa-house","size":24,"colour":"#111827"}']
+     *  - [icon data='{"kind":"fa","value":"fa-solid fa-house","svg":"<svg...>","size":24,"colour":"#111827"}']
      */
     private function renderSingleIconShortcode(string $rawAttrs): string
     {
@@ -122,7 +135,14 @@ class Cms
             $colour = '#111827';
         }
 
+        // Portable mode: if svg is provided, we render it directly (no font/CSS dependency)
+        $svg = isset($attrs['svg']) && is_string($attrs['svg']) ? trim($attrs['svg']) : '';
+
         if ($kind === 'fa') {
+            if ($svg !== '' && str_starts_with($svg, '<svg')) {
+                return $this->renderInlineSvg($svg, $size, $colour);
+            }
+
             // Only allow safe FA classes (letters/numbers/spaces/dashes)
             if (!preg_match('/^[a-z0-9\s\-]+$/i', $value)) {
                 return '';
@@ -139,6 +159,30 @@ class Cms
         }
 
         return '<i data-lucide="' . e($value) . '" style="width:' . $size . 'px;height:' . $size . 'px;color:' . e($colour) . ';display:inline-block;vertical-align:-0.125em"></i>';
+    }
+
+    private function renderInlineSvg(string $svg, int $size, string $colour): string
+    {
+        $s = trim($svg);
+
+        // Defensive clean-up
+        $s = preg_replace('/<!--([\s\S]*?)-->/', '', $s) ?? $s;
+        $s = preg_replace('/<script\b[^>]*>[\s\S]*?<\/script>/i', '', $s) ?? $s;
+
+        // Remove width/height so our wrapper sizing wins
+        $s = preg_replace('/\s(width|height)="[^"]*"/i', '', $s) ?? $s;
+
+        // Ensure we only return the SVG element itself
+        if (!preg_match('/<svg\b[\s\S]*?<\/svg>/i', $s, $m)) {
+            return '';
+        }
+
+        $svgOnly = $m[0];
+
+        // Wrap with inline-block + colour. Font Awesome SVGs use currentColor.
+        return '<span style="display:inline-block;width:' . $size . 'px;height:' . $size . 'px;color:' . e($colour) . ';line-height:1;vertical-align:-0.125em">'
+            . $svgOnly
+            . '</span>';
     }
 
     /**

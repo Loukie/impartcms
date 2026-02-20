@@ -4,206 +4,208 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Form;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
-use Illuminate\Validation\ValidationException;
+use Illuminate\View\View;
 
 class FormAdminController extends Controller
 {
-    public function index()
+    public function index(Request $request): View
     {
-        $forms = Form::query()
-            ->orderByDesc('updated_at')
-            ->paginate(20);
+        $q = trim((string) $request->query('q', ''));
+        $status = (string) $request->query('status', ''); // '', 'active', 'inactive'
+        $sort = (string) $request->query('sort', 'updated_desc');
+
+        $base = Form::query()->withCount('submissions'); // SoftDeletes excluded by default.
+
+        if ($q !== '') {
+            $base->where(function ($query) use ($q) {
+                $query->where('name', 'like', '%' . $q . '%')
+                    ->orWhere('slug', 'like', '%' . $q . '%');
+            });
+        }
+
+        // Counts for tabs (reflect current search).
+        $countsBase = clone $base;
+        $counts = [
+            'all' => (clone $countsBase)->count(),
+            'active' => (clone $countsBase)->where('is_active', true)->count(),
+            'inactive' => (clone $countsBase)->where('is_active', false)->count(),
+        ];
+
+        if ($status === 'active') {
+            $base->where('is_active', true);
+        } elseif ($status === 'inactive') {
+            $base->where('is_active', false);
+        } else {
+            $status = '';
+        }
+
+        switch ($sort) {
+            case 'updated_asc':
+                $base->orderBy('updated_at');
+                break;
+            case 'created_desc':
+                $base->orderByDesc('created_at');
+                break;
+            case 'created_asc':
+                $base->orderBy('created_at');
+                break;
+            case 'name_desc':
+                $base->orderByDesc('name');
+                break;
+            case 'name_asc':
+                $base->orderBy('name');
+                break;
+            case 'updated_desc':
+            default:
+                $sort = 'updated_desc';
+                $base->orderByDesc('updated_at');
+                break;
+        }
+        $base->orderByDesc('id');
 
         return view('admin.forms.index', [
-            'forms' => $forms,
+            'forms' => $base->paginate(20)->withQueryString(),
+            'counts' => $counts,
+            'currentQuery' => $q,
+            'currentStatus' => $status,
+            'currentSort' => $sort,
         ]);
     }
 
-    public function create()
+    public function trash(): View
     {
-        return view('admin.forms.edit', [
-            'form' => new Form(['is_active' => true]),
-            'mode' => 'create',
+        return view('admin.forms.trash', [
+            'forms' => Form::onlyTrashed()->withCount('submissions')->orderBy('deleted_at', 'desc')->paginate(20),
         ]);
     }
 
-    public function store(Request $request)
+    public function create(): View
     {
-        $validated = $this->validatePayload($request, creating: true);
+        $form = new Form([
+            'name' => '',
+            'slug' => '',
+            'is_active' => true,
+            'fields' => [],
+            'settings' => [
+                'layout' => [
+                    [
+                        'type' => 'row',
+                        'id' => 'r_default',
+                        'columns' => 1,
+                        'cols' => [[]],
+                    ]
+                ],
+                'pricing_enabled' => false,
+                'logic_enabled' => false,
+            ],
+        ]);
 
-        $form = new Form();
-        $form->name = $validated['name'];
-        $form->slug = $validated['slug'];
-        $form->is_active = (bool) ($validated['is_active'] ?? false);
-        $form->fields = $validated['fields'];
-        $form->settings = $validated['settings'];
-        $form->save();
-
-        return redirect()->route('admin.forms.edit', $form)->with('status', 'Form created ✅');
-    }
-
-    public function edit(Form $form)
-    {
         return view('admin.forms.edit', [
             'form' => $form,
-            'mode' => 'edit',
+            'isNew' => true,
         ]);
     }
 
-    public function update(Request $request, Form $form)
+    public function store(Request $request): RedirectResponse
     {
-        $validated = $this->validatePayload($request, creating: false, form: $form);
-
-        $form->name = $validated['name'];
-        $form->slug = $validated['slug'];
-        $form->is_active = (bool) ($validated['is_active'] ?? false);
-        $form->fields = $validated['fields'];
-        $form->settings = $validated['settings'];
-        $form->save();
-
-        return back()->with('status', 'Form updated ✅');
-    }
-
-    public function destroy(Form $form)
-    {
-        $form->delete();
-        return redirect()->route('admin.forms.index')->with('status', 'Form deleted.');
-    }
-
-    private function validatePayload(Request $request, bool $creating, ?Form $form = null): array
-    {
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:120'],
-            'slug' => [
-                'required',
-                'string',
-                'max:120',
-                'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/',
-                $creating
-                    ? Rule::unique('forms', 'slug')
-                    : Rule::unique('forms', 'slug')->ignore($form?->id),
-            ],
-            'is_active' => ['nullable', 'boolean'],
-
-            // JSON payloads from the builder UI
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'slug' => ['required', 'string', 'max:255', 'alpha_dash', 'unique:forms,slug'],
+            'is_active' => ['nullable'],
             'fields_json' => ['nullable', 'string'],
             'settings_json' => ['nullable', 'string'],
         ]);
 
-        $fields = [];
-        if (!empty($validated['fields_json'])) {
-            $decoded = json_decode($validated['fields_json'], true);
-            if (!is_array($decoded)) {
-                throw ValidationException::withMessages([
-                    'fields_json' => 'Fields JSON is invalid.',
-                ]);
-            }
-            $fields = $this->normaliseFields($decoded);
-        }
+        $fields = $this->decodeJson($data['fields_json'] ?? '{}');
+        $settings = $this->decodeJson($data['settings_json'] ?? '{}');
 
-        $settings = [];
-        if (!empty($validated['settings_json'])) {
-            $decoded = json_decode($validated['settings_json'], true);
-            if (!is_array($decoded)) {
-                throw ValidationException::withMessages([
-                    'settings_json' => 'Settings JSON is invalid.',
-                ]);
-            }
-            $settings = $this->normaliseSettings($decoded);
-        }
+        $form = Form::create([
+            'name' => $data['name'],
+            'slug' => $data['slug'],
+            'is_active' => (bool) ($data['is_active'] ?? false),
+            'fields' => is_array($fields) ? $fields : [],
+            'settings' => is_array($settings) ? $settings : [],
+        ]);
 
-        return [
-            'name' => $validated['name'],
-            'slug' => $validated['slug'],
-            'is_active' => (bool) ($validated['is_active'] ?? false),
-            'fields' => $fields,
-            'settings' => $settings,
-        ];
+        return redirect()->route('admin.forms.edit', $form)->with('status', 'Form created ✅');
     }
 
-    private function normaliseFields(array $fields): array
+    public function edit(Form $form): View
     {
-        $out = [];
-        foreach ($fields as $f) {
-            if (!is_array($f)) continue;
-
-            $type = (string) ($f['type'] ?? 'text');
-            $name = isset($f['name']) ? (string) $f['name'] : null;
-            $label = isset($f['label']) ? (string) $f['label'] : ($name ?: '');
-
-            $row = [
-                'type' => $type,
-                'label' => $label,
-            ];
-
-            if ($name) {
-                $row['name'] = $name;
-            }
-
-            if (!empty($f['required'])) {
-                $row['required'] = true;
-            }
-
-            foreach (['placeholder', 'help', 'html'] as $k) {
-                if (isset($f[$k]) && $f[$k] !== '') {
-                    $row[$k] = (string) $f[$k];
-                }
-            }
-
-            // Options (select/cards)
-            if (in_array($type, ['select', 'cards', 'cards_multi'], true)) {
-                $opts = [];
-                $raw = $f['options'] ?? [];
-                if (is_array($raw)) {
-                    foreach ($raw as $opt) {
-                        if (is_string($opt)) {
-                            $opts[] = ['label' => $opt, 'value' => $opt];
-                        } elseif (is_array($opt)) {
-                            $label = (string) ($opt['label'] ?? $opt['value'] ?? '');
-                            $value = (string) ($opt['value'] ?? $label);
-                            if ($label === '' && $value === '') continue;
-                            $o = ['label' => $label, 'value' => $value];
-                            if (!empty($opt['description'])) $o['description'] = (string) $opt['description'];
-                            if (!empty($opt['media_id'])) $o['media_id'] = (int) $opt['media_id'];
-                            $opts[] = $o;
-                        }
-                    }
-                }
-                $row['options'] = $opts;
-            }
-
-            $out[] = $row;
-        }
-
-        return $out;
+        return view('admin.forms.edit', [
+            'form' => $form,
+            'isNew' => false,
+        ]);
     }
 
-    private function normaliseSettings(array $settings): array
+    public function update(Request $request, Form $form): RedirectResponse
     {
-        $out = [];
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'slug' => ['required', 'string', 'max:255', 'alpha_dash', 'unique:forms,slug,' . $form->id],
+            'is_active' => ['nullable'],
+            'fields_json' => ['nullable', 'string'],
+            'settings_json' => ['nullable', 'string'],
+        ]);
 
-        if (!empty($settings['description'])) {
-            $out['description'] = (string) $settings['description'];
+        $fields = $this->decodeJson($data['fields_json'] ?? json_encode($form->fields ?? []));
+        $settings = $this->decodeJson($data['settings_json'] ?? json_encode($form->settings ?? []));
+
+        $form->update([
+            'name' => $data['name'],
+            'slug' => $data['slug'],
+            'is_active' => (bool) ($data['is_active'] ?? false),
+            'fields' => is_array($fields) ? $fields : [],
+            'settings' => is_array($settings) ? $settings : [],
+        ]);
+
+        return back()->with('status', 'Saved ✅');
+    }
+
+    public function destroy(Form $form): RedirectResponse
+    {
+        $form->delete();
+
+        return redirect()
+            ->route('admin.forms.index')
+            ->with('status', 'Form moved to trash ✅');
+    }
+
+    /**
+     * Restore from trash
+     */
+    public function restore(Form $formTrash): RedirectResponse
+    {
+        $formTrash->restore();
+
+        return redirect()
+            ->route('admin.forms.index')
+            ->with('status', 'Form restored ✅');
+    }
+
+    /**
+     * Delete permanently (force delete)
+     */
+    public function forceDestroy(Form $formTrash): RedirectResponse
+    {
+        $formTrash->forceDelete();
+
+        return redirect()
+            ->route('admin.forms.trash')
+            ->with('status', 'Form deleted permanently ✅');
+    }
+
+    private function decodeJson(string $raw): mixed
+    {
+        $raw = trim($raw);
+        if ($raw === '') return [];
+
+        try {
+            return json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\Throwable) {
+            return [];
         }
-
-        // Default recipients stored as array
-        $def = $settings['default_recipients'] ?? [];
-        if (is_string($def)) {
-            $def = array_filter(array_map('trim', preg_split('/\s*,\s*/', $def) ?: []));
-        }
-        if (is_array($def)) {
-            $out['default_recipients'] = array_values(array_filter(array_map('trim', $def)));
-        }
-
-        // UI preferences (template + columns)
-        $out['ui'] = [
-            'template' => (string) ($settings['ui']['template'] ?? $settings['ui_template'] ?? 'normal'),
-            'columns' => (int) ($settings['ui']['columns'] ?? $settings['ui_columns'] ?? 1),
-        ];
-        if ($out['ui']['columns'] < 1 || $out['ui']['columns'] > 4) $out['ui']['columns'] = 1;
-
-        return $out;
     }
 }

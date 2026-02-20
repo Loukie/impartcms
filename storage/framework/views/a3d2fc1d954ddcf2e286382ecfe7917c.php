@@ -16,6 +16,11 @@
             </div>
 
             <div class="flex items-center gap-3">
+                <a href="<?php echo e(route('admin.users.trash')); ?>"
+                   class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 uppercase tracking-widest hover:bg-gray-50">
+                    Trash
+                </a>
+
                 <a href="<?php echo e(route('admin.users.create')); ?>"
                    class="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-md font-semibold text-xs uppercase tracking-widest hover:bg-gray-800">
                     New User
@@ -170,6 +175,28 @@
                                                       title="You can’t change your own role here.">
                                                     <?php echo e($user->is_admin ? 'Admin' : 'Member'); ?>
 
+                                                </span>
+                                            <?php endif; ?>
+
+                                            <?php
+                                                $canTrash = auth()->id() !== $user->id && !($user->is_admin && ($adminCount ?? 0) <= 1);
+                                            ?>
+
+                                            <?php if($canTrash): ?>
+                                                <form method="POST" action="<?php echo e(route('admin.users.destroy', $user)); ?>"
+                                                      onsubmit="return confirm('Move this user to trash?');"
+                                                      class="inline">
+                                                    <?php echo csrf_field(); ?>
+                                                    <?php echo method_field('DELETE'); ?>
+                                                    <button type="submit"
+                                                            class="text-red-600 hover:text-red-800 font-semibold text-sm">
+                                                        Trash
+                                                    </button>
+                                                </form>
+                                            <?php else: ?>
+                                                <span class="text-gray-400 font-semibold text-sm cursor-not-allowed"
+                                                      title="<?php echo e(auth()->id() === $user->id ? 'You can’t trash yourself.' : 'You can’t trash the last admin.'); ?>">
+                                                    Trash
                                                 </span>
                                             <?php endif; ?>
                                         </div>

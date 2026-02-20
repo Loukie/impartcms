@@ -83,21 +83,20 @@
                             @endphp
 
                             <div class="mt-4">
-                                <x-admin.media-picker
+                                <x-admin.media-icon-picker
                                     label="Choose from Media library"
-                                    name="site_logo_media_id"
-                                    :value="old('site_logo_media_id', $logoMediaId)"
-                                    :preview-url="$logoPreviewUrl"
-                                    type="images"
-                                    choose-text="Choose from Media Library"
-                                    upload-text="Upload"
-                                    clear-text="Clear"
+                                    media-name="site_logo_media_id"
+                                    icon-name="site_logo_icon_json"
                                     clear-name="site_logo_clear"
+                                    :media-id="$logoMediaId"
+                                    :media-url="$logoPreviewUrl"
+                                    :icon-json="$logoIconJson"
+                                    allow="images,icons"
+                                    help="Pick an image OR an icon. Choosing one clears the other."
                                 />
                                 <p class="mt-1 text-xs text-gray-500">
                                     Selecting a Media image as your logo will <span class="font-semibold">not</span> delete it when removed from Settings.
                                 </p>
-                                @error('site_logo_media_id') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                             </div>
                         </div>
 
@@ -118,19 +117,58 @@
                             @endphp
 
                             <div class="mt-4">
-                                <x-admin.media-picker
+                                <x-admin.media-icon-picker
                                     label="Choose from Media library"
-                                    name="site_favicon_media_id"
-                                    :value="old('site_favicon_media_id', $faviconMediaId)"
-                                    :preview-url="$faviconPreviewUrl"
-                                    type="images"
-                                    choose-text="Choose from Media Library"
-                                    upload-text="Upload"
-                                    clear-text="Clear"
+                                    media-name="site_favicon_media_id"
+                                    icon-name="site_favicon_icon_json"
                                     clear-name="site_favicon_clear"
+                                    :media-id="$faviconMediaId"
+                                    :media-url="$faviconPreviewUrl"
+                                    :icon-json="$faviconIconJson"
+                                    allow="images,icons"
+                                    help="Pick an image OR an icon. Icon favicons are served as /favicon.svg."
                                 />
                                 <p class="mt-1 text-xs text-gray-500">Recommended: ICO or PNG (32×32 / 48×48). Media items are never deleted via Settings.</p>
-                                @error('site_favicon_media_id') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                            </div>
+                        </div>
+
+                        {{-- LOGIN SCREEN --}}
+                        <div class="mt-8 border-t pt-8">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <div class="text-sm font-semibold text-gray-900">Login screen logo</div>
+                                    <p class="text-xs text-gray-500 mt-1">Shown on the login/register pages. If empty, it falls back to the main logo.</p>
+                                </div>
+                            </div>
+
+                            @php
+                                $authPreviewUrl = !empty($authLogoMediaUrl) ? $authLogoMediaUrl : null;
+                            @endphp
+
+                            <div class="mt-4">
+                                <x-admin.media-icon-picker
+                                    label="Choose from Media library"
+                                    media-name="auth_logo_media_id"
+                                    icon-name="auth_logo_icon_json"
+                                    clear-name="auth_logo_clear"
+                                    :media-id="$authLogoMediaId"
+                                    :media-url="$authPreviewUrl"
+                                    :icon-json="$authLogoIconJson"
+                                    allow="images,icons"
+                                    help="If empty, login falls back to the main logo."
+                                />
+                            </div>
+
+                            <div class="mt-6 max-w-xs">
+                                <label class="block text-sm font-medium text-gray-700">Login logo size (px)</label>
+                                <input type="number"
+                                       name="auth_logo_size"
+                                       min="24"
+                                       max="256"
+                                       value="{{ (int) old('auth_logo_size', $authLogoSize ?? 80) }}"
+                                       class="mt-1 block w-full rounded-md border-gray-300 focus:border-gray-500 focus:ring-gray-500" />
+                                <p class="mt-1 text-xs text-gray-500">Applies to the login/register logo (image or icon).</p>
+                                @error('auth_logo_size') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                             </div>
                         </div>
 
@@ -148,12 +186,136 @@
                                 <option value="">— Select a published page —</option>
                                 @foreach($homepagePages as $p)
                                     <option value="{{ $p->id }}" {{ (int) old('homepage_page_id', $homepagePageId) === (int) $p->id ? 'selected' : '' }}>
-                                        {{ $p->title }} (/{{ $p->slug }})
+                                        {{ $p->title }}
                                     </option>
                                 @endforeach
                             </select>
                             @error('homepage_page_id') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                         </div>
+                    </section>
+
+                    {{-- SITE NOTICE BAR --}}
+                    <section class="border-t pt-10" id="notice_settings">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-sm font-semibold text-gray-900">Site notification bar</h3>
+                            <p class="text-xs text-gray-500">Optional banner pinned at the very top of every public page</p>
+                        </div>
+
+                        <div class="mt-5 max-w-xl">
+                            <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+                                <input type="checkbox" name="notice_enabled" value="1"
+                                       {{ old('notice_enabled', $noticeEnabled ?? false) ? 'checked' : '' }}
+                                       class="rounded border-gray-300 text-gray-900 focus:ring-gray-500">
+                                Enable notification bar
+                            </label>
+                        </div>
+
+                        <div class="mt-4 max-w-xl grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Bar colour</label>
+                                <div class="mt-1 flex items-center gap-3">
+                                    <input id="notice_bg_colour_picker" type="color"
+                                           value="{{ old('notice_bg_colour', $noticeBgColour ?? '#111827') }}"
+                                           class="h-10 w-14 rounded-md border border-gray-300 bg-white p-1" />
+                                    <input id="notice_bg_colour" type="text" name="notice_bg_colour"
+                                           value="{{ old('notice_bg_colour', $noticeBgColour ?? '#111827') }}"
+                                           class="block w-full rounded-md border-gray-300 font-mono text-sm"
+                                           placeholder="#111827" />
+                                </div>
+                                @error('notice_bg_colour') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Bar height (px)</label>
+                                <input type="number" name="notice_height"
+                                       value="{{ (int) old('notice_height', $noticeHeight ?? 44) }}"
+                                       min="24" max="200"
+                                       class="mt-1 block w-full rounded-md border-gray-300"
+                                       placeholder="44" />
+                                <p class="mt-1 text-xs text-gray-500">Minimum height. The bar can grow if your message wraps onto multiple lines.</p>
+                                @error('notice_height') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                            </div>
+                        </div>
+
+                        <div class="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Mode</label>
+                                <select name="notice_mode" id="notice_mode"
+                                        class="mt-1 block w-full rounded-md border-gray-300 focus:border-gray-500 focus:ring-gray-500">
+                                    <option value="text" {{ old('notice_mode', $noticeMode ?? 'text') === 'text' ? 'selected' : '' }}>Plain text</option>
+                                    <option value="html" {{ old('notice_mode', $noticeMode ?? 'text') === 'html' ? 'selected' : '' }}>HTML</option>
+                                </select>
+                                @error('notice_mode') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                            </div>
+
+                            <div id="notice_link_fields">
+                                <label class="block text-sm font-medium text-gray-700">Optional link (for text mode)</label>
+                                <div class="mt-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div>
+                                        <input type="text" name="notice_link_text" value="{{ old('notice_link_text', $noticeLinkText ?? '') }}"
+                                               class="block w-full rounded-md border-gray-300" placeholder="Link text" />
+                                    </div>
+                                    <div>
+                                        <input type="text" name="notice_link_url" value="{{ old('notice_link_url', $noticeLinkUrl ?? '') }}"
+                                               class="block w-full rounded-md border-gray-300" placeholder="https://..." />
+                                    </div>
+                                </div>
+                                <p class="mt-1 text-xs text-gray-500">If you choose HTML mode, you can embed links directly in the HTML.</p>
+                                @error('notice_link_url') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                            </div>
+                        </div>
+
+                        <div class="mt-4" id="notice_text_wrap">
+                            <label class="block text-sm font-medium text-gray-700">Notification text</label>
+                            <textarea name="notice_text" rows="3"
+                                      class="mt-1 block w-full rounded-md border-gray-300"
+                                      placeholder="e.g. Scheduled maintenance: 1–2 March 2026">{{ old('notice_text', $noticeText ?? '') }}</textarea>
+                            @error('notice_text') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                        </div>
+
+                        <div class="mt-4" id="notice_html_wrap">
+                            <label class="block text-sm font-medium text-gray-700">Notification HTML</label>
+                            <textarea name="notice_html" rows="6"
+                                      class="mt-1 block w-full rounded-md border-gray-300 font-mono text-sm"
+                                      placeholder="Paste banner HTML here (links, spans, etc)…">{{ old('notice_html', $noticeHtml ?? '') }}</textarea>
+                            @error('notice_html') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                        </div>
+                    </section>
+
+                    {{-- MAINTENANCE MODE --}}
+                    <section class="border-t pt-10">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-sm font-semibold text-gray-900">Maintenance mode</h3>
+                            <p class="text-xs text-gray-500">When enabled, all public pages redirect to a selected maintenance page</p>
+                        </div>
+
+	                        <div class="mt-5 max-w-xl">
+	                            <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+	                                <input
+	                                    type="checkbox"
+	                                    name="maintenance_enabled"
+	                                    value="1"
+	                                    {{ old('maintenance_enabled', $maintenanceEnabled ?? false) ? 'checked' : '' }}
+	                                    class="rounded border-gray-300 text-gray-900 focus:ring-gray-500"
+	                                >
+	                                Enable maintenance mode
+	                            </label>
+	                        </div>
+
+	                        <div class="mt-4 max-w-xl">
+	                            <label class="block text-sm font-medium text-gray-700">Maintenance page</label>
+	                            <select name="maintenance_page_id"
+	                                    class="mt-1 block w-full rounded-md border-gray-300 focus:border-gray-500 focus:ring-gray-500">
+	                                <option value="">— Select a published page —</option>
+	                                @foreach($maintenancePages as $p)
+	                                    <option value="{{ $p->id }}" {{ (int) old('maintenance_page_id', $maintenancePageId) === (int) $p->id ? 'selected' : '' }}>
+	                                        {{ $p->title }}
+	                                    </option>
+	                                @endforeach
+	                            </select>
+	                            <p class="mt-1 text-xs text-gray-500">Tip: create a page like “Maintenance” and keep it simple (logo, message, contact details).</p>
+	                            @error('maintenance_page_id') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+	                        </div>
                     </section>
 
                     {{-- SHORTCODES --}}
@@ -197,4 +359,54 @@
             </div>
         </div>
     </div>
+
+    <script>
+        (function () {
+            const modeEl = document.getElementById('notice_mode');
+            const textWrap = document.getElementById('notice_text_wrap');
+            const htmlWrap = document.getElementById('notice_html_wrap');
+            const linkFields = document.getElementById('notice_link_fields');
+
+            function refresh() {
+                const mode = (modeEl?.value || 'text');
+                if (textWrap) textWrap.style.display = (mode === 'text') ? '' : 'none';
+                if (htmlWrap) htmlWrap.style.display = (mode === 'html') ? '' : 'none';
+                if (linkFields) linkFields.style.opacity = (mode === 'text') ? '1' : '0.5';
+            }
+
+            // Notice bar colour picker sync (picker <-> hex input)
+            const colourInput = document.getElementById('notice_bg_colour');
+            const pickerInput = document.getElementById('notice_bg_colour_picker');
+
+            function normaliseHex(v){
+                if(!v) return '';
+                v = String(v).trim();
+                if(!v.startsWith('#')) v = '#' + v;
+                return v;
+            }
+
+            function isHex(v){
+                return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(v);
+            }
+
+            function syncFromText(){
+                if(!colourInput || !pickerInput) return;
+                const v = normaliseHex(colourInput.value);
+                if(isHex(v)) pickerInput.value = v;
+            }
+
+            function syncFromPicker(){
+                if(!colourInput || !pickerInput) return;
+                const v = normaliseHex(pickerInput.value);
+                if(isHex(v)) colourInput.value = v;
+            }
+
+            colourInput?.addEventListener('input', syncFromText);
+            pickerInput?.addEventListener('input', syncFromPicker);
+            syncFromText();
+
+            modeEl?.addEventListener('change', refresh);
+            refresh();
+        })();
+    </script>
 </x-admin-layout>

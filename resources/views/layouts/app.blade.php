@@ -7,6 +7,31 @@
 
         <title>{{ \App\Models\Setting::get('site_name', config('app.name', 'Laravel')) }}</title>
 
+        @php
+            // Favicon (frontend)
+            $faviconPath = \App\Models\Setting::get('site_favicon_path', null);
+            $faviconMediaId = (int) (\App\Models\Setting::get('site_favicon_media_id', '0') ?? 0);
+            $faviconIconJson = \App\Models\Setting::get('site_favicon_icon_json', null);
+
+            $faviconUrl = null;
+            if ($faviconMediaId > 0) {
+                $f = \App\Models\MediaFile::query()->whereKey($faviconMediaId)->first();
+                if ($f && ($f->isImage() || (is_string($f->mime_type ?? null) && str_starts_with($f->mime_type, 'image/')))) {
+                    $faviconUrl = $f->url;
+                }
+            }
+            if (!$faviconUrl && !empty($faviconPath)) {
+                $faviconUrl = asset('storage/' . $faviconPath);
+            }
+            $faviconIconUrl = (empty($faviconUrl) && !empty($faviconIconJson)) ? route('favicon.svg') : null;
+        @endphp
+
+        @if(!empty($faviconUrl))
+            <link rel="icon" href="{{ $faviconUrl }}">
+        @elseif(!empty($faviconIconUrl))
+            <link rel="icon" type="image/svg+xml" href="{{ $faviconIconUrl }}">
+        @endif
+
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
 

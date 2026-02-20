@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\LayoutBlock;
 use App\Models\Page;
 use App\Models\Setting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -91,12 +93,18 @@ class PageAdminController extends Controller
 
     public function create(): View
     {
-        return view('admin.pages.create');
+        return view('admin.pages.create', $this->layoutBlockOptions());
     }
 
     public function store(Request $request): RedirectResponse
     {
         $data = $this->validated($request);
+
+        // Default new pages to the blank + full-width template unless explicitly set
+        $data['template'] = trim((string)($data['template'] ?? ''));
+        if ($data['template'] === '') {
+            $data['template'] = 'blank';
+        }
 
         $action = (string) $request->input('action', 'draft'); // draft|publish
 
@@ -135,9 +143,9 @@ class PageAdminController extends Controller
     {
         $page->load('seo');
 
-        return view('admin.pages.edit', [
+        return view('admin.pages.edit', array_merge([
             'page' => $page,
-        ]);
+        ], $this->layoutBlockOptions()));
     }
 
     public function update(Request $request, Page $page): RedirectResponse
@@ -274,7 +282,7 @@ class PageAdminController extends Controller
 
     private function validated(Request $request, ?int $ignoreId = null): array
     {
-        return $request->validate([
+        $rules = [
             'title' => ['required', 'string', 'max:255'],
             'slug' => [
                 'required',
@@ -288,7 +296,51 @@ class PageAdminController extends Controller
             'template' => ['nullable', 'string', 'max:100'],
             'is_homepage' => ['nullable', 'boolean'],
             'published_at' => ['nullable', 'date'],
-        ]);
+        ];
+
+        // Header/footer overrides (only if migrations have run)
+        if (Schema::hasTable('layout_blocks') && Schema::hasColumn('pages', 'header_block_id')) {
+            $rules['header_block_id'] = [
+                'nullable',
+                'integer',
+                Rule::exists('layout_blocks', 'id')->where('type', 'header'),
+            ];
+            $rules['footer_block_id'] = [
+                'nullable',
+                'integer',
+                Rule::exists('layout_blocks', 'id')->where('type', 'footer'),
+            ];
+        }
+
+        return $request->validate($rules);
+    }
+
+    /**
+     * Data for header/footer dropdowns.
+     */
+    private function layoutBlockOptions(): array
+    {
+        if (!Schema::hasTable('layout_blocks')) {
+            return [
+                'headerBlocks' => collect(),
+                'footerBlocks' => collect(),
+            ];
+        }
+
+        return [
+            'headerBlocks' => LayoutBlock::query()
+                ->where('type', 'header')
+                ->where('is_enabled', true)
+                ->orderBy('priority')
+                ->orderBy('name')
+                ->get(['id', 'name', 'target_mode', 'priority']),
+            'footerBlocks' => LayoutBlock::query()
+                ->where('type', 'footer')
+                ->where('is_enabled', true)
+                ->orderBy('priority')
+                ->orderBy('name')
+                ->get(['id', 'name', 'target_mode', 'priority']),
+        ];
     }
 
     private function validatedSeo(Request $request): array

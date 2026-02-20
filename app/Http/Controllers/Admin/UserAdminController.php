@@ -86,6 +86,14 @@ class UserAdminController extends Controller
         ]);
     }
 
+    public function trash(): View
+    {
+        return view('admin.users.trash', [
+            'users' => User::onlyTrashed()->orderBy('deleted_at', 'desc')->paginate(25),
+            'adminCount' => $this->adminCount(),
+        ]);
+    }
+
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
@@ -191,16 +199,50 @@ class UserAdminController extends Controller
     public function destroy(Request $request, User $user): RedirectResponse
     {
         if ($user->id === (int) $request->user()->id) {
-            return back()->withErrors(['status' => 'You can’t delete your own account from here.']);
+            return back()->withErrors(['status' => 'You can’t trash your own account from here.']);
         }
 
         if ($user->is_admin && $this->adminCount() <= 1) {
-            return back()->withErrors(['status' => 'You can’t delete the last admin.']);
+            return back()->withErrors(['status' => 'You can’t trash the last admin.']);
         }
 
         $user->delete();
 
-        return redirect()->route('admin.users.index')->with('status', 'User deleted.');
+        return redirect()->route('admin.users.index')->with('status', 'User moved to trash ✅');
+    }
+
+    /**
+     * Restore from trash
+     */
+    public function restore(User $userTrash): RedirectResponse
+    {
+        $userTrash->restore();
+
+        return redirect()
+            ->route('admin.users.index')
+            ->with('status', 'User restored ✅');
+    }
+
+    /**
+     * Delete permanently (force delete)
+     */
+    public function forceDestroy(Request $request, User $userTrash): RedirectResponse
+    {
+        // Hard safety: never allow the currently-authenticated user to be force-deleted from here.
+        if ($userTrash->id === (int) $request->user()->id) {
+            return back()->withErrors(['status' => 'You can’t delete your own account from here.']);
+        }
+
+        // Don’t allow permanently deleting the last active admin.
+        if ($userTrash->is_admin && $this->adminCount() <= 0) {
+            return back()->withErrors(['status' => 'You can’t permanently delete the last admin. Restore or create another admin first.']);
+        }
+
+        $userTrash->forceDelete();
+
+        return redirect()
+            ->route('admin.users.trash')
+            ->with('status', 'User deleted permanently ✅');
     }
 
     private function adminCount(): int

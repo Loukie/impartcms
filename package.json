@@ -4,7 +4,7 @@
   "scripts": {
     "dev": "vite",
     "fa:icons": "node scripts/generate-fa-icons.mjs",
-    "build": "npm run fa:icons && vite build"
+    "build": "vite build"
   },
   "devDependencies": {
     "@tailwindcss/forms": "^0.5.2",
@@ -24,6 +24,7 @@
     "@fortawesome/free-regular-svg-icons": "^7.2.0",
     "@fortawesome/free-solid-svg-icons": "^7.2.0",
     "lucide": "0.561.0",
-    "lucide-static": "^0.563.0"
+    "lucide-static": "^0.563.0",
+    "sortablejs": "^1.15.2"
   }
 }

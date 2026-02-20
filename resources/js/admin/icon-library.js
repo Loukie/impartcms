@@ -1,7 +1,6 @@
-// Font Awesome Icon Library (local JSON bundle in resources/js/admin/fa-icon-list.js)
-// Renders a searchable, filterable grid.
-// - "Copy shortcode" mode: click copies ImpartCMS [icon ...] shortcode
-// - "Select" mode (used inside media picker iframe): click selects icon and returns to opener via postMessage
+// Font Awesome Icon Library
+// - Copy mode: click card copies ImpartCMS [icon ...] shortcode (portable: embeds SVG)
+// - Select mode (picker iframe): click card selects icon and returns to opener via postMessage
 
 import faIconList from './fa-icon-list';
 
@@ -23,9 +22,9 @@ function toast(root, msg) {
     el._t = setTimeout(() => el.classList.add('hidden'), 1400);
 }
 
-function copyToClipboard(text) {
+async function copyToClipboard(text) {
     try {
-        navigator.clipboard.writeText(text);
+        await navigator.clipboard.writeText(text);
         return true;
     } catch (e) {
         try {
@@ -44,23 +43,58 @@ function copyToClipboard(text) {
     }
 }
 
-function buildFaShortcode(className, size, colour) {
+function buildFaShortcode(icon, size, colour) {
     const sz = parseInt(size || 24, 10) || 24;
     const col = normaliseHexColour(colour || '#111827');
-    return `[icon kind="fa" value="${className}" size="${sz}" colour="${col}"]`;
+
+    // Compact shortcode (recommended): human-readable and still supported by CMS.
+    // Example: [icon kind="fa" value="fa-solid fa-house" size="24" colour="#111827"]
+    const value = String(icon && (icon.className || icon.value) ? (icon.className || icon.value) : '').trim();
+    if (!value) return '';
+
+    return `[icon kind="fa" value="${value}" size="${sz}" colour="${col}"]`;
 }
+
 
 function postSelected(payload) {
     window.parent.postMessage({
-        type: 'impartcms-media-selected',
+        type: 'impart-media-selected',
         payload,
     }, window.location.origin);
 }
 
-function renderFAIcon(el, className, sizePx, colour) {
+function renderFASvg(el, svg, sizePx, colour) {
+    el.innerHTML = '';
+    if (!svg || typeof svg !== 'string' || !svg.trim().startsWith('<svg')) return false;
+
+    el.innerHTML = svg;
+    const s = el.querySelector('svg');
+    if (!s) {
+        el.innerHTML = '';
+        return false;
+    }
+
+    // Make SVG size/colour consistent.
+    s.removeAttribute('width');
+    s.removeAttribute('height');
+    s.setAttribute('aria-hidden', 'true');
+    s.setAttribute('focusable', 'false');
+    s.style.width = `${sizePx}px`;
+    s.style.height = `${sizePx}px`;
+    s.style.display = 'block';
+    s.style.color = colour;
+
+    return true;
+}
+
+function renderFAIcon(el, icon, sizePx, colour) {
+    // Prefer SVG (works everywhere). Fallback to <i> for safety.
+    const ok = renderFASvg(el, icon.svg, sizePx, colour);
+    if (ok) return;
+
     el.innerHTML = '';
     const i = document.createElement('i');
-    i.className = className;
+    i.className = icon.className;
     i.style.fontSize = `${sizePx}px`;
     i.style.color = colour;
     i.style.lineHeight = '1';
@@ -121,26 +155,25 @@ function mountFaIconLibrary(root) {
         return '#111827';
     }
 
-	function computeMatches() {
-		const qRaw = (inpSearch.value || '').trim().toLowerCase();
-		const style = (selStyle.value || 'all').toLowerCase();
-		const terms = qRaw ? qRaw.split(/\s+/).filter(Boolean) : [];
+    function computeMatches() {
+        const qRaw = (inpSearch.value || '').trim().toLowerCase();
+        const style = (selStyle.value || 'all').toLowerCase();
+        const terms = qRaw ? qRaw.split(/\s+/).filter(Boolean) : [];
 
-		return faIconList.filter(it => {
-			const name = String(it.name || '').toLowerCase();
-			const cls = String(it.className || it.value || '').toLowerCase();
-			const label = String(it.label || '').toLowerCase();
-			const st = String(it.style || '').toLowerCase();
+        return faIconList.filter(it => {
+            const name = String(it.name || '').toLowerCase();
+            const cls = String(it.className || it.value || '').toLowerCase();
+            const label = String(it.label || '').toLowerCase();
+            const st = String(it.style || '').toLowerCase();
 
-			const hay = `${name} ${label} ${cls} ${st}`.trim();
+            const hay = `${name} ${label} ${cls} ${st}`.trim();
 
-			const okQ = terms.length === 0 || terms.every(t => hay.includes(t));
-			const okStyle = (style === 'all') || st === style;
+            const okQ = terms.length === 0 || terms.every(t => hay.includes(t));
+            const okStyle = (style === 'all') || st === style;
 
-			return okQ && okStyle;
-		});
-	}
-
+            return okQ && okStyle;
+        });
+    }
 
     function renderPage(reset = false) {
         const size = parseInt(inpSize.value || '24', 10) || 24;
@@ -157,24 +190,42 @@ function mountFaIconLibrary(root) {
         const slice = matches.slice(start, end);
 
         slice.forEach(it => {
-            const card = document.createElement('button');
-            card.type = 'button';
-            card.className = 'group text-left border rounded-lg p-3 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500';
+            const card = document.createElement('div');
+            card.className = 'relative group text-left border rounded-lg p-3 hover:bg-slate-50 focus-within:ring-2 focus-within:ring-indigo-500';
             card.setAttribute('data-class', it.className);
+
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'w-full text-left focus:outline-none';
 
             const iconWrap = document.createElement('div');
             iconWrap.className = 'h-12 flex items-center justify-center';
-            renderFAIcon(iconWrap, it.className, size, colour);
+            renderFAIcon(iconWrap, it, size, colour);
 
             const label = document.createElement('div');
             label.className = 'mt-2 text-[11px] text-slate-600 truncate';
             label.textContent = `${it.name} (${it.style})`;
 
-            card.appendChild(iconWrap);
-            card.appendChild(label);
+            btn.appendChild(iconWrap);
+            btn.appendChild(label);
 
-            card.addEventListener('click', () => {
-                const shortcode = buildFaShortcode(it.className, size, colour);
+            // Copy button (always available)
+            const copyBtn = document.createElement('button');
+            copyBtn.type = 'button';
+            copyBtn.className = 'absolute top-2 right-2 px-2 py-1 rounded-md border bg-white text-[11px] font-semibold text-slate-700 hover:bg-slate-50 shadow-sm';
+            copyBtn.textContent = 'Copy';
+
+            copyBtn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+
+                const shortcode = buildFaShortcode(it, size, colour);
+                const ok = await copyToClipboard(shortcode);
+                toast(root, ok ? 'Copied shortcode ✔' : 'Copy failed');
+            });
+
+            btn.addEventListener('click', async () => {
+                const shortcode = buildFaShortcode(it, size, colour);
 
                 // Select mode only really works when embedded in picker iframe.
                 if (currentMode === 'select' && inIframe) {
@@ -185,6 +236,7 @@ function mountFaIconLibrary(root) {
                             name: it.name,
                             style: it.style,
                             value: it.className,
+                            svg: it.svg || '',
                             size,
                             colour,
                             shortcode,
@@ -194,10 +246,12 @@ function mountFaIconLibrary(root) {
                 }
 
                 // Copy mode (default)
-                const ok = copyToClipboard(shortcode);
+                const ok = await copyToClipboard(shortcode);
                 toast(root, ok ? 'Copied shortcode ✔' : 'Copy failed');
             });
 
+            card.appendChild(btn);
+            card.appendChild(copyBtn);
             grid.appendChild(card);
         });
 
@@ -223,7 +277,13 @@ function mountFaIconLibrary(root) {
     renderPage(true);
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+function bootImpartFaIconLibrary() {
     const root = qs('#impart-icon-library');
     if (root) mountFaIconLibrary(root);
-});
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bootImpartFaIconLibrary);
+} else {
+    bootImpartFaIconLibrary();
+}

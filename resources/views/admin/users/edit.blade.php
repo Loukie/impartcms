@@ -123,23 +123,23 @@
 
                         @if(auth()->id() !== $user->id)
                             <form method="POST" action="{{ route('admin.users.destroy', $user) }}"
-                                  onsubmit="return confirm('Delete this user? This cannot be undone.');">
+                                  onsubmit="return confirm('Move this user to trash?');">
                                 @csrf
                                 @method('DELETE')
 
                                 <button type="submit"
                                         class="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-md font-semibold text-xs uppercase tracking-widest hover:bg-red-700">
-                                    Delete User
+                                    Move to Trash
                                 </button>
                             </form>
                         @else
-                            <span class="text-sm text-gray-500">You can’t delete yourself here.</span>
+                            <span class="text-sm text-gray-500">You can’t trash yourself here.</span>
                         @endif
                     </div>
 
                     @if($user->is_admin && $adminCount <= 1)
                         <div class="mt-6 p-3 rounded bg-yellow-50 text-yellow-800 border border-yellow-200">
-                            This is the last admin account. You won’t be able to remove admin access or delete this user until another admin exists.
+                            This is the last admin account. You won’t be able to remove admin access or trash this user until another admin exists.
                         </div>
                     @endif
                 </div>

@@ -10,90 +10,66 @@
 <?php $component->withAttributes([]); ?>
      <?php $__env->slot('header', null, []); ?> 
         <div class="flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <a href="<?php echo e(route('admin.forms.index')); ?>" class="text-sm font-semibold text-gray-700 hover:text-gray-900">← Forms</a>
-                <div>
-                    <h2 class="font-semibold text-xl text-gray-800 leading-tight">Submissions</h2>
-                    <div class="text-xs text-gray-500"><?php echo e($form->name); ?> (<?php echo e($form->slug); ?>)</div>
-                </div>
+            <div>
+                <h2 class="font-semibold text-xl text-gray-800 leading-tight">Submissions</h2>
+                <div class="text-sm text-gray-600 mt-1"><?php echo e($form->name); ?> (<code class="px-1 py-0.5 bg-gray-100 rounded"><?php echo e($form->slug); ?></code>)</div>
             </div>
 
             <div class="flex items-center gap-2">
-                <a href="<?php echo e(route('admin.forms.edit', $form)); ?>" class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 uppercase tracking-widest hover:bg-gray-50">Edit form</a>
-                <a href="<?php echo e(route('admin.forms.submissions.export', $form, ['status' => $status])); ?>" class="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-md font-semibold text-xs uppercase tracking-widest hover:bg-gray-800">Export CSV</a>
+                <a href="<?php echo e(route('admin.forms.edit', $form)); ?>"
+                   class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 uppercase tracking-widest hover:bg-gray-50">
+                    Back to builder
+                </a>
             </div>
         </div>
      <?php $__env->endSlot(); ?>
 
     <div class="py-8">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white shadow-sm sm:rounded-lg overflow-hidden">
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6">
-                    <div class="flex flex-wrap items-center gap-2">
-                        <?php
-                            $pill = 'inline-flex items-center px-3 py-1.5 rounded-full border text-xs font-semibold';
-                            $active = 'bg-gray-900 border-gray-900 text-white';
-                            $inactive = 'bg-white border-gray-300 text-gray-800 hover:bg-gray-50';
-                            $makeUrl = fn($s) => route('admin.forms.submissions.index', [$form, 'status' => $s]);
-                        ?>
-
-                        <a href="<?php echo e($makeUrl('')); ?>" class="<?php echo e($pill); ?> <?php echo e($status==='' ? $active : $inactive); ?>">All (<?php echo e(array_sum($stats)); ?>)</a>
-                        <a href="<?php echo e($makeUrl('sent')); ?>" class="<?php echo e($pill); ?> <?php echo e($status==='sent' ? $active : $inactive); ?>">Sent (<?php echo e($stats['sent'] ?? 0); ?>)</a>
-                        <a href="<?php echo e($makeUrl('failed')); ?>" class="<?php echo e($pill); ?> <?php echo e($status==='failed' ? $active : $inactive); ?>">Failed (<?php echo e($stats['failed'] ?? 0); ?>)</a>
-                        <a href="<?php echo e($makeUrl('skipped')); ?>" class="<?php echo e($pill); ?> <?php echo e($status==='skipped' ? $active : $inactive); ?>">Skipped (<?php echo e($stats['skipped'] ?? 0); ?>)</a>
-                        <a href="<?php echo e($makeUrl('pending')); ?>" class="<?php echo e($pill); ?> <?php echo e($status==='pending' ? $active : $inactive); ?>">Pending (<?php echo e($stats['pending'] ?? 0); ?>)</a>
-                    </div>
-
-                    <div class="mt-4 overflow-x-auto">
+                    <div class="overflow-x-auto">
                         <table class="min-w-full text-sm">
-                            <thead class="text-xs uppercase text-gray-500 border-b">
-                                <tr>
-                                    <th class="py-3 text-left">Date</th>
-                                    <th class="py-3 text-left">Status</th>
-                                    <th class="py-3 text-left">To</th>
-                                    <th class="py-3 text-left">IP</th>
-                                    <th class="py-3 text-right">View</th>
+                            <thead>
+                                <tr class="text-left text-gray-500 border-b">
+                                    <th class="py-2 pr-4">Date</th>
+                                    <th class="py-2 pr-4">IP</th>
+                                    <th class="py-2 pr-4">Summary</th>
+                                    <th class="py-2">Action</th>
                                 </tr>
                             </thead>
-                            <tbody class="divide-y">
+                            <tbody>
                                 <?php $__empty_1 = true; $__currentLoopData = $submissions; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $s): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
-                                    <tr class="hover:bg-gray-50">
-                                        <td class="py-3 text-gray-800"><?php echo e(optional($s->created_at)->format('Y-m-d H:i')); ?></td>
-                                        <td class="py-3">
+                                    <tr class="border-b last:border-0">
+                                        <td class="py-3 pr-4 text-gray-700"><?php echo e($s->created_at?->format('Y-m-d H:i')); ?></td>
+                                        <td class="py-3 pr-4 text-gray-500"><?php echo e($s->ip); ?></td>
+                                        <td class="py-3 pr-4 text-gray-700">
                                             <?php
-                                                $map = [
-                                                    'sent' => 'bg-green-50 text-green-800 border-green-200',
-                                                    'failed' => 'bg-rose-50 text-rose-800 border-rose-200',
-                                                    'skipped' => 'bg-gray-50 text-gray-700 border-gray-200',
-                                                    'pending' => 'bg-amber-50 text-amber-800 border-amber-200',
-                                                ];
-                                                $cls = $map[$s->mail_status] ?? 'bg-gray-50 text-gray-700 border-gray-200';
+                                                $payload = is_array($s->payload) ? $s->payload : [];
+                                                $preview = collect($payload)->take(3)->map(fn($v,$k) => $k . ': ' . (is_scalar($v) ? $v : json_encode($v)))->implode(' • ');
                                             ?>
-                                            <span class="inline-flex items-center px-2 py-1 rounded border text-xs font-semibold <?php echo e($cls); ?>">
-                                                <?php echo e(strtoupper($s->mail_status)); ?>
-
-                                            </span>
-                                            <?php if($s->spam_reason): ?>
-                                                <div class="mt-1 text-xs text-gray-500"><?php echo e($s->spam_reason); ?></div>
-                                            <?php endif; ?>
+                                            <span class="text-gray-700"><?php echo e($preview); ?></span>
                                         </td>
-                                        <td class="py-3 text-gray-700"><?php echo e($s->to_email ?: '—'); ?></td>
-                                        <td class="py-3 text-gray-700"><?php echo e($s->ip ?: '—'); ?></td>
-                                        <td class="py-3 text-right">
+                                        <td class="py-3">
                                             <a href="<?php echo e(route('admin.forms.submissions.show', [$form, $s])); ?>"
-                                               class="px-3 py-1.5 rounded border border-gray-300 text-xs font-semibold hover:bg-gray-50">Open</a>
+                                               class="inline-flex items-center px-3 py-1.5 rounded-md bg-gray-900 text-white text-xs font-semibold hover:bg-gray-800">
+                                                View
+                                            </a>
                                         </td>
                                     </tr>
                                 <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                                     <tr>
-                                        <td class="py-6 text-gray-600" colspan="5">No submissions yet.</td>
+                                        <td colspan="4" class="py-6 text-gray-600">No submissions yet.</td>
                                     </tr>
                                 <?php endif; ?>
                             </tbody>
                         </table>
                     </div>
 
-                    <div class="mt-4"><?php echo e($submissions->links()); ?></div>
+                    <div class="mt-6">
+                        <?php echo e($submissions->links()); ?>
+
+                    </div>
                 </div>
             </div>
         </div>

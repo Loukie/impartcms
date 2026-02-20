@@ -4,9 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Form extends Model
 {
+    use SoftDeletes;
+
     protected $fillable = [
         'name',
         'slug',
@@ -19,6 +22,7 @@ class Form extends Model
         'fields' => 'array',
         'settings' => 'array',
         'is_active' => 'bool',
+        'deleted_at' => 'datetime',
     ];
 
     public function recipientRules(): HasMany

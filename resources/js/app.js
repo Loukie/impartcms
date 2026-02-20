@@ -34,3 +34,6 @@ if (document.readyState === 'loading') {
 
 // Admin pickers (runs only when their containers exist)
 import './admin/icon-library';
+
+// Forms builder (admin only; no-op unless builder container exists)
+import './admin/forms-builder';

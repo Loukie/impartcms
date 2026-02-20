@@ -3,288 +3,316 @@
 namespace App\Http\Controllers;
 
 use App\Models\Form;
-use App\Models\FormRecipientRule;
 use App\Models\FormSubmission;
-use App\Models\Page;
+use App\Models\Setting;
+use App\Support\FormMailer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Crypt;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\RateLimiter;
-use App\Models\Setting;
+use Illuminate\Support\Str;
 
 class FormSubmissionController extends Controller
 {
+    public function __construct(
+        private readonly FormMailer $mailer
+    ) {}
+
+    /**
+     * Stores a submission and emails the recipient(s).
+     * Spam protection:
+     * - honeypot: `website`
+     * - route throttling middleware (see routes/web.php)
+     */
     public function submit(Request $request, Form $form): RedirectResponse
     {
-        if (!$form->is_active) {
-            abort(404);
+        abort_unless($form->is_active, 404);
+
+        // Honeypot
+        if (trim((string) $request->input('website', '')) !== '') {
+            // Pretend success
+            return back()->with('success', true);
         }
 
-        // Honeypot (simple, effective spam protection)
-        $honeypot = (string) $request->input('__hp', '');
-        if (trim($honeypot) !== '') {
-            $this->storeSubmission(
-                request: $request,
-                form: $form,
-                page: $this->resolvePage($request),
-                data: [],
-                recipients: [],
-                mailStatus: 'skipped',
-                spamReason: 'honeypot'
-            );
-            return back()->with('status', 'Thanks — we received your message ✅');
+        $payload = $request->except(['_token', 'website', '_impart_to', '_impart_cc', '_impart_bcc']);
+
+        // Optional computed price (from embed JS)
+        $priceZar = $request->input('_impart_price_zar');
+        if (is_numeric($priceZar)) {
+            $payload['_price_zar'] = (int) $priceZar;
         }
 
-        // Extra rate limit (per form + IP) to complement route throttle.
-        $rateKey = 'forms:' . $form->id . ':ip:' . ($request->ip() ?? 'unknown');
-        if (RateLimiter::tooManyAttempts($rateKey, 8)) {
-            $this->storeSubmission(
-                request: $request,
-                form: $form,
-                page: $this->resolvePage($request),
-                data: [],
-                recipients: [],
-                mailStatus: 'skipped',
-                spamReason: 'rate_limit'
-            );
-            return back()->with('status', 'Thanks — we received your message ✅');
-        }
-        RateLimiter::hit($rateKey, 60); // 8 per minute
+        // Build a nicer display payload (label => value)
+        $displayPayload = $this->buildDisplayPayload($form, $payload);
 
-        $data = $request->validate($this->rulesFromForm($form));
+        // Resolve recipients:
+        // 1) shortcode to=... (stored in session by shortcode renderer)  — if present
+        // 2) form setting: settings.recipients
+        // 3) global setting: forms_default_to
+        $recipients = $this->resolveRecipients($form, $request);
 
-        $page = $this->resolvePage($request);
+        // Optional CC/BCC:
+        // 1) shortcode cc/bcc via hidden fields
+        // 2) global defaults in settings
+        $cc = $this->resolveCc($request);
+        $bcc = $this->resolveBcc($request);
 
-        $recipients = $this->resolveRecipients(
-            form: $form,
-            page: $page,
-            userId: auth()->id(),
-            overrideTo: $request->input('_override_to')
-        );
-
-        $submission = $this->storeSubmission(
-            request: $request,
-            form: $form,
-            page: $page,
-            data: $data,
-            recipients: $recipients,
-            mailStatus: 'pending',
-            spamReason: null
-        );
-
-        // If we have no recipients, we still store the submission but mark as skipped.
-        if (empty($recipients)) {
-            $submission->update([
-                'mail_status' => 'skipped',
-                'spam_reason' => 'no_recipients',
-            ]);
-            return back()->with('status', 'Thanks — we received your message ✅');
-        }
-
-        // Sending strategy:
-        // - inherit: use app mailer
-        // - smtp: use Forms SMTP override
-        // - log: do not send (useful for local testing)
-        $mode = strtolower((string) Setting::get('forms_mail_mode', 'inherit'));
-        if (!in_array($mode, ['inherit', 'smtp', 'log'], true)) {
-            $mode = 'inherit';
-        }
-
-        if ($mode === 'log') {
-            $submission->update([
-                'mail_status' => 'skipped',
-                'spam_reason' => 'log_mode',
-            ]);
-            return back()->with('status', 'Thanks — we received your message ✅');
-        }
-
-        try {
-            $mailer = $mode === 'smtp'
-                ? $this->formsSmtpMailer()
-                : Mail::mailer();
-
-            $fromName = (string) Setting::get('forms_from_name', Setting::get('site_name', config('app.name')));
-            $fromEmail = (string) Setting::get('forms_from_email', config('mail.from.address'));
-
-            $body = "New form submission: {$form->name}\n";
-            if ($page) {
-                $body .= "Page: {$page->title} ({$page->slug})\n";
-            }
-            $body .= "\n" . json_encode($data, JSON_PRETTY_PRINT);
-
-            $mailer->raw($body, function ($message) use ($recipients, $fromName, $fromEmail, $form) {
-                $message->to($recipients)
-                    ->subject('New form submission: ' . $form->name);
-
-                if ($fromEmail) {
-                    $message->from($fromEmail, $fromName ?: null);
-                }
-            });
-
-            $submission->update([
-                'mail_status' => 'sent',
-                'mail_sent_at' => now(),
-                'mail_error' => null,
-            ]);
-        } catch (\Throwable $e) {
-            $submission->update([
-                'mail_status' => 'failed',
-                'mail_error' => substr($e->getMessage(), 0, 5000),
-            ]);
-        }
-
-        return back()->with('status', 'Thanks — we received your message ✅');
-    }
-
-    private function resolvePage(Request $request): ?Page
-    {
-        $pageId = $request->input('_page_id');
-        return $pageId ? Page::query()->find($pageId) : null;
-    }
-
-    private function storeSubmission(
-        Request $request,
-        Form $form,
-        ?Page $page,
-        array $data,
-        array $recipients,
-        string $mailStatus,
-        ?string $spamReason,
-    ): FormSubmission {
-        return FormSubmission::create([
+        // Save submission
+        $submission = FormSubmission::create([
             'form_id' => $form->id,
-            'page_id' => $page?->id,
-            'user_id' => auth()->id(),
-            'payload' => $data,
+            'payload' => $payload,
             'ip' => $request->ip(),
-            'user_agent' => substr((string) $request->userAgent(), 0, 1000),
-            'to_email' => !empty($recipients) ? implode(', ', $recipients) : null,
-            'mail_status' => $mailStatus,
-            'spam_reason' => $spamReason,
-            'created_at' => now(),
+            'user_agent' => (string) $request->userAgent(),
         ]);
+
+        // Send email (best-effort)
+        if (count($recipients) > 0) {
+            $subject = 'New form submission: ' . ($form->name ?: $form->slug);
+
+            $fromName = trim((string) Setting::get('forms_from_name', ''));
+            $fromEmail = trim((string) Setting::get('forms_from_email', ''));
+            $replyTo = trim((string) Setting::get('forms_reply_to', ''));
+
+            $this->mailer->sendRaw(
+                to: $recipients,
+                subject: $subject,
+                textBody: $this->plainTextBody($form, $displayPayload, $submission),
+                fromEmail: $fromEmail !== '' ? $fromEmail : null,
+                fromName: $fromName !== '' ? $fromName : null,
+                replyTo: $replyTo !== '' ? $replyTo : null,
+                cc: $cc,
+                bcc: $bcc,
+            );
+        }
+
+        return back()->with('success', true);
     }
 
-    private function formsSmtpMailer()
+    private function plainTextBody(Form $form, array $displayPayload, FormSubmission $submission): string
     {
-        $host = (string) Setting::get('forms_smtp_host', '');
-        $port = (int) (Setting::get('forms_smtp_port', '587') ?? 587);
-        $encryption = (string) Setting::get('forms_smtp_encryption', 'tls');
-        $username = (string) Setting::get('forms_smtp_username', '');
-        $passwordEnc = (string) Setting::get('forms_smtp_password', '');
-        $password = '';
-        if ($passwordEnc !== '') {
-            try {
-                $password = Crypt::decryptString($passwordEnc);
-            } catch (\Throwable $e) {
-                $password = '';
+        $lines = [];
+        $lines[] = "🌻 I hope you're well.";
+        $lines[] = '';
+        $lines[] = 'New submission received for: ' . ($form->name ?: $form->slug);
+        $lines[] = 'Submission ID: ' . $submission->id;
+        $lines[] = 'Date: ' . now()->format('Y-m-d H:i:s');
+        $lines[] = '';
+        $lines[] = 'Fields:';
+
+        foreach ($displayPayload as $label => $value) {
+            $v = is_scalar($value) ? (string) $value : json_encode($value);
+            $lines[] = "- {$label}: {$v}";
+        }
+
+        $lines[] = '';
+        $lines[] = '—';
+        $lines[] = 'Sent via ImpartCMS Forms';
+
+        return implode("\n", $lines);
+    }
+
+    private function resolveRecipients(Form $form, Request $request): array
+    {
+        // Shortcode can override recipients via hidden field.
+        $override = trim((string) $request->input('_impart_to', ''));
+
+        $formTo = $form->settings['recipients'] ?? null;
+        $defaultTo = Setting::get('forms_default_to', '');
+
+        $raw = (string)($override ?: $formTo ?: $defaultTo);
+        $list = collect(explode(',', $raw))
+            ->map(fn($e) => trim($e))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        // Only keep valid emails
+        $out = [];
+        foreach ($list as $email) {
+            if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                $out[] = $email;
             }
         }
 
-        // Configure a dedicated mailer at runtime
-        config()->set('mail.mailers.forms_smtp', [
-            'transport' => 'smtp',
-            'host' => $host,
-            'port' => $port,
-            'encryption' => $encryption !== '' ? $encryption : null,
-            'username' => $username !== '' ? $username : null,
-            'password' => $password !== '' ? $password : null,
-            'timeout' => null,
-            'local_domain' => env('MAIL_EHLO_DOMAIN'),
-        ]);
-
-        return Mail::mailer('forms_smtp');
+        return $out;
     }
 
-    private function rulesFromForm(Form $form): array
+    private function resolveCc(Request $request): array
     {
-        $rules = [];
-        foreach (($form->fields ?? []) as $field) {
-            $name = $field['name'] ?? null;
-            if (!$name) {
+        $override = trim((string) $request->input('_impart_cc', ''));
+        $defaultCc = (string) Setting::get('forms_default_cc', '');
+        $raw = (string) ($override !== '' ? $override : $defaultCc);
+        return $this->csvEmails($raw);
+    }
+
+    private function resolveBcc(Request $request): array
+    {
+        $override = trim((string) $request->input('_impart_bcc', ''));
+        $defaultBcc = (string) Setting::get('forms_default_bcc', '');
+        $raw = (string) ($override !== '' ? $override : $defaultBcc);
+        return $this->csvEmails($raw);
+    }
+
+    private function csvEmails(string $raw): array
+    {
+        $list = collect(explode(',', $raw))
+            ->map(fn ($e) => trim((string) $e))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        $out = [];
+        foreach ($list as $email) {
+            if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                $out[] = $email;
+            }
+        }
+
+        return $out;
+    }
+
+    private function buildDisplayPayload(Form $form, array $payload): array
+    {
+        // Build name => label + options mapping from form schema
+        $schema = is_array($form->fields ?? null) ? $form->fields : [];
+
+        // Normalise to map
+        $fields = [];
+        $isAssoc = array_keys($schema) !== range(0, count($schema) - 1);
+        if ($isAssoc) {
+            $fields = $schema;
+        } else {
+            foreach ($schema as $idx => $f) {
+                if (!is_array($f)) continue;
+                $id = $f['id'] ?? ('f_' . ($idx + 1));
+                $fields[$id] = array_merge(['id' => $id], $f);
+            }
+        }
+
+        // Build lookup by name
+        $byName = [];
+        foreach ($fields as $f) {
+            if (!is_array($f)) continue;
+            $name = (string)($f['name'] ?? '');
+            if ($name === '') continue;
+            $byName[$name] = $f;
+        }
+
+        $out = [];
+        foreach ($payload as $k => $v) {
+            // phone: combine country if present
+            if (Str::endsWith($k, '_country')) continue;
+
+            if ($k === '_price_zar') {
+                $out['Price (ZAR)'] = 'R' . number_format((int) $v, 0, '.', ' ');
                 continue;
             }
 
-            $required = !empty($field['required']);
-            $type = $field['type'] ?? 'text';
+            $f = $byName[$k] ?? null;
+            $label = $f && !empty($f['label']) ? (string)$f['label'] : (string)$k;
+            $type = $f ? strtolower((string)($f['type'] ?? 'text')) : 'text';
 
-            $r = [];
-            $r[] = $required ? 'required' : 'nullable';
-
-            if ($type === 'email') {
-                $r[] = 'email';
-                $r[] = 'max:255';
-            } elseif ($type === 'textarea') {
-                $r[] = 'string';
-                $r[] = 'max:5000';
-            } elseif ($type === 'select' || $type === 'cards') {
-                $r[] = 'string';
-                $r[] = 'max:255';
-            } elseif ($type === 'cards_multi') {
-                $r[] = 'array';
-                $r[] = 'max:50';
-            } else {
-                $r[] = 'string';
-                $r[] = 'max:255';
+            if ($type === 'phone') {
+                $country = (string)($payload[$k . '_country'] ?? '');
+                $dial = $this->isoToDial($country);
+                $prefix = $dial ?: $country;
+                $out[$label] = trim($prefix . ' ' . (is_scalar($v) ? (string)$v : ''));
+                continue;
             }
 
-            $rules[$name] = $r;
+            if (in_array($type, ['select','cards'], true)) {
+                $out[$label] = $this->mapValueToLabel($f, is_scalar($v) ? (string)$v : '');
+                continue;
+            }
+
+            if ($type === 'cards_multi') {
+                $vals = is_array($v) ? $v : (array)$v;
+                $labels = [];
+                foreach ($vals as $vv) {
+                    $labels[] = $this->mapValueToLabel($f, is_scalar($vv) ? (string)$vv : '');
+                }
+                $out[$label] = implode(', ', array_filter($labels));
+                continue;
+            }
+
+            $out[$label] = $v;
         }
 
-        return $rules;
+        return $out;
     }
 
-    /**
-     * Recipient precedence:
-     * 1) overrideTo (shortcode)
-     * 2) rule matching (form + page + user)
-     * 3) rule matching (form + page)
-     * 4) rule matching (form + user)
-     * 5) form.settings.default_recipients
-     *
-     * @return array<int, string>
-     */
-    private function resolveRecipients(Form $form, ?Page $page, ?int $userId, ?string $overrideTo): array
+    private function mapValueToLabel(?array $field, string $value): string
     {
-        if ($overrideTo) {
-            return $this->splitEmails($overrideTo);
+        if (!$field) return $value;
+        $options = is_array($field['options'] ?? null) ? $field['options'] : [];
+        foreach ($options as $opt) {
+            if (!is_array($opt)) continue;
+            if ((string)($opt['value'] ?? '') === $value) {
+                $label = (string)($opt['label'] ?? '');
+                if ($label === '') return $value;
+                // If label and value differ, include both so admin doesn't have to make them identical.
+                if ($label !== $value && $value !== '') {
+                    return $label . ' (' . $value . ')';
+                }
+                return $label;
+            }
         }
-
-        $q = FormRecipientRule::query()->where('form_id', $form->id);
-
-        $rule = $q->clone()
-            ->when($page, fn($qq) => $qq->where('page_id', $page->id))
-            ->when($userId, fn($qq) => $qq->where('user_id', $userId))
-            ->first();
-
-        if (!$rule && $page) {
-            $rule = $q->clone()->where('page_id', $page->id)->whereNull('user_id')->first();
-        }
-        if (!$rule && $userId) {
-            $rule = $q->clone()->where('user_id', $userId)->whereNull('page_id')->first();
-        }
-
-        if ($rule && is_array($rule->recipients)) {
-            return array_values(array_filter(array_map('trim', $rule->recipients)));
-        }
-
-        $defaults = $form->settings['default_recipients'] ?? [];
-        if (is_array($defaults)) {
-            return array_values(array_filter(array_map('trim', $defaults)));
-        }
-
-        // Global fallback: Forms settings default recipient
-        $global = (string) Setting::get('forms_default_to', '');
-        if (trim($global) !== '') {
-            return $this->splitEmails($global);
-        }
-
-        return [];
+        return $value;
     }
 
-    private function splitEmails(string $csv): array
+    private function isoToDial(string $iso): string
     {
-        return array_values(array_filter(array_map('trim', preg_split('/\s*,\s*/', $csv) ?: [])));
+        $iso = strtoupper(trim($iso));
+        $map = [
+            'ZA' => '+27',
+            'US' => '+1',
+            'CA' => '+1',
+            'GB' => '+44',
+            'AU' => '+61',
+            'NZ' => '+64',
+            'DE' => '+49',
+            'FR' => '+33',
+            'NL' => '+31',
+            'IE' => '+353',
+            'ES' => '+34',
+            'IT' => '+39',
+            'PT' => '+351',
+            'BE' => '+32',
+            'CH' => '+41',
+            'AT' => '+43',
+            'SE' => '+46',
+            'NO' => '+47',
+            'DK' => '+45',
+            'FI' => '+358',
+            'PL' => '+48',
+            'CZ' => '+420',
+            'HU' => '+36',
+            'GR' => '+30',
+            'TR' => '+90',
+            'AE' => '+971',
+            'SA' => '+966',
+            'IN' => '+91',
+            'SG' => '+65',
+            'MY' => '+60',
+            'TH' => '+66',
+            'VN' => '+84',
+            'PH' => '+63',
+            'ID' => '+62',
+            'JP' => '+81',
+            'KR' => '+82',
+            'CN' => '+86',
+            'HK' => '+852',
+            'BR' => '+55',
+            'MX' => '+52',
+            'AR' => '+54',
+            'CO' => '+57',
+            'CL' => '+56',
+            'PE' => '+51',
+            'NG' => '+234',
+            'KE' => '+254',
+            'GH' => '+233',
+            'EG' => '+20',
+        ];
+        return $map[$iso] ?? '';
     }
 }

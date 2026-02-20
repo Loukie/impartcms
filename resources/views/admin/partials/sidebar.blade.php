@@ -2,6 +2,7 @@
     $siteName = \App\Models\Setting::get('site_name', config('app.name'));
     $logoPath = \App\Models\Setting::get('site_logo_path', null);
     $logoMediaId = (int) (\App\Models\Setting::get('site_logo_media_id', '0') ?? 0);
+    $logoIconJson = \App\Models\Setting::get('site_logo_icon_json', null);
     $showNameWithLogo = (bool) ((int) \App\Models\Setting::get('admin_show_name_with_logo', '0'));
 
     $logoUrl = null;
@@ -16,7 +17,12 @@
         $logoUrl = asset('storage/' . $logoPath);
     }
 
-    $hasLogo = !empty($logoUrl);
+    $logoIconHtml = '';
+    if (empty($logoUrl) && !empty($logoIconJson)) {
+        $logoIconHtml = \App\Support\IconRenderer::renderHtml($logoIconJson, 28, '#111827');
+    }
+
+    $hasLogo = !empty($logoUrl) || !empty($logoIconHtml);
     $showText = !$hasLogo || $showNameWithLogo;
 
     $isActive = fn(string $pattern) => request()->routeIs($pattern);
@@ -24,8 +30,10 @@
 
 <div class="rounded-lg border border-gray-200 bg-white p-4">
     <div class="flex items-center gap-3 {{ $showText ? '' : 'justify-center' }}">
-        @if($hasLogo)
+        @if(!empty($logoUrl))
             <img src="{{ $logoUrl }}" alt="{{ $siteName }} logo" class="h-8 w-auto">
+        @elseif(!empty($logoIconHtml))
+            <span class="inline-flex items-center justify-center h-8 w-8">{!! $logoIconHtml !!}</span>
         @endif
 
         @if($showText)

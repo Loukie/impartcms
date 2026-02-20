@@ -12,6 +12,7 @@
 
     $logoPath = \App\Models\Setting::get('site_logo_path', null);
     $logoMediaId = (int) (\App\Models\Setting::get('site_logo_media_id', '0') ?? 0);
+    $logoIconJson = \App\Models\Setting::get('site_logo_icon_json', null);
     $showNameWithLogo = (bool) ((int) \App\Models\Setting::get('admin_show_name_with_logo', '0'));
 
     $logoUrl = null;
@@ -26,12 +27,33 @@
         $logoUrl = asset('storage/' . $logoPath);
     }
 
-    $hasLogo = !empty($logoUrl);
+    // Optional icon logo (fallback when no image)
+    $logoIconHtml = '';
+    if (empty($logoUrl) && !empty($logoIconJson)) {
+        $j = $logoIconJson;
+        try {
+            $arr = json_decode((string) $logoIconJson, true, 512, JSON_THROW_ON_ERROR);
+            if (is_array($arr)) {
+                // If user kept default dark colour, make it visible on dark admin sidebar.
+                if (($arr['colour'] ?? '') === '#111827') {
+                    $arr['colour'] = '#ffffff';
+                }
+                $j = json_encode($arr, JSON_UNESCAPED_SLASHES);
+            }
+        } catch (\Throwable $e) {
+            $j = $logoIconJson;
+        }
+
+        $logoIconHtml = \App\Support\IconRenderer::renderHtml($j, 28, '#ffffff');
+    }
+
+    $hasLogo = !empty($logoUrl) || !empty($logoIconHtml);
     $showText = !$hasLogo || $showNameWithLogo;
 
 // Favicon (admin)
 $faviconPath = \App\Models\Setting::get('site_favicon_path', null);
 $faviconMediaId = (int) (\App\Models\Setting::get('site_favicon_media_id', '0') ?? 0);
+$faviconIconJson = \App\Models\Setting::get('site_favicon_icon_json', null);
 $faviconUrl = null;
 
 if ($faviconMediaId > 0) {
@@ -45,6 +67,11 @@ if (!$faviconUrl && !empty($faviconPath)) {
     $faviconUrl = asset('storage/' . $faviconPath);
 }
 
+$faviconIconUrl = null;
+if (empty($faviconUrl) && !empty($faviconIconJson)) {
+    $faviconIconUrl = route('favicon.svg');
+}
+
     $isActive = fn(string $pattern) => request()->routeIs($pattern);
 ?>
 <head>
@@ -55,6 +82,8 @@ if (!$faviconUrl && !empty($faviconPath)) {
 
     <?php if(!empty($faviconUrl)): ?>
         <link rel="icon" href="<?php echo e($faviconUrl); ?>">
+    <?php elseif(!empty($faviconIconUrl)): ?>
+        <link rel="icon" type="image/svg+xml" href="<?php echo e($faviconIconUrl); ?>">
     <?php endif; ?>
 
     <?php echo app('Illuminate\Foundation\Vite')(['resources/css/app.css', 'resources/js/app.js']); ?>
@@ -88,8 +117,10 @@ if (!$faviconUrl && !empty($faviconPath)) {
     <aside class="w-64 bg-slate-950 text-white flex-shrink-0 border-r border-white/5">
         <div class="px-4 py-4 border-b border-white/10">
             <a href="<?php echo e(route('dashboard')); ?>" class="flex items-center gap-3 <?php echo e($showText ? '' : 'justify-center'); ?>">
-                <?php if($hasLogo): ?>
+                <?php if(!empty($logoUrl)): ?>
                     <img src="<?php echo e($logoUrl); ?>" alt="<?php echo e($siteName); ?> logo" class="h-8 w-auto">
+                <?php elseif(!empty($logoIconHtml)): ?>
+                    <span class="inline-flex items-center justify-center h-8 w-8"><?php echo $logoIconHtml; ?></span>
                 <?php endif; ?>
 
                 <?php if($showText): ?>
@@ -141,22 +172,22 @@ if (!$faviconUrl && !empty($faviconPath)) {
             </a>
 
             
-            <?php if(\Illuminate\Support\Facades\Route::has('admin.forms.index')): ?>
-                <a href="<?php echo e(route('admin.forms.index')); ?>" class="<?php echo e($linkBase); ?> <?php echo e($isActive('admin.forms.*') ? $linkActive : $linkInactive); ?>">
-                    <svg class="h-4 w-4 flex-none <?php echo e($isActive('admin.forms.*') ? $iconActive : $iconInactive); ?>" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                        <path d="M6 2.25A2.25 2.25 0 0 0 3.75 4.5v15A2.25 2.25 0 0 0 6 21.75h12A2.25 2.25 0 0 0 20.25 19.5v-15A2.25 2.25 0 0 0 18 2.25H6Zm2.25 5.25a.75.75 0 0 1 .75-.75h6a.75.75 0 0 1 0 1.5h-6a.75.75 0 0 1-.75-.75Zm0 4.5a.75.75 0 0 1 .75-.75h6a.75.75 0 0 1 0 1.5h-6a.75.75 0 0 1-.75-.75Zm0 4.5a.75.75 0 0 1 .75-.75h3a.75.75 0 0 1 0 1.5h-3a.75.75 0 0 1-.75-.75Z"/>
-                    </svg>
-                    <span>Forms</span>
-                </a>
-            <?php endif; ?>
-
-            
             <?php if(\Illuminate\Support\Facades\Route::has('admin.media.index')): ?>
                 <a href="<?php echo e(route('admin.media.index')); ?>" class="<?php echo e($linkBase); ?> <?php echo e($isActive('admin.media.*') ? $linkActive : $linkInactive); ?>">
                     <svg class="h-4 w-4 flex-none <?php echo e($isActive('admin.media.*') ? $iconActive : $iconInactive); ?>" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                         <path d="M4.5 5.25A2.25 2.25 0 0 1 6.75 3h10.5A2.25 2.25 0 0 1 19.5 5.25v13.5A2.25 2.25 0 0 1 17.25 21H6.75A2.25 2.25 0 0 1 4.5 18.75V5.25Zm12 3a.75.75 0 1 0-1.5 0 .75.75 0 0 0 1.5 0Zm-9.75 9.69 2.22-2.22 1.66 1.66 4.12-4.12a.75.75 0 0 1 1.06 0l2.19 2.19v3.84c0 .414-.336.75-.75.75H6.75a.75.75 0 0 1-.75-.75v-1.35Z"/>
                     </svg>
                     <span>Media</span>
+                </a>
+            <?php endif; ?>
+
+            
+            <?php if(\Illuminate\Support\Facades\Route::has('admin.forms.index')): ?>
+                <a href="<?php echo e(route('admin.forms.index')); ?>" class="<?php echo e($linkBase); ?> <?php echo e($isActive('admin.forms.*') ? $linkActive : $linkInactive); ?>">
+                    <svg class="h-4 w-4 flex-none <?php echo e($isActive('admin.forms.*') ? $iconActive : $iconInactive); ?>" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                        <path d="M6 2.25A2.25 2.25 0 0 0 3.75 4.5v15A2.25 2.25 0 0 0 6 21.75h12A2.25 2.25 0 0 0 20.25 19.5v-15A2.25 2.25 0 0 0 18 2.25H6Zm2.25 6a.75.75 0 0 1 .75-.75h6a.75.75 0 0 1 0 1.5H9a.75.75 0 0 1-.75-.75Zm0 3a.75.75 0 0 1 .75-.75h6a.75.75 0 0 1 0 1.5H9a.75.75 0 0 1-.75-.75Zm0 3a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 0 1.5H9a.75.75 0 0 1-.75-.75Z"/>
+                    </svg>
+                    <span>Forms</span>
                 </a>
             <?php endif; ?>
 
@@ -178,6 +209,27 @@ if (!$faviconUrl && !empty($faviconPath)) {
                         <path d="M11.983 1.5a1.5 1.5 0 0 1 1.484 1.28l.17 1.14a7.92 7.92 0 0 1 1.82.75l1.05-.5a1.5 1.5 0 0 1 1.86.53l1.5 2.6a1.5 1.5 0 0 1-.38 1.95l-.93.72c.08.6.08 1.22 0 1.82l.93.72a1.5 1.5 0 0 1 .38 1.95l-1.5 2.6a1.5 1.5 0 0 1-1.86.53l-1.05-.5a7.92 7.92 0 0 1-1.82.75l-.17 1.14A1.5 1.5 0 0 1 11.983 22.5h-3a1.5 1.5 0 0 1-1.484-1.28l-.17-1.14a7.92 7.92 0 0 1-1.82-.75l-1.05.5a1.5 1.5 0 0 1-1.86-.53l-1.5-2.6a1.5 1.5 0 0 1 .38-1.95l.93-.72a7.7 7.7 0 0 1 0-1.82l-.93-.72a1.5 1.5 0 0 1-.38-1.95l1.5-2.6a1.5 1.5 0 0 1 1.86-.53l1.05.5c.58-.3 1.18-.56 1.82-.75l.17-1.14A1.5 1.5 0 0 1 8.983 1.5h3Zm-1.5 7.5a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z"/>
                     </svg>
                     <span>Settings</span>
+                </a>
+            <?php endif; ?>
+
+            
+            <?php if(\Illuminate\Support\Facades\Route::has('admin.layout-blocks.index')): ?>
+                <a href="<?php echo e(route('admin.layout-blocks.index')); ?>" class="<?php echo e($linkBase); ?> <?php echo e($isActive('admin.layout-blocks.*') ? $linkActive : $linkInactive); ?>">
+                    <svg class="h-4 w-4 flex-none <?php echo e($isActive('admin.layout-blocks.*') ? $iconActive : $iconInactive); ?>" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                        <path d="M4.5 6.75A2.25 2.25 0 0 1 6.75 4.5h10.5A2.25 2.25 0 0 1 19.5 6.75v10.5A2.25 2.25 0 0 1 17.25 19.5H6.75A2.25 2.25 0 0 1 4.5 17.25V6.75Zm2.25-.75a.75.75 0 0 0-.75.75v.75h12v-.75a.75.75 0 0 0-.75-.75H6.75Zm11.25 12H6v.75c0 .414.336.75.75.75h10.5c.414 0 .75-.336.75-.75V18Zm-12 0h12V9H6v9Z"/>
+                    </svg>
+                    <span>Header &amp; Footer</span>
+                </a>
+            <?php endif; ?>
+
+            
+            <?php if(\Illuminate\Support\Facades\Route::has('admin.snippets.index')): ?>
+                <a href="<?php echo e(route('admin.snippets.index')); ?>" class="<?php echo e($linkBase); ?> <?php echo e($isActive('admin.snippets.*') ? $linkActive : $linkInactive); ?>">
+                    <svg class="h-4 w-4 flex-none <?php echo e($isActive('admin.snippets.*') ? $iconActive : $iconInactive); ?>" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                        <path d="M8.7 7.2a.75.75 0 0 1 0 1.06L5.96 11l2.74 2.74a.75.75 0 1 1-1.06 1.06L4.38 11.53a.75.75 0 0 1 0-1.06l3.26-3.27a.75.75 0 0 1 1.06 0Zm6.6 0a.75.75 0 0 1 1.06 0l3.26 3.27a.75.75 0 0 1 0 1.06l-3.26 3.27a.75.75 0 1 1-1.06-1.06L18.04 11l-2.74-2.74a.75.75 0 0 1 0-1.06Z"/>
+                        <path d="M13.65 5.1a.75.75 0 0 1 .53.92l-2.5 13a.75.75 0 1 1-1.47-.28l2.5-13a.75.75 0 0 1 .94-.64Z"/>
+                    </svg>
+                    <span>Custom code</span>
                 </a>
             <?php endif; ?>
         </nav>

@@ -101,37 +101,29 @@ unset($__errorArgs, $__bag); ?>
                             ?>
 
                             <div class="mt-4">
-                                <?php if (isset($component)) { $__componentOriginal78e2226de3aca9b0c13f2dda29d8d009 = $component; } ?>
-<?php if (isset($attributes)) { $__attributesOriginal78e2226de3aca9b0c13f2dda29d8d009 = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.admin.media-picker','data' => ['label' => 'Choose from Media library','name' => 'site_logo_media_id','value' => old('site_logo_media_id', $logoMediaId),'previewUrl' => $logoPreviewUrl,'type' => 'images','chooseText' => 'Choose from Media Library','uploadText' => 'Upload','clearText' => 'Clear','clearName' => 'site_logo_clear']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
-<?php $component->withName('admin.media-picker'); ?>
+                                <?php if (isset($component)) { $__componentOriginal8704d840cb70e3dce5479facb8ad9f63 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal8704d840cb70e3dce5479facb8ad9f63 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.admin.media-icon-picker','data' => ['label' => 'Choose from Media library','mediaName' => 'site_logo_media_id','iconName' => 'site_logo_icon_json','clearName' => 'site_logo_clear','mediaId' => $logoMediaId,'mediaUrl' => $logoPreviewUrl,'iconJson' => $logoIconJson,'allow' => 'images,icons','help' => 'Pick an image OR an icon. Choosing one clears the other.']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('admin.media-icon-picker'); ?>
 <?php if ($component->shouldRender()): ?>
 <?php $__env->startComponent($component->resolveView(), $component->data()); ?>
 <?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
 <?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
 <?php endif; ?>
-<?php $component->withAttributes(['label' => 'Choose from Media library','name' => 'site_logo_media_id','value' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(old('site_logo_media_id', $logoMediaId)),'preview-url' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($logoPreviewUrl),'type' => 'images','choose-text' => 'Choose from Media Library','upload-text' => 'Upload','clear-text' => 'Clear','clear-name' => 'site_logo_clear']); ?>
+<?php $component->withAttributes(['label' => 'Choose from Media library','media-name' => 'site_logo_media_id','icon-name' => 'site_logo_icon_json','clear-name' => 'site_logo_clear','media-id' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($logoMediaId),'media-url' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($logoPreviewUrl),'icon-json' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($logoIconJson),'allow' => 'images,icons','help' => 'Pick an image OR an icon. Choosing one clears the other.']); ?>
 <?php echo $__env->renderComponent(); ?>
 <?php endif; ?>
-<?php if (isset($__attributesOriginal78e2226de3aca9b0c13f2dda29d8d009)): ?>
-<?php $attributes = $__attributesOriginal78e2226de3aca9b0c13f2dda29d8d009; ?>
-<?php unset($__attributesOriginal78e2226de3aca9b0c13f2dda29d8d009); ?>
+<?php if (isset($__attributesOriginal8704d840cb70e3dce5479facb8ad9f63)): ?>
+<?php $attributes = $__attributesOriginal8704d840cb70e3dce5479facb8ad9f63; ?>
+<?php unset($__attributesOriginal8704d840cb70e3dce5479facb8ad9f63); ?>
 <?php endif; ?>
-<?php if (isset($__componentOriginal78e2226de3aca9b0c13f2dda29d8d009)): ?>
-<?php $component = $__componentOriginal78e2226de3aca9b0c13f2dda29d8d009; ?>
-<?php unset($__componentOriginal78e2226de3aca9b0c13f2dda29d8d009); ?>
+<?php if (isset($__componentOriginal8704d840cb70e3dce5479facb8ad9f63)): ?>
+<?php $component = $__componentOriginal8704d840cb70e3dce5479facb8ad9f63; ?>
+<?php unset($__componentOriginal8704d840cb70e3dce5479facb8ad9f63); ?>
 <?php endif; ?>
                                 <p class="mt-1 text-xs text-gray-500">
                                     Selecting a Media image as your logo will <span class="font-semibold">not</span> delete it when removed from Settings.
                                 </p>
-                                <?php $__errorArgs = ['site_logo_media_id'];
-$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
-if ($__bag->has($__errorArgs[0])) :
-if (isset($message)) { $__messageOriginal = $message; }
-$message = $__bag->first($__errorArgs[0]); ?> <p class="mt-1 text-sm text-red-600"><?php echo e($message); ?></p> <?php unset($message);
-if (isset($__messageOriginal)) { $message = $__messageOriginal; }
-endif;
-unset($__errorArgs, $__bag); ?>
                             </div>
                         </div>
 
@@ -152,28 +144,76 @@ unset($__errorArgs, $__bag); ?>
                             ?>
 
                             <div class="mt-4">
-                                <?php if (isset($component)) { $__componentOriginal78e2226de3aca9b0c13f2dda29d8d009 = $component; } ?>
-<?php if (isset($attributes)) { $__attributesOriginal78e2226de3aca9b0c13f2dda29d8d009 = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.admin.media-picker','data' => ['label' => 'Choose from Media library','name' => 'site_favicon_media_id','value' => old('site_favicon_media_id', $faviconMediaId),'previewUrl' => $faviconPreviewUrl,'type' => 'images','chooseText' => 'Choose from Media Library','uploadText' => 'Upload','clearText' => 'Clear','clearName' => 'site_favicon_clear']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
-<?php $component->withName('admin.media-picker'); ?>
+                                <?php if (isset($component)) { $__componentOriginal8704d840cb70e3dce5479facb8ad9f63 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal8704d840cb70e3dce5479facb8ad9f63 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.admin.media-icon-picker','data' => ['label' => 'Choose from Media library','mediaName' => 'site_favicon_media_id','iconName' => 'site_favicon_icon_json','clearName' => 'site_favicon_clear','mediaId' => $faviconMediaId,'mediaUrl' => $faviconPreviewUrl,'iconJson' => $faviconIconJson,'allow' => 'images,icons','help' => 'Pick an image OR an icon. Icon favicons are served as /favicon.svg.']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('admin.media-icon-picker'); ?>
 <?php if ($component->shouldRender()): ?>
 <?php $__env->startComponent($component->resolveView(), $component->data()); ?>
 <?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
 <?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
 <?php endif; ?>
-<?php $component->withAttributes(['label' => 'Choose from Media library','name' => 'site_favicon_media_id','value' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(old('site_favicon_media_id', $faviconMediaId)),'preview-url' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($faviconPreviewUrl),'type' => 'images','choose-text' => 'Choose from Media Library','upload-text' => 'Upload','clear-text' => 'Clear','clear-name' => 'site_favicon_clear']); ?>
+<?php $component->withAttributes(['label' => 'Choose from Media library','media-name' => 'site_favicon_media_id','icon-name' => 'site_favicon_icon_json','clear-name' => 'site_favicon_clear','media-id' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($faviconMediaId),'media-url' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($faviconPreviewUrl),'icon-json' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($faviconIconJson),'allow' => 'images,icons','help' => 'Pick an image OR an icon. Icon favicons are served as /favicon.svg.']); ?>
 <?php echo $__env->renderComponent(); ?>
 <?php endif; ?>
-<?php if (isset($__attributesOriginal78e2226de3aca9b0c13f2dda29d8d009)): ?>
-<?php $attributes = $__attributesOriginal78e2226de3aca9b0c13f2dda29d8d009; ?>
-<?php unset($__attributesOriginal78e2226de3aca9b0c13f2dda29d8d009); ?>
+<?php if (isset($__attributesOriginal8704d840cb70e3dce5479facb8ad9f63)): ?>
+<?php $attributes = $__attributesOriginal8704d840cb70e3dce5479facb8ad9f63; ?>
+<?php unset($__attributesOriginal8704d840cb70e3dce5479facb8ad9f63); ?>
 <?php endif; ?>
-<?php if (isset($__componentOriginal78e2226de3aca9b0c13f2dda29d8d009)): ?>
-<?php $component = $__componentOriginal78e2226de3aca9b0c13f2dda29d8d009; ?>
-<?php unset($__componentOriginal78e2226de3aca9b0c13f2dda29d8d009); ?>
+<?php if (isset($__componentOriginal8704d840cb70e3dce5479facb8ad9f63)): ?>
+<?php $component = $__componentOriginal8704d840cb70e3dce5479facb8ad9f63; ?>
+<?php unset($__componentOriginal8704d840cb70e3dce5479facb8ad9f63); ?>
 <?php endif; ?>
                                 <p class="mt-1 text-xs text-gray-500">Recommended: ICO or PNG (32×32 / 48×48). Media items are never deleted via Settings.</p>
-                                <?php $__errorArgs = ['site_favicon_media_id'];
+                            </div>
+                        </div>
+
+                        
+                        <div class="mt-8 border-t pt-8">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <div class="text-sm font-semibold text-gray-900">Login screen logo</div>
+                                    <p class="text-xs text-gray-500 mt-1">Shown on the login/register pages. If empty, it falls back to the main logo.</p>
+                                </div>
+                            </div>
+
+                            <?php
+                                $authPreviewUrl = !empty($authLogoMediaUrl) ? $authLogoMediaUrl : null;
+                            ?>
+
+                            <div class="mt-4">
+                                <?php if (isset($component)) { $__componentOriginal8704d840cb70e3dce5479facb8ad9f63 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal8704d840cb70e3dce5479facb8ad9f63 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.admin.media-icon-picker','data' => ['label' => 'Choose from Media library','mediaName' => 'auth_logo_media_id','iconName' => 'auth_logo_icon_json','clearName' => 'auth_logo_clear','mediaId' => $authLogoMediaId,'mediaUrl' => $authPreviewUrl,'iconJson' => $authLogoIconJson,'allow' => 'images,icons','help' => 'If empty, login falls back to the main logo.']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('admin.media-icon-picker'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['label' => 'Choose from Media library','media-name' => 'auth_logo_media_id','icon-name' => 'auth_logo_icon_json','clear-name' => 'auth_logo_clear','media-id' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($authLogoMediaId),'media-url' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($authPreviewUrl),'icon-json' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($authLogoIconJson),'allow' => 'images,icons','help' => 'If empty, login falls back to the main logo.']); ?>
+<?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal8704d840cb70e3dce5479facb8ad9f63)): ?>
+<?php $attributes = $__attributesOriginal8704d840cb70e3dce5479facb8ad9f63; ?>
+<?php unset($__attributesOriginal8704d840cb70e3dce5479facb8ad9f63); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal8704d840cb70e3dce5479facb8ad9f63)): ?>
+<?php $component = $__componentOriginal8704d840cb70e3dce5479facb8ad9f63; ?>
+<?php unset($__componentOriginal8704d840cb70e3dce5479facb8ad9f63); ?>
+<?php endif; ?>
+                            </div>
+
+                            <div class="mt-6 max-w-xs">
+                                <label class="block text-sm font-medium text-gray-700">Login logo size (px)</label>
+                                <input type="number"
+                                       name="auth_logo_size"
+                                       min="24"
+                                       max="256"
+                                       value="<?php echo e((int) old('auth_logo_size', $authLogoSize ?? 80)); ?>"
+                                       class="mt-1 block w-full rounded-md border-gray-300 focus:border-gray-500 focus:ring-gray-500" />
+                                <p class="mt-1 text-xs text-gray-500">Applies to the login/register logo (image or icon).</p>
+                                <?php $__errorArgs = ['auth_logo_size'];
 $__bag = $errors->getBag($__errorArgs[1] ?? 'default');
 if ($__bag->has($__errorArgs[0])) :
 if (isset($message)) { $__messageOriginal = $message; }
@@ -198,7 +238,8 @@ unset($__errorArgs, $__bag); ?>
                                 <option value="">— Select a published page —</option>
                                 <?php $__currentLoopData = $homepagePages; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $p): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                     <option value="<?php echo e($p->id); ?>" <?php echo e((int) old('homepage_page_id', $homepagePageId) === (int) $p->id ? 'selected' : ''); ?>>
-                                        <?php echo e($p->title); ?> (/<?php echo e($p->slug); ?>)
+                                        <?php echo e($p->title); ?>
+
                                     </option>
                                 <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                             </select>
@@ -211,6 +252,182 @@ if (isset($__messageOriginal)) { $message = $__messageOriginal; }
 endif;
 unset($__errorArgs, $__bag); ?>
                         </div>
+                    </section>
+
+                    
+                    <section class="border-t pt-10" id="notice_settings">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-sm font-semibold text-gray-900">Site notification bar</h3>
+                            <p class="text-xs text-gray-500">Optional banner pinned at the very top of every public page</p>
+                        </div>
+
+                        <div class="mt-5 max-w-xl">
+                            <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+                                <input type="checkbox" name="notice_enabled" value="1"
+                                       <?php echo e(old('notice_enabled', $noticeEnabled ?? false) ? 'checked' : ''); ?>
+
+                                       class="rounded border-gray-300 text-gray-900 focus:ring-gray-500">
+                                Enable notification bar
+                            </label>
+                        </div>
+
+                        <div class="mt-4 max-w-xl grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Bar colour</label>
+                                <div class="mt-1 flex items-center gap-3">
+                                    <input id="notice_bg_colour_picker" type="color"
+                                           value="<?php echo e(old('notice_bg_colour', $noticeBgColour ?? '#111827')); ?>"
+                                           class="h-10 w-14 rounded-md border border-gray-300 bg-white p-1" />
+                                    <input id="notice_bg_colour" type="text" name="notice_bg_colour"
+                                           value="<?php echo e(old('notice_bg_colour', $noticeBgColour ?? '#111827')); ?>"
+                                           class="block w-full rounded-md border-gray-300 font-mono text-sm"
+                                           placeholder="#111827" />
+                                </div>
+                                <?php $__errorArgs = ['notice_bg_colour'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> <p class="mt-1 text-sm text-red-600"><?php echo e($message); ?></p> <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Bar height (px)</label>
+                                <input type="number" name="notice_height"
+                                       value="<?php echo e((int) old('notice_height', $noticeHeight ?? 44)); ?>"
+                                       min="24" max="200"
+                                       class="mt-1 block w-full rounded-md border-gray-300"
+                                       placeholder="44" />
+                                <p class="mt-1 text-xs text-gray-500">Minimum height. The bar can grow if your message wraps onto multiple lines.</p>
+                                <?php $__errorArgs = ['notice_height'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> <p class="mt-1 text-sm text-red-600"><?php echo e($message); ?></p> <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Mode</label>
+                                <select name="notice_mode" id="notice_mode"
+                                        class="mt-1 block w-full rounded-md border-gray-300 focus:border-gray-500 focus:ring-gray-500">
+                                    <option value="text" <?php echo e(old('notice_mode', $noticeMode ?? 'text') === 'text' ? 'selected' : ''); ?>>Plain text</option>
+                                    <option value="html" <?php echo e(old('notice_mode', $noticeMode ?? 'text') === 'html' ? 'selected' : ''); ?>>HTML</option>
+                                </select>
+                                <?php $__errorArgs = ['notice_mode'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> <p class="mt-1 text-sm text-red-600"><?php echo e($message); ?></p> <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                            </div>
+
+                            <div id="notice_link_fields">
+                                <label class="block text-sm font-medium text-gray-700">Optional link (for text mode)</label>
+                                <div class="mt-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div>
+                                        <input type="text" name="notice_link_text" value="<?php echo e(old('notice_link_text', $noticeLinkText ?? '')); ?>"
+                                               class="block w-full rounded-md border-gray-300" placeholder="Link text" />
+                                    </div>
+                                    <div>
+                                        <input type="text" name="notice_link_url" value="<?php echo e(old('notice_link_url', $noticeLinkUrl ?? '')); ?>"
+                                               class="block w-full rounded-md border-gray-300" placeholder="https://..." />
+                                    </div>
+                                </div>
+                                <p class="mt-1 text-xs text-gray-500">If you choose HTML mode, you can embed links directly in the HTML.</p>
+                                <?php $__errorArgs = ['notice_link_url'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> <p class="mt-1 text-sm text-red-600"><?php echo e($message); ?></p> <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                            </div>
+                        </div>
+
+                        <div class="mt-4" id="notice_text_wrap">
+                            <label class="block text-sm font-medium text-gray-700">Notification text</label>
+                            <textarea name="notice_text" rows="3"
+                                      class="mt-1 block w-full rounded-md border-gray-300"
+                                      placeholder="e.g. Scheduled maintenance: 1–2 March 2026"><?php echo e(old('notice_text', $noticeText ?? '')); ?></textarea>
+                            <?php $__errorArgs = ['notice_text'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> <p class="mt-1 text-sm text-red-600"><?php echo e($message); ?></p> <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                        </div>
+
+                        <div class="mt-4" id="notice_html_wrap">
+                            <label class="block text-sm font-medium text-gray-700">Notification HTML</label>
+                            <textarea name="notice_html" rows="6"
+                                      class="mt-1 block w-full rounded-md border-gray-300 font-mono text-sm"
+                                      placeholder="Paste banner HTML here (links, spans, etc)…"><?php echo e(old('notice_html', $noticeHtml ?? '')); ?></textarea>
+                            <?php $__errorArgs = ['notice_html'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> <p class="mt-1 text-sm text-red-600"><?php echo e($message); ?></p> <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                        </div>
+                    </section>
+
+                    
+                    <section class="border-t pt-10">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-sm font-semibold text-gray-900">Maintenance mode</h3>
+                            <p class="text-xs text-gray-500">When enabled, all public pages redirect to a selected maintenance page</p>
+                        </div>
+
+	                        <div class="mt-5 max-w-xl">
+	                            <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+	                                <input
+	                                    type="checkbox"
+	                                    name="maintenance_enabled"
+	                                    value="1"
+	                                    <?php echo e(old('maintenance_enabled', $maintenanceEnabled ?? false) ? 'checked' : ''); ?>
+
+	                                    class="rounded border-gray-300 text-gray-900 focus:ring-gray-500"
+	                                >
+	                                Enable maintenance mode
+	                            </label>
+	                        </div>
+
+	                        <div class="mt-4 max-w-xl">
+	                            <label class="block text-sm font-medium text-gray-700">Maintenance page</label>
+	                            <select name="maintenance_page_id"
+	                                    class="mt-1 block w-full rounded-md border-gray-300 focus:border-gray-500 focus:ring-gray-500">
+	                                <option value="">— Select a published page —</option>
+	                                <?php $__currentLoopData = $maintenancePages; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $p): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+	                                    <option value="<?php echo e($p->id); ?>" <?php echo e((int) old('maintenance_page_id', $maintenancePageId) === (int) $p->id ? 'selected' : ''); ?>>
+	                                        <?php echo e($p->title); ?>
+
+	                                    </option>
+	                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+	                            </select>
+	                            <p class="mt-1 text-xs text-gray-500">Tip: create a page like “Maintenance” and keep it simple (logo, message, contact details).</p>
+	                            <?php $__errorArgs = ['maintenance_page_id'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> <p class="mt-1 text-sm text-red-600"><?php echo e($message); ?></p> <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+	                        </div>
                     </section>
 
                     
@@ -254,6 +471,56 @@ unset($__errorArgs, $__bag); ?>
             </div>
         </div>
     </div>
+
+    <script>
+        (function () {
+            const modeEl = document.getElementById('notice_mode');
+            const textWrap = document.getElementById('notice_text_wrap');
+            const htmlWrap = document.getElementById('notice_html_wrap');
+            const linkFields = document.getElementById('notice_link_fields');
+
+            function refresh() {
+                const mode = (modeEl?.value || 'text');
+                if (textWrap) textWrap.style.display = (mode === 'text') ? '' : 'none';
+                if (htmlWrap) htmlWrap.style.display = (mode === 'html') ? '' : 'none';
+                if (linkFields) linkFields.style.opacity = (mode === 'text') ? '1' : '0.5';
+            }
+
+            // Notice bar colour picker sync (picker <-> hex input)
+            const colourInput = document.getElementById('notice_bg_colour');
+            const pickerInput = document.getElementById('notice_bg_colour_picker');
+
+            function normaliseHex(v){
+                if(!v) return '';
+                v = String(v).trim();
+                if(!v.startsWith('#')) v = '#' + v;
+                return v;
+            }
+
+            function isHex(v){
+                return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(v);
+            }
+
+            function syncFromText(){
+                if(!colourInput || !pickerInput) return;
+                const v = normaliseHex(colourInput.value);
+                if(isHex(v)) pickerInput.value = v;
+            }
+
+            function syncFromPicker(){
+                if(!colourInput || !pickerInput) return;
+                const v = normaliseHex(pickerInput.value);
+                if(isHex(v)) colourInput.value = v;
+            }
+
+            colourInput?.addEventListener('input', syncFromText);
+            pickerInput?.addEventListener('input', syncFromPicker);
+            syncFromText();
+
+            modeEl?.addEventListener('change', refresh);
+            refresh();
+        })();
+    </script>
  <?php echo $__env->renderComponent(); ?>
 <?php endif; ?>
 <?php if (isset($__attributesOriginale0f1cdd055772eb1d4a99981c240763e)): ?>

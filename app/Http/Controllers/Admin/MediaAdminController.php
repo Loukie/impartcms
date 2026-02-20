@@ -276,7 +276,7 @@ class MediaAdminController extends Controller
     /**
      * Best-effort “Where used” detection for now.
      * - Scans Page.body and SeoMeta OG/Twitter image URLs.
-     * - Also checks Settings logo/favicon media ids.
+     * - Also checks Settings logo/favicon/login-logo media ids.
      */
         private function detectUsage(MediaFile $media): array
     {
@@ -366,15 +366,26 @@ class MediaAdminController extends Controller
                 }
             }
 
-            // Settings usage (safe)
+            // Settings usage
             $settings = [];
             try {
+                // 1) URL/string references
                 $settings = Setting::query()
                     ->where('value', 'like', $like)
                     ->pluck('key')
                     ->all();
+
+                // 2) Known media-id settings
+                $idKeys = ['site_logo_media_id', 'site_favicon_media_id', 'auth_logo_media_id'];
+                $idHits = Setting::query()
+                    ->whereIn('key', $idKeys)
+                    ->where('value', (string) $media->id)
+                    ->pluck('key')
+                    ->all();
+
+                $settings = array_values(array_unique(array_merge($settings, $idHits)));
             } catch (\Throwable $e) {
-                $settings = [];
+                $settings = $settings ?? [];
             }
 
             return [

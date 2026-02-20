@@ -10,10 +10,27 @@
 <div class="p-4">
     <?php
         $currentType = $currentType ?? 'images';
-        $isIcons = $currentType === 'icons';
         $tab = $tab ?? 'library';
-        $allow = (string) request()->query('allow', '');
-        $hideUpload = $allow === 'icons';
+
+        // Allow can restrict which tabs show up (CSV): e.g. allow=images,icons (hide docs)
+        $allowRaw = (string) request()->query('allow', '');
+        $allowedTabs = [];
+        if (trim($allowRaw) !== '') {
+            $allowedTabs = array_values(array_filter(array_map(function ($v) {
+                return strtolower(trim((string) $v));
+            }, explode(',', $allowRaw)), fn ($v) => in_array($v, ['images', 'icons', 'docs'], true)));
+        }
+        if (empty($allowedTabs)) {
+            $allowedTabs = ['images', 'icons', 'docs'];
+        }
+
+        // Normalise active tab
+        if (!in_array($currentType, $allowedTabs, true)) {
+            $currentType = $allowedTabs[0] ?? 'images';
+        }
+
+        $isIcons = $currentType === 'icons';
+        $hideUpload = !in_array('images', $allowedTabs, true) && !in_array('docs', $allowedTabs, true);
     ?>
 
     
@@ -78,6 +95,7 @@
         ?>
 
         <?php $__currentLoopData = $tabs; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $key => [$label, $count]): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+            <?php if(!in_array($key, $allowedTabs, true)) continue; ?>
             <a href="<?php echo e(route('admin.media.picker', array_merge(request()->query(), ['type' => $key]))); ?>"
                class="px-2 py-2 -mb-px border-b-2 <?php echo e($active === $key ? 'border-gray-900 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-800'); ?>">
                 <?php echo e($label); ?>

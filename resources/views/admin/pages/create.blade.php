@@ -75,7 +75,7 @@
                                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700">Template</label>
-                                        <input type="text" name="template" value="{{ old('template') }}"
+                                        <input type="text" name="template" value="{{ old('template', 'blank') }}"
                                                placeholder="optional"
                                                class="mt-1 block w-full rounded-md border-gray-300 focus:border-gray-500 focus:ring-gray-500">
                                         @error('template') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
@@ -125,6 +125,40 @@
                                             </a>
                                         </div>
                                     </div>
+
+                                    {{-- Header & Footer overrides --}}
+                                    @if(isset($headerBlocks) && isset($footerBlocks))
+                                        <div class="rounded-lg border border-gray-200 bg-white p-4">
+                                            <h3 class="text-sm font-semibold text-gray-900">Header &amp; Footer</h3>
+                                            <p class="mt-1 text-xs text-gray-500">Leave blank to use the global matching header/footer.</p>
+
+                                            <div class="mt-3">
+                                                <label class="block text-sm font-medium text-gray-700">Header override</label>
+                                                <select name="header_block_id" class="mt-1 w-full rounded-md border-gray-300">
+                                                    <option value="">— Global —</option>
+                                                    @foreach($headerBlocks as $b)
+                                                        <option value="{{ $b->id }}" {{ old('header_block_id') == $b->id ? 'selected' : '' }}>
+                                                            {{ $b->name }}
+                                                        </option>
+                                                    @endforeach
+                                                </select>
+                                                @error('header_block_id') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                                            </div>
+
+                                            <div class="mt-3">
+                                                <label class="block text-sm font-medium text-gray-700">Footer override</label>
+                                                <select name="footer_block_id" class="mt-1 w-full rounded-md border-gray-300">
+                                                    <option value="">— Global —</option>
+                                                    @foreach($footerBlocks as $b)
+                                                        <option value="{{ $b->id }}" {{ old('footer_block_id') == $b->id ? 'selected' : '' }}>
+                                                            {{ $b->name }}
+                                                        </option>
+                                                    @endforeach
+                                                </select>
+                                                @error('footer_block_id') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                                            </div>
+                                        </div>
+                                    @endif
 
                                     {{-- SEO (Rank Math-style) --}}
                                     <div class="rounded-lg border border-gray-200 bg-white p-4" id="seo-panel">

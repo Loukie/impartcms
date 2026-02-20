@@ -24,7 +24,7 @@
 
 
             @if ($errors->any())
-                <div class=\"mb-4 p-3 rounded bg-red-50 text-red-800 border border-red-200\">
+                <div class="mb-4 p-3 rounded bg-red-50 text-red-800 border border-red-200">
                     {{ $errors->first() }}
                 </div>
             @endif

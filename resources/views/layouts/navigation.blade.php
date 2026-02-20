@@ -1,3 +1,26 @@
+@php
+    $siteName = \App\Models\Setting::get('site_name', config('app.name'));
+    $logoPath = \App\Models\Setting::get('site_logo_path', null);
+    $logoMediaId = (int) (\App\Models\Setting::get('site_logo_media_id', '0') ?? 0);
+    $logoIconJson = \App\Models\Setting::get('site_logo_icon_json', null);
+
+    $logoUrl = null;
+    if ($logoMediaId > 0) {
+        $m = \App\Models\MediaFile::query()->whereKey($logoMediaId)->first();
+        if ($m && $m->isImage()) {
+            $logoUrl = $m->url;
+        }
+    }
+    if (!$logoUrl && !empty($logoPath)) {
+        $logoUrl = asset('storage/' . $logoPath);
+    }
+
+    $logoIconHtml = '';
+    if (empty($logoUrl) && !empty($logoIconJson)) {
+        $logoIconHtml = \App\Support\IconRenderer::renderHtml($logoIconJson, 24, '#111827');
+    }
+@endphp
+
 <nav x-data="{ open: false }" class="bg-white border-b border-gray-100">
     <!-- Primary Navigation Menu -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -6,7 +29,13 @@
                 <!-- Logo -->
                 <div class="shrink-0 flex items-center">
                     <a href="{{ route('dashboard') }}">
-                        <x-application-logo class="block h-9 w-auto fill-current text-gray-800" />
+                        @if(!empty($logoUrl))
+                            <img src="{{ $logoUrl }}" alt="{{ $siteName }} logo" class="block h-9 w-auto" />
+                        @elseif(!empty($logoIconHtml))
+                            <span class="inline-flex items-center justify-center h-9 w-9">{!! $logoIconHtml !!}</span>
+                        @else
+                            <x-application-logo class="block h-9 w-auto fill-current text-gray-800" />
+                        @endif
                     </a>
                 </div>
 
