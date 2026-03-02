@@ -44,9 +44,17 @@ class AiAgentSettingsController extends Controller
 
         // ---- OpenAI ----
         $openAiModel = (string) (Setting::get('ai.openai.model', env('OPENAI_MODEL', 'gpt-5.2')) ?? 'gpt-5.2');
-        $openAiTimeout = (int) (Setting::get('ai.openai.timeout', (int) (env('OPENAI_TIMEOUT', 60) ?? 60)) ?? 60);
-        if ($openAiTimeout < 5) $openAiTimeout = 5;
-        if ($openAiTimeout > 120) $openAiTimeout = 120;
+        // zero or missing means "no limit" (use HTTP default)
+        $openAiTimeout = (int) (Setting::get('ai.openai.timeout', (int) (env('OPENAI_TIMEOUT', 0) ?? 0)) ?? 0);
+        if ($openAiTimeout < 0) {
+            $openAiTimeout = 0;
+        }
+        if ($openAiTimeout > 600) {
+            // practical ceiling to avoid unbounded numbers
+            $openAiTimeout = 600;
+        }
+        // display blank when using default/max behaviour
+        $openAiTimeoutDisplay = $openAiTimeout > 0 ? $openAiTimeout : '';
 
         $openAiHasKey = trim(Setting::getSecret('ai.openai.api_key', '')) !== '' || trim((string) (env('OPENAI_API_KEY', '') ?? '')) !== '';
 
@@ -60,9 +68,14 @@ class AiAgentSettingsController extends Controller
 
         // ---- Gemini ----
         $geminiModel = (string) (Setting::get('ai.gemini.model', 'gemini-2.5-flash-lite') ?? 'gemini-2.5-flash-lite');
-        $geminiTimeout = (int) (Setting::get('ai.gemini.timeout', 60) ?? 60);
-        if ($geminiTimeout < 5) $geminiTimeout = 5;
-        if ($geminiTimeout > 120) $geminiTimeout = 120;
+        $geminiTimeout = (int) (Setting::get('ai.gemini.timeout', (int) (env('GEMINI_TIMEOUT', 0) ?? 0)) ?? 0);
+        if ($geminiTimeout < 0) {
+            $geminiTimeout = 0;
+        }
+        if ($geminiTimeout > 600) {
+            $geminiTimeout = 600;
+        }
+        $geminiTimeoutDisplay = $geminiTimeout > 0 ? $geminiTimeout : '';
         $geminiHasKey = trim(Setting::getSecret('ai.gemini.api_key', '')) !== '';
 
         [$geminiModelSelect, $geminiModelCustom] = $this->splitModelChoice($geminiModel, $geminiModelOptions);
@@ -75,6 +88,7 @@ class AiAgentSettingsController extends Controller
             'openAiModelSelect' => $openAiModelSelect,
             'openAiModelCustom' => $openAiModelCustom,
             'openAiTimeout' => $openAiTimeout,
+            'openAiTimeoutDisplay' => $openAiTimeoutDisplay,
             'openAiHasKey' => $openAiHasKey,
 
             'anthropicModelOptions' => $anthropicModelOptions,
@@ -88,6 +102,7 @@ class AiAgentSettingsController extends Controller
             'geminiModelSelect' => $geminiModelSelect,
             'geminiModelCustom' => $geminiModelCustom,
             'geminiTimeout' => $geminiTimeout,
+            'geminiTimeoutDisplay' => $geminiTimeoutDisplay,
             'geminiHasKey' => $geminiHasKey,
         ]);
     }
@@ -101,7 +116,7 @@ class AiAgentSettingsController extends Controller
             'openai_api_key' => ['nullable', 'string', 'max:500'],
             'openai_api_key_clear' => ['nullable', 'boolean'],
             'openai_model' => ['nullable', 'string', 'max:120'],
-            'openai_timeout' => ['nullable', 'integer', 'min:5', 'max:120'],
+            'openai_timeout' => ['nullable', 'integer', 'min:0', 'max:600'],
 
             // Anthropic (future)
             'anthropic_api_key' => ['nullable', 'string', 'max:500'],
@@ -112,7 +127,7 @@ class AiAgentSettingsController extends Controller
             'gemini_api_key' => ['nullable', 'string', 'max:500'],
             'gemini_api_key_clear' => ['nullable', 'boolean'],
             'gemini_model' => ['nullable', 'string', 'max:120'],
-            'gemini_timeout' => ['nullable', 'integer', 'min:5', 'max:120'],
+            'gemini_timeout' => ['nullable', 'integer', 'min:0', 'max:600'],
         ]);
 
         Setting::set('ai.provider', (string) $data['provider']);
@@ -130,8 +145,9 @@ class AiAgentSettingsController extends Controller
             Setting::set('ai.openai.model', $openAiModel);
         }
 
-        if (array_key_exists('openai_timeout', $data) && $data['openai_timeout'] !== null) {
-            Setting::set('ai.openai.timeout', (string) ((int) $data['openai_timeout']));
+        if (array_key_exists('openai_timeout', $data)) {
+            $val = $data['openai_timeout'];
+            Setting::set('ai.openai.timeout', (string) ((int) ($val ?? 0)));
         }
 
         // Anthropic settings (stored even if provider not active)
@@ -158,8 +174,9 @@ class AiAgentSettingsController extends Controller
             Setting::set('ai.gemini.model', $geminiModel);
         }
 
-        if (array_key_exists('gemini_timeout', $data) && $data['gemini_timeout'] !== null) {
-            Setting::set('ai.gemini.timeout', (string) ((int) $data['gemini_timeout']));
+        if (array_key_exists('gemini_timeout', $data)) {
+            $val = $data['gemini_timeout'];
+            Setting::set('ai.gemini.timeout', (string) ((int) ($val ?? 0)));
         }
 
         return back()->with('status', 'AI Agent settings saved ✅');

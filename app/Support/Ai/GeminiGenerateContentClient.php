@@ -43,7 +43,11 @@ class GeminiGenerateContentClient implements LlmClientInterface
             ],
         ];
 
-        $resp = Http::timeout($this->timeoutSeconds)
+        $req = Http::withToken($this->apiKey);
+        if ($this->timeoutSeconds > 0) {
+            $req = $req->timeout($this->timeoutSeconds);
+        }
+        $resp = $req
             ->withHeaders([
                 'x-goog-api-key' => $this->apiKey,
                 'Content-Type'   => 'application/json',

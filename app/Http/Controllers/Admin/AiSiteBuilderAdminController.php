@@ -13,21 +13,37 @@ class AiSiteBuilderAdminController extends Controller
 {
     public function create(Request $request): View
     {
+        $step = 'input';
+        $input = [
+            'site_name' => (string) old('site_name', ''),
+            'industry' => (string) old('industry', ''),
+            'location' => (string) old('location', ''),
+            'audience' => (string) old('audience', ''),
+            'tone' => (string) old('tone', 'clear, modern, confident'),
+            'primary_cta' => (string) old('primary_cta', 'Get in touch'),
+            'page_preset' => (string) old('page_preset', 'business'),
+            'notes' => (string) old('notes', ''),
+        ];
+
+        $blueprintJson = null;
+        $blueprint = null;
+        $report = null;
+
+        // PRG: if a blueprint result was flashed to session, show it now
+        if ($request->session()->has('ai_blueprint')) {
+            $step = 'blueprint';
+            $res = $request->session()->get('ai_blueprint');
+            $input = $request->session()->get('ai_blueprint_input', $input);
+            $blueprintJson = (string) ($res['raw_json'] ?? '');
+            $blueprint = $res['blueprint'] ?? null;
+        }
+
         return view('admin.pages.ai-site-builder', [
-            'step' => 'input',
-            'input' => [
-                'site_name' => (string) old('site_name', ''),
-                'industry' => (string) old('industry', ''),
-                'location' => (string) old('location', ''),
-                'audience' => (string) old('audience', ''),
-                'tone' => (string) old('tone', 'clear, modern, confident'),
-                'primary_cta' => (string) old('primary_cta', 'Get in touch'),
-                'page_preset' => (string) old('page_preset', 'business'),
-                'notes' => (string) old('notes', ''),
-            ],
-            'blueprintJson' => null,
-            'blueprint' => null,
-            'report' => null,
+            'step' => $step,
+            'input' => $input,
+            'blueprintJson' => $blueprintJson,
+            'blueprint' => $blueprint,
+            'report' => $report,
         ]);
     }
 
@@ -52,13 +68,10 @@ class AiSiteBuilderAdminController extends Controller
             ]);
         }
 
-        return view('admin.pages.ai-site-builder', [
-            'step' => 'blueprint',
-            'input' => $data,
-            'blueprintJson' => (string) ($res['raw_json'] ?? ''),
-            'blueprint' => $res['blueprint'] ?? null,
-            'report' => null,
-        ]);
+        // flash results and redirect to GET page to avoid 404 on refresh
+        return redirect()->route('admin.site-builder.create')
+            ->with('ai_blueprint', $res)
+            ->with('ai_blueprint_input', $data);
     }
 
     public function build(Request $request, AiSiteBuilder $builder): View|RedirectResponse

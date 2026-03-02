@@ -165,7 +165,7 @@ unset($__errorArgs, $__bag); ?>
                     </section>
 
                     
-                    <section id="provider_gemini" class="border-t pt-10">
+                    <section id="provider_gemini" class="border-t pt-10" style="display:none;">
                         <div class="flex items-center justify-between">
                             <div>
                                 <h3 class="text-sm font-semibold text-gray-900">Google Gemini</h3>
@@ -255,7 +255,7 @@ unset($__errorArgs, $__bag); ?>
                     </section>
 
                     
-                    <section id="provider_anthropic" class="border-t pt-10">
+                    <section id="provider_anthropic" class="border-t pt-10" style="display:none;">
                         <div class="flex items-center justify-between">
                             <div>
                                 <h3 class="text-sm font-semibold text-gray-900">Anthropic (Claude)</h3>

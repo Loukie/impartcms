@@ -40,7 +40,7 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Title</label>
-                                <input type="text" name="title" value="{{ old('title') }}"
+                                <input id="ai-title" type="text" name="title" value="{{ old('title') }}"
                                        class="mt-1 block w-full rounded-md border-gray-300 focus:border-gray-500 focus:ring-gray-500"
                                        placeholder="e.g. About us" required>
                                 @error('title') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
@@ -48,10 +48,10 @@
 
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Slug (optional)</label>
-                                <input type="text" name="slug" value="{{ old('slug') }}"
+                                <input id="ai-slug" type="text" name="slug" value="{{ old('slug') }}"
                                        class="mt-1 block w-full rounded-md border-gray-300 focus:border-gray-500 focus:ring-gray-500"
                                        placeholder="e.g. about or services/web">
-                                <p class="mt-1 text-xs text-gray-500">Allowed: letters, numbers, dashes, and /</p>
+                                <p class="mt-1 text-xs text-gray-500">Allowed: letters, numbers, dashes, and / – will be auto‑filled from title if left blank.</p>
                                 @error('slug') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                             </div>
                         </div>
@@ -89,7 +89,7 @@
 
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Brief (what should this page say/do?)</label>
-                            <textarea name="brief" rows="10"
+                            <textarea id="ai-brief" name="brief" rows="10"
                                       class="mt-1 block w-full rounded-md border-gray-300 focus:border-gray-500 focus:ring-gray-500"
                                       placeholder="Write the page goal, target audience, key sections, offers, CTAs, any links you want included…" required>{{ old('brief') }}</textarea>
                             <p class="mt-1 text-xs text-gray-500">
@@ -126,4 +126,43 @@
             </div>
         </div>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function(){
+            const title = document.getElementById('ai-title');
+            const slug = document.getElementById('ai-slug');
+            if(title && slug){
+                title.addEventListener('input', function(){
+                    if(!slug.value){
+                        let s = title.value.toLowerCase();
+                        s = s.replace(/[^a-z0-9\-\/]+/g,'-');
+                        s = s.replace(/-+/g,'-');
+                        s = s.replace(/^-+|-+$/g,'');
+                        slug.value = s;
+                    }
+                });
+            }
+
+            const brief = document.getElementById('ai-brief');
+            if(brief){
+                const counter = document.createElement('div');
+                counter.className = 'text-xs text-gray-500 mt-1';
+                brief.parentNode.appendChild(counter);
+                function updateCounter(){ counter.textContent = brief.value.length + ' characters'; }
+                brief.addEventListener('input', updateCounter);
+                updateCounter();
+            }
+
+            const form = document.querySelector('form');
+            if(form){
+                form.addEventListener('submit', function(){
+                    form.querySelectorAll('button[type="submit"]').forEach(function(b){
+                        b.disabled = true;
+                        b.dataset.orig = b.innerHTML;
+                        b.innerHTML = 'Working…';
+                    });
+                });
+            }
+        });
+    </script>
 </x-admin-layout>

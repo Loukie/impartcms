@@ -10,7 +10,7 @@ class OpenAiResponsesClient implements LlmClientInterface
     public function __construct(
         private readonly string $apiKey,
         private readonly string $model = 'gpt-5.2',
-        private readonly int $timeoutSeconds = 60,
+        private readonly int $timeoutSeconds = 0,
     ) {}
 
     public function generateText(string $input, string $instructions = ''): array
@@ -25,7 +25,14 @@ class OpenAiResponsesClient implements LlmClientInterface
             $payload['instructions'] = $instructions;
         }
 
-        $res = Http::timeout($this->timeoutSeconds)
+        $req = Http::withToken($this->apiKey)
+            ->withHeaders([
+                'Content-Type' => 'application/json',
+            ]);
+        if ($this->timeoutSeconds > 0) {
+            $req = $req->timeout($this->timeoutSeconds);
+        }
+        $res = $req->post('https://api.openai.com/v1/responses', $payload);
             ->withToken($this->apiKey)
             ->withHeaders([
                 'Content-Type' => 'application/json',

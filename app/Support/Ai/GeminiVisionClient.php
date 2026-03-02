@@ -10,7 +10,7 @@ class GeminiVisionClient implements VisionClientInterface
     public function __construct(
         private readonly string $apiKey,
         private readonly string $model,
-        private readonly int $timeoutSeconds = 60,
+        private readonly int $timeoutSeconds = 0,
     ) {}
 
     public function generateTextWithImages(string $input, string $instructions, array $imagePaths): array
@@ -56,11 +56,14 @@ class GeminiVisionClient implements VisionClientInterface
             ],
         ];
 
-        $resp = Http::timeout($this->timeoutSeconds)
-            ->withHeaders([
+        $req = Http::withHeaders([
                 'x-goog-api-key' => $this->apiKey,
                 'Content-Type' => 'application/json',
-            ])
+            ]);
+        if ($this->timeoutSeconds > 0) {
+            $req = $req->timeout($this->timeoutSeconds);
+        }
+        $resp = $req
             ->post($endpoint, $payload);
 
         if (!$resp->successful()) {

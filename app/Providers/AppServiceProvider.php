@@ -87,6 +87,7 @@ class AppServiceProvider extends ServiceProvider
                     $model = (string) (env('OPENAI_MODEL', 'gpt-5.2') ?? 'gpt-5.2');
                 }
 
+                // read from settings; 0 or negative means "no limit" and will skip timeout
                 $timeout = 0;
                 if ($settingsAvailable) {
                     try {
@@ -96,10 +97,16 @@ class AppServiceProvider extends ServiceProvider
                     }
                 }
                 if ($timeout <= 0) {
-                    $timeout = (int) (env('OPENAI_TIMEOUT', 60) ?? 60);
+                    // fall back to env; allow env to also be 0
+                    $timeout = (int) (env('OPENAI_TIMEOUT', 0) ?? 0);
                 }
+                // if still zero or negative treat as maximum
+                if ($timeout <= 0) {
+                    $timeout = 600;
+                }
+                // clamp into allowed range
                 if ($timeout < 5) $timeout = 5;
-                if ($timeout > 120) $timeout = 120;
+                if ($timeout > 600) $timeout = 600;
 
                 return new OpenAiResponsesClient(
                     apiKey: $apiKey,
@@ -142,6 +149,7 @@ class AppServiceProvider extends ServiceProvider
                     $model = (string) (env('GEMINI_MODEL', 'gemini-2.5-flash') ?? 'gemini-2.5-flash');
                 }
 
+                // zero or negative means "no limit" (don't set client timeout)
                 $timeout = 0;
                 if ($settingsAvailable) {
                     try {
@@ -151,10 +159,13 @@ class AppServiceProvider extends ServiceProvider
                     }
                 }
                 if ($timeout <= 0) {
-                    $timeout = (int) (env('GEMINI_TIMEOUT', 60) ?? 60);
+                    $timeout = (int) (env('GEMINI_TIMEOUT', 0) ?? 0);
+                }
+                if ($timeout <= 0) {
+                    $timeout = 600;
                 }
                 if ($timeout < 5) $timeout = 5;
-                if ($timeout > 120) $timeout = 120;
+                if ($timeout > 600) $timeout = 600;
 
                 return new GeminiGenerateContentClient(
                     apiKey: $apiKey,
@@ -221,6 +232,7 @@ class AppServiceProvider extends ServiceProvider
                 $model = (string) (env('GEMINI_MODEL', 'gemini-2.5-flash') ?? 'gemini-2.5-flash');
             }
 
+            // zero or negative = no limit
             $timeout = 0;
             if ($settingsAvailable) {
                 try {
@@ -230,10 +242,13 @@ class AppServiceProvider extends ServiceProvider
                 }
             }
             if ($timeout <= 0) {
-                $timeout = (int) (env('GEMINI_TIMEOUT', 60) ?? 60);
+                $timeout = (int) (env('GEMINI_TIMEOUT', 0) ?? 0);
+            }
+            if ($timeout <= 0) {
+                $timeout = 600;
             }
             if ($timeout < 5) $timeout = 5;
-            if ($timeout > 120) $timeout = 120;
+            if ($timeout > 600) $timeout = 600;
 
             return new GeminiVisionClient(
                 apiKey: $apiKey,

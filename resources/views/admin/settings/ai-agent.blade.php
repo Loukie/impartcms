@@ -115,9 +115,11 @@
                                     <label class="block text-sm font-medium text-gray-700">Timeout (seconds)</label>
                                     <input type="number"
                                            name="openai_timeout"
-                                           min="5" max="120"
-                                           value="{{ (int) old('openai_timeout', $openAiTimeout) }}"
+                                           min="0" max="600"
+                                           placeholder="leave blank for no timeout"
+                                           value="{{ old('openai_timeout', $openAiTimeoutDisplay) }}"
                                            class="mt-1 block w-full rounded-md border-gray-300 focus:border-gray-500 focus:ring-gray-500" />
+                                    <p class="mt-1 text-xs text-gray-500">Enter 0 or leave blank for no limit; max 600 seconds.</p>
                                     @error('openai_timeout') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                                 </div>
                             </div>
@@ -125,7 +127,7 @@
                     </section>
 
                     {{-- GEMINI --}}
-                    <section id="provider_gemini" class="border-t pt-10">
+                    <section id="provider_gemini" class="border-t pt-10" style="display:none;">
                         <div class="flex items-center justify-between">
                             <div>
                                 <h3 class="text-sm font-semibold text-gray-900">Google Gemini</h3>
@@ -182,9 +184,11 @@
                                     <label class="block text-sm font-medium text-gray-700">Timeout (seconds)</label>
                                     <input type="number"
                                            name="gemini_timeout"
-                                           min="5" max="120"
-                                           value="{{ (int) old('gemini_timeout', $geminiTimeout) }}"
+                                           min="0" max="600"
+                                           placeholder="leave blank for no timeout"
+                                           value="{{ old('gemini_timeout', $geminiTimeoutDisplay) }}"
                                            class="mt-1 block w-full rounded-md border-gray-300 focus:border-gray-500 focus:ring-gray-500" />
+                                    <p class="mt-1 text-xs text-gray-500">Enter 0 or leave blank for no limit; max 600 seconds.</p>
                                     @error('gemini_timeout') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                                 </div>
                             </div>
@@ -192,7 +196,7 @@
                     </section>
 
                     {{-- ANTHROPIC (placeholder) --}}
-                    <section id="provider_anthropic" class="border-t pt-10">
+                    <section id="provider_anthropic" class="border-t pt-10" style="display:none;">
                         <div class="flex items-center justify-between">
                             <div>
                                 <h3 class="text-sm font-semibold text-gray-900">Anthropic (Claude)</h3>
