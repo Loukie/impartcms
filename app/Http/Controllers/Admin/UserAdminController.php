@@ -196,6 +196,37 @@ class UserAdminController extends Controller
         ]);
     }
 
+    /**
+     * Bulk trash selected users.
+     */
+    public function bulk(Request $request): RedirectResponse
+    {
+        $ids = (array) $request->input('ids', []);
+        if (empty($ids)) {
+            return redirect()->route('admin.users.index')->with('status', 'No users selected.');
+        }
+
+        $errors = [];
+        foreach (User::whereIn('id', $ids)->get() as $user) {
+            if ($user->id === (int) $request->user()->id) {
+                $errors[] = 'Skipped yourself.';
+                continue;
+            }
+            if ($user->is_admin && $this->adminCount() <= 1) {
+                $errors[] = 'Skipped last admin ' . $user->email . '.';
+                continue;
+            }
+            $user->delete();
+        }
+
+        $msg = 'Selected users moved to trash ✅';
+        if (!empty($errors)) {
+            $msg .= ' ' . implode(' ', $errors);
+        }
+
+        return redirect()->route('admin.users.index')->with('status', $msg);
+    }
+
     public function destroy(Request $request, User $user): RedirectResponse
     {
         if ($user->id === (int) $request->user()->id) {

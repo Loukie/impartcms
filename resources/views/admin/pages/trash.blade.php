@@ -31,11 +31,23 @@
 
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6">
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
+                    <form method="POST" action="{{ route('admin.pages.trash.bulk') }}" id="bulkForm" onsubmit="return confirm('Permanently delete selected pages?');">
+                @csrf
+                <div class="mb-3">
+                    <button type="submit" id="bulkTrashBtn" disabled
+                            class="px-4 py-2 bg-red-600 text-white rounded-md text-xs uppercase font-semibold hover:bg-red-700">
+                        Delete Selected
+                    </button>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-3 py-2">
+                                    <input type="checkbox" id="bulk-select-all" class="bulk-checkbox-header" />
+                                </th>
+                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
                                     <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Slug</th>
                                     <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
                                     <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Updated</th>
@@ -47,6 +59,10 @@
                             <tbody class="bg-white divide-y divide-gray-200">
                                 @forelse($pages as $page)
                                     <tr>
+                                        <td class="px-3 py-2 whitespace-nowrap">
+                                            <input type="checkbox" name="ids[]" value="{{ $page->id }}" class="bulk-checkbox" 
+                                                   {{ $page->is_homepage ? 'disabled' : '' }} />
+                                        </td>
                                         <td class="px-3 py-2 whitespace-nowrap font-medium text-gray-900">
                                             {{ $page->title }}
                                             @if($page->is_homepage)
@@ -130,4 +146,29 @@
             </div>
         </div>
     </div>
+
+    </form>
+
+    <script>
+        (function(){
+            const form = document.getElementById('bulkForm');
+            if (!form) return;
+            const selectAll = form.querySelector('#bulk-select-all');
+            const checkboxes = Array.from(form.querySelectorAll('.bulk-checkbox'));
+            const submitBtn = form.querySelector('#bulkTrashBtn');
+            function update(){
+                const any = checkboxes.some(cb=>cb.checked);
+                submitBtn.disabled = !any;
+            }
+            if(selectAll){
+                selectAll.addEventListener('change', ()=>{
+                    checkboxes.forEach(cb=>{
+                        if (!cb.disabled) cb.checked = selectAll.checked;
+                    });
+                    update();
+                });
+            }
+            checkboxes.forEach(cb=>cb.addEventListener('change', update));
+        })();
+    </script>
 </x-admin-layout>

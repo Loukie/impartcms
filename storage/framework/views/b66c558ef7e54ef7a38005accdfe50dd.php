@@ -1,0 +1,571 @@
+<?php if (isset($component)) { $__componentOriginale0f1cdd055772eb1d4a99981c240763e = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginale0f1cdd055772eb1d4a99981c240763e = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.admin-layout','data' => []] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('admin-layout'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes([]); ?>
+     <?php $__env->slot('header', null, []); ?> 
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div class="flex items-center justify-between gap-4">
+                <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+                    New Page
+                </h2>
+
+                <a href="<?php echo e(route('admin.pages.index')); ?>"
+                   class="underline text-sm text-gray-600 hover:text-gray-900">
+                    Cancel
+                </a>
+            </div>
+        </div>
+     <?php $__env->endSlot(); ?>
+
+    <div class="py-8">
+        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+            <?php if(session('status')): ?>
+                <div class="mb-4 p-3 rounded bg-green-50 text-green-800 border border-green-200">
+                    <?php echo e(session('status')); ?>
+
+                </div>
+            <?php endif; ?>
+
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                <div class="p-6">
+                    <form method="POST" action="<?php echo e(route('admin.pages.store')); ?>" class="space-y-6" id="page-form">
+                        <?php echo csrf_field(); ?>
+
+                        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                            
+                            <div class="lg:col-span-8 space-y-6">
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Title</label>
+                                    <input type="text" name="title" value="<?php echo e(old('title')); ?>"
+                                           class="mt-1 block w-full rounded-md border-gray-300 focus:border-gray-500 focus:ring-gray-500"
+                                           id="field-title">
+                                    <?php $__errorArgs = ['title'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> <p class="mt-1 text-sm text-red-600"><?php echo e($message); ?></p> <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Slug</label>
+                                    <input type="text" name="slug" value="<?php echo e(old('slug')); ?>"
+                                           placeholder="e.g. about or info/team"
+                                           class="mt-1 block w-full rounded-md border-gray-300 focus:border-gray-500 focus:ring-gray-500"
+                                           id="field-slug">
+                                    <p class="mt-1 text-xs text-gray-500">Allowed: letters, numbers, dashes, and /</p>
+                                    <?php $__errorArgs = ['slug'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> <p class="mt-1 text-sm text-red-600"><?php echo e($message); ?></p> <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Body</label>
+                                    <textarea name="body" rows="14"
+                                              class="mt-1 block w-full rounded-md border-gray-300 focus:border-gray-500 focus:ring-gray-500"
+                                              placeholder="Write content here..."><?php echo e(old('body')); ?></textarea>
+                                    <p class="mt-1 text-xs text-gray-500">
+                                        Tip: embed forms with <code class="px-1 py-0.5 bg-gray-100 rounded">[form slug="contact"]</code>
+                                        and icons with <code class="px-1 py-0.5 bg-gray-100 rounded">[icon kind="fa" value="fa-solid fa-house" size="24" colour="#111827"]</code>
+                                    </p>
+
+                                    <div class="mt-3">
+                                        <button type="button" id="icon-preview-toggle"
+                                                class="text-xs font-semibold text-gray-700 hover:text-gray-900 underline">
+                                            Toggle icon shortcode preview
+                                        </button>
+                                        <div id="icon-shortcode-preview" class="mt-2 hidden bg-slate-50 border rounded-xl p-3">
+                                            <div class="text-[11px] text-gray-500 mb-2">Shows the first 30 <span class="font-semibold">[icon]</span> shortcodes found in the body.</div>
+                                            <div id="icon-shortcode-preview-grid" class="flex flex-wrap gap-2"></div>
+                                        </div>
+                                    </div>
+                                    <?php $__errorArgs = ['body'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> <p class="mt-1 text-sm text-red-600"><?php echo e($message); ?></p> <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                                </div>
+
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700">Template</label>
+                                        <input type="text" name="template" value="<?php echo e(old('template', 'blank')); ?>"
+                                               placeholder="optional"
+                                               class="mt-1 block w-full rounded-md border-gray-300 focus:border-gray-500 focus:ring-gray-500">
+                                        <?php $__errorArgs = ['template'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> <p class="mt-1 text-sm text-red-600"><?php echo e($message); ?></p> <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                                    </div>
+
+                                    <div class="sm:col-span-2 flex items-center gap-3 pt-6">
+                                        <input id="is_homepage" type="checkbox" name="is_homepage" value="1"
+                                               class="rounded border-gray-300 text-gray-900 focus:ring-gray-500"
+                                               <?php echo e(old('is_homepage') ? 'checked' : ''); ?>>
+                                        <label for="is_homepage" class="text-sm text-gray-700">
+                                            Set as homepage
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            
+                            <aside class="lg:col-span-4">
+                                <div class="lg:sticky lg:top-6 space-y-4">
+                                    
+                                    <div class="rounded-lg border border-gray-200 bg-white p-4">
+                                        <div class="flex items-center justify-between">
+                                            <h3 class="text-sm font-semibold text-gray-900">Status</h3>
+                                            <span class="text-xs font-semibold uppercase tracking-widest px-2 py-1 rounded border bg-yellow-50 text-yellow-800 border-yellow-200">
+                                                DRAFT
+                                            </span>
+                                        </div>
+
+                                        <p class="mt-2 text-xs text-gray-500">
+                                            Drafts are admin-preview only until published.
+                                        </p>
+
+                                        <div class="mt-4 flex flex-col gap-2">
+                                            <button type="submit" name="action" value="draft"
+                                                    class="inline-flex items-center justify-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 uppercase tracking-widest hover:bg-gray-50">
+                                                Save Draft
+                                            </button>
+
+                                            <button type="submit" name="action" value="publish"
+                                                    class="inline-flex items-center justify-center px-4 py-2 bg-gray-900 text-white rounded-md font-semibold text-xs uppercase tracking-widest hover:bg-gray-800">
+                                                Publish
+                                            </button>
+
+                                            <a href="<?php echo e(route('admin.pages.index')); ?>"
+                                               class="text-center underline text-sm text-gray-600 hover:text-gray-900">
+                                                Cancel
+                                            </a>
+                                        </div>
+                                    </div>
+
+                                    
+                                    <?php if(isset($headerBlocks) && isset($footerBlocks)): ?>
+                                        <div class="rounded-lg border border-gray-200 bg-white p-4">
+                                            <h3 class="text-sm font-semibold text-gray-900">Header &amp; Footer</h3>
+                                            <p class="mt-1 text-xs text-gray-500">Leave blank to use the global matching header/footer.</p>
+
+                                            <div class="mt-3">
+                                                <label class="block text-sm font-medium text-gray-700">Header override</label>
+                                                <select name="header_block_id" class="mt-1 w-full rounded-md border-gray-300">
+                                                    <option value="">— Global —</option>
+                                                    <?php $__currentLoopData = $headerBlocks; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $b): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                                        <option value="<?php echo e($b->id); ?>" <?php echo e(old('header_block_id') == $b->id ? 'selected' : ''); ?>>
+                                                            <?php echo e($b->name); ?>
+
+                                                        </option>
+                                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                                                </select>
+                                                <?php $__errorArgs = ['header_block_id'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> <p class="mt-1 text-sm text-red-600"><?php echo e($message); ?></p> <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                                            </div>
+
+                                            <div class="mt-3">
+                                                <label class="block text-sm font-medium text-gray-700">Footer override</label>
+                                                <select name="footer_block_id" class="mt-1 w-full rounded-md border-gray-300">
+                                                    <option value="">— Global —</option>
+                                                    <?php $__currentLoopData = $footerBlocks; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $b): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                                        <option value="<?php echo e($b->id); ?>" <?php echo e(old('footer_block_id') == $b->id ? 'selected' : ''); ?>>
+                                                            <?php echo e($b->name); ?>
+
+                                                        </option>
+                                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                                                </select>
+                                                <?php $__errorArgs = ['footer_block_id'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> <p class="mt-1 text-sm text-red-600"><?php echo e($message); ?></p> <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                                            </div>
+                                        </div>
+                                    <?php endif; ?>
+
+                                    
+                                    <div class="rounded-lg border border-gray-200 bg-white p-4" id="seo-panel">
+                                        <div class="flex items-center justify-between">
+                                            <h3 class="text-sm font-semibold text-gray-900">SEO</h3>
+                                            <span class="text-xs text-gray-500" id="seo-score">Score: —</span>
+                                        </div>
+
+                                        
+                                        <div class="mt-3 flex flex-wrap gap-2" role="tablist" aria-label="SEO tabs">
+                                            <button type="button" data-seo-tab="general"
+                                                    class="seo-tab-btn inline-flex items-center px-3 py-1.5 rounded-md text-xs font-semibold uppercase tracking-widest border bg-gray-900 text-white border-gray-900">
+                                                General
+                                            </button>
+                                            <button type="button" data-seo-tab="social"
+                                                    class="seo-tab-btn inline-flex items-center px-3 py-1.5 rounded-md text-xs font-semibold uppercase tracking-widest border bg-white text-gray-700 border-gray-300 hover:bg-gray-50">
+                                                Social
+                                            </button>
+                                            <button type="button" data-seo-tab="advanced"
+                                                    class="seo-tab-btn inline-flex items-center px-3 py-1.5 rounded-md text-xs font-semibold uppercase tracking-widest border bg-white text-gray-700 border-gray-300 hover:bg-gray-50">
+                                                Advanced
+                                            </button>
+                                        </div>
+
+                                        
+                                        <div class="mt-4 rounded-md border border-gray-200 bg-gray-50 p-3">
+                                            <div class="text-xs text-gray-500" id="seo-preview-url"><?php echo e(url('/')); ?>/<span class="text-gray-700">your-slug</span></div>
+                                            <div class="mt-1 text-sm font-semibold text-blue-800" id="seo-preview-title">Your title</div>
+                                            <div class="mt-1 text-xs text-gray-700" id="seo-preview-desc">Your meta description will show here.</div>
+                                        </div>
+
+                                        
+                                        <ul class="mt-3 space-y-1 text-xs" id="seo-checklist">
+                                            <li class="text-gray-500" data-check="title">• Title set</li>
+                                            <li class="text-gray-500" data-check="desc">• Description set</li>
+                                            <li class="text-gray-500" data-check="titlelen">• Title length ok</li>
+                                            <li class="text-gray-500" data-check="desclen">• Description length ok</li>
+                                        </ul>
+
+                                        
+                                        <div class="mt-4 space-y-4">
+                                            
+                                            <div class="seo-tab" data-seo-tab-panel="general">
+                                                <div>
+                                                    <label class="block text-sm font-medium text-gray-700">Meta Title</label>
+                                                    <input type="text" name="meta_title" value="<?php echo e(old('meta_title')); ?>"
+                                                           class="mt-1 block w-full rounded-md border-gray-300 focus:border-gray-500 focus:ring-gray-500"
+                                                           id="field-meta-title">
+                                                    <?php $__errorArgs = ['meta_title'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> <p class="mt-1 text-sm text-red-600"><?php echo e($message); ?></p> <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                                                </div>
+
+                                                <div>
+                                                    <label class="block text-sm font-medium text-gray-700">Meta Description</label>
+                                                    <textarea name="meta_description" rows="3"
+                                                              class="mt-1 block w-full rounded-md border-gray-300 focus:border-gray-500 focus:ring-gray-500"
+                                                              id="field-meta-description"><?php echo e(old('meta_description')); ?></textarea>
+                                                    <?php $__errorArgs = ['meta_description'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> <p class="mt-1 text-sm text-red-600"><?php echo e($message); ?></p> <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                                                </div>
+                                            </div>
+
+                                            
+                                            <div class="seo-tab hidden" data-seo-tab-panel="social">
+                                                <div class="grid grid-cols-1 gap-4">
+                                                    <div>
+                                                        <label class="block text-sm font-medium text-gray-700">OG Title</label>
+                                                        <input type="text" name="og_title" value="<?php echo e(old('og_title')); ?>"
+                                                               class="mt-1 block w-full rounded-md border-gray-300 focus:border-gray-500 focus:ring-gray-500">
+                                                    </div>
+
+                                                    <div>
+                                                        <label class="block text-sm font-medium text-gray-700">OG Description</label>
+                                                        <textarea name="og_description" rows="3"
+                                                                  class="mt-1 block w-full rounded-md border-gray-300 focus:border-gray-500 focus:ring-gray-500"><?php echo e(old('og_description')); ?></textarea>
+                                                    </div>
+
+                                                    <div>
+                                                        <label class="block text-sm font-medium text-gray-700">OG Image URL</label>
+                                                        <input type="text" name="og_image_url" value="<?php echo e(old('og_image_url')); ?>"
+                                                               class="mt-1 block w-full rounded-md border-gray-300 focus:border-gray-500 focus:ring-gray-500">
+                                                    </div>
+                                                </div>
+
+                                                <div class="mt-4 border-t pt-4">
+                                                    <h4 class="text-xs font-semibold uppercase tracking-widest text-gray-700">Twitter</h4>
+
+                                                    <div class="mt-3 grid grid-cols-1 gap-4">
+                                                        <div>
+                                                            <label class="block text-sm font-medium text-gray-700">Twitter Title</label>
+                                                            <input type="text" name="twitter_title" value="<?php echo e(old('twitter_title')); ?>"
+                                                                   class="mt-1 block w-full rounded-md border-gray-300 focus:border-gray-500 focus:ring-gray-500">
+                                                        </div>
+
+                                                        <div>
+                                                            <label class="block text-sm font-medium text-gray-700">Twitter Description</label>
+                                                            <textarea name="twitter_description" rows="3"
+                                                                      class="mt-1 block w-full rounded-md border-gray-300 focus:border-gray-500 focus:ring-gray-500"><?php echo e(old('twitter_description')); ?></textarea>
+                                                        </div>
+
+                                                        <div>
+                                                            <label class="block text-sm font-medium text-gray-700">Twitter Image URL</label>
+                                                            <input type="text" name="twitter_image_url" value="<?php echo e(old('twitter_image_url')); ?>"
+                                                                   class="mt-1 block w-full rounded-md border-gray-300 focus:border-gray-500 focus:ring-gray-500">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            
+                                            <div class="seo-tab hidden" data-seo-tab-panel="advanced">
+                                                <div>
+                                                    <label class="block text-sm font-medium text-gray-700">Canonical URL</label>
+                                                    <input type="text" name="canonical_url" value="<?php echo e(old('canonical_url')); ?>"
+                                                           placeholder="Auto uses current URL if empty"
+                                                           class="mt-1 block w-full rounded-md border-gray-300 focus:border-gray-500 focus:ring-gray-500"
+                                                           id="field-canonical">
+                                                    <?php $__errorArgs = ['canonical_url'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> <p class="mt-1 text-sm text-red-600"><?php echo e($message); ?></p> <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                                                </div>
+
+                                                <div>
+                                                    <label class="block text-sm font-medium text-gray-700">Robots</label>
+                                                    <input type="text" name="robots" value="<?php echo e(old('robots')); ?>"
+                                                           placeholder="index,follow"
+                                                           class="mt-1 block w-full rounded-md border-gray-300 focus:border-gray-500 focus:ring-gray-500">
+                                                    <?php $__errorArgs = ['robots'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> <p class="mt-1 text-sm text-red-600"><?php echo e($message); ?></p> <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                                                </div>
+
+                                                <p class="text-xs text-gray-500">
+                                                    Tip: leave canonical blank to use the current page URL.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    
+                                    <div class="rounded-lg border border-gray-200 bg-white p-4">
+                                        <h3 class="text-sm font-semibold text-gray-900">Shortcodes</h3>
+                                        <p class="mt-2 text-xs text-gray-500">
+                                            Embed forms anywhere in the body:
+                                            <code class="px-1 py-0.5 bg-gray-100 rounded">[form slug="contact"]</code>
+                                        </p>
+                                    </div>
+                                </div>
+                            </aside>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            const root = document.getElementById('seo-panel');
+            if (!root) return;
+
+            const tabButtons = Array.from(root.querySelectorAll('.seo-tab-btn'));
+            const tabPanels = Array.from(root.querySelectorAll('.seo-tab'));
+
+            function setActiveTab(key) {
+                tabButtons.forEach(btn => {
+                    const isActive = btn.getAttribute('data-seo-tab') === key;
+                    btn.classList.toggle('bg-gray-900', isActive);
+                    btn.classList.toggle('text-white', isActive);
+                    btn.classList.toggle('border-gray-900', isActive);
+
+                    btn.classList.toggle('bg-white', !isActive);
+                    btn.classList.toggle('text-gray-700', !isActive);
+                    btn.classList.toggle('border-gray-300', !isActive);
+                });
+
+                tabPanels.forEach(panel => {
+                    const isActive = panel.getAttribute('data-seo-tab-panel') === key;
+                    panel.classList.toggle('hidden', !isActive);
+                });
+            }
+
+            tabButtons.forEach(btn => {
+                btn.addEventListener('click', () => setActiveTab(btn.getAttribute('data-seo-tab')));
+            });
+
+            // Live preview + simple score
+            const elTitle = document.getElementById('field-title');
+            const elSlug = document.getElementById('field-slug');
+            const elMetaTitle = document.getElementById('field-meta-title');
+            const elMetaDesc = document.getElementById('field-meta-description');
+            const elCanonical = document.getElementById('field-canonical');
+
+            const prevUrl = document.getElementById('seo-preview-url');
+            const prevTitle = document.getElementById('seo-preview-title');
+            const prevDesc = document.getElementById('seo-preview-desc');
+            const scoreEl = document.getElementById('seo-score');
+
+            function mark(checkKey, ok) {
+                const li = root.querySelector(`[data-check="${checkKey}"]`);
+                if (!li) return;
+                li.classList.toggle('text-green-700', ok);
+                li.classList.toggle('text-gray-500', !ok);
+            }
+
+            function updatePreview() {
+                const title = (elMetaTitle?.value || elTitle?.value || '').trim();
+                const desc = (elMetaDesc?.value || '').trim();
+                const slug = (elSlug?.value || 'your-slug').replace(/^\/+/, '').trim();
+                const canonical = (elCanonical?.value || '').trim();
+
+                const url = canonical !== '' ? canonical : `<?php echo e(url('/')); ?>/${slug}`;
+
+                prevUrl.innerHTML = url.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+                prevTitle.textContent = title !== '' ? title : 'Your title';
+                prevDesc.textContent = desc !== '' ? desc : 'Your meta description will show here.';
+
+                const titleLen = title.length;
+                const descLen = desc.length;
+
+                const hasTitle = titleLen > 0;
+                const hasDesc = descLen > 0;
+                const okTitleLen = titleLen >= 20 && titleLen <= 60;
+                const okDescLen = descLen >= 50 && descLen <= 160;
+
+                mark('title', hasTitle);
+                mark('desc', hasDesc);
+                mark('titlelen', hasTitle && okTitleLen);
+                mark('desclen', hasDesc && okDescLen);
+
+                let score = 0;
+                if (hasTitle) score += 25;
+                if (hasDesc) score += 25;
+                if (hasTitle && okTitleLen) score += 25;
+                if (hasDesc && okDescLen) score += 25;
+
+                scoreEl.textContent = `Score: ${score}/100`;
+            }
+
+            [elTitle, elSlug, elMetaTitle, elMetaDesc, elCanonical].forEach(el => {
+                if (!el) return;
+                el.addEventListener('input', updatePreview);
+            });
+
+            setActiveTab('general');
+            updatePreview();
+        })();
+
+        // Icon shortcode preview (admin convenience)
+        (function () {
+            const toggle = document.getElementById('icon-preview-toggle');
+            const panel = document.getElementById('icon-shortcode-preview');
+            const grid = document.getElementById('icon-shortcode-preview-grid');
+            const textarea = document.querySelector('textarea[name="body"]');
+
+            if (!toggle || !panel || !grid || !textarea) return;
+
+            function parseAttrs(raw) {
+                const attrs = {};
+                const re = /(\w+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g;
+                let m;
+                while ((m = re.exec(raw)) !== null) {
+                    attrs[m[1].toLowerCase()] = (m[2] ?? m[3] ?? '');
+                }
+                return attrs;
+            }
+
+            function render() {
+                const text = textarea.value || '';
+                const matches = Array.from(text.matchAll(/\[icon\s+([^\]]+)\]/gi)).slice(0, 30);
+
+                grid.innerHTML = '';
+                if (matches.length === 0) {
+                    grid.innerHTML = '<div class="text-xs text-gray-500">No [icon] shortcodes found.</div>';
+                    return;
+                }
+
+                for (const match of matches) {
+                    const attrs = parseAttrs(match[1] || '');
+
+                    if (attrs.data) {
+                        try {
+                            const decoded = JSON.parse(attrs.data);
+                            Object.assign(attrs, decoded);
+                        } catch (e) {
+                            // ignore
+                        }
+                    }
+
+                    const kind = (attrs.kind || '').toLowerCase();
+                    const value = attrs.value || attrs.icon || attrs.name || '';
+                    const size = parseInt(attrs.size || '24', 10) || 24;
+                    const colour = attrs.colour || attrs.color || '#111827';
+
+                    const wrap = document.createElement('div');
+                    wrap.className = 'inline-flex items-center justify-center w-10 h-10 rounded-lg border bg-white';
+
+                    if (kind === 'fa' && value) {
+                        wrap.innerHTML = `<i class="${value}" style="font-size:${size}px;color:${colour};line-height:1"></i>`;
+                    } else if (kind === 'lucide' && value) {
+                        wrap.innerHTML = `<i data-lucide="${value}" style="width:${size}px;height:${size}px;color:${colour};display:inline-block"></i>`;
+                    } else {
+                        wrap.innerHTML = '<span class="text-xs text-gray-400">?</span>';
+                    }
+
+                    grid.appendChild(wrap);
+                }
+
+                if (window.ImpartLucide && window.ImpartLucide.render) {
+                    window.ImpartLucide.render(panel);
+                }
+            }
+
+            toggle.addEventListener('click', () => {
+                panel.classList.toggle('hidden');
+                if (!panel.classList.contains('hidden')) render();
+            });
+
+            textarea.addEventListener('input', () => {
+                if (!panel.classList.contains('hidden')) render();
+            });
+        })();
+    </script>
+ <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginale0f1cdd055772eb1d4a99981c240763e)): ?>
+<?php $attributes = $__attributesOriginale0f1cdd055772eb1d4a99981c240763e; ?>
+<?php unset($__attributesOriginale0f1cdd055772eb1d4a99981c240763e); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginale0f1cdd055772eb1d4a99981c240763e)): ?>
+<?php $component = $__componentOriginale0f1cdd055772eb1d4a99981c240763e; ?>
+<?php unset($__componentOriginale0f1cdd055772eb1d4a99981c240763e); ?>
+<?php endif; ?>
+<?php /**PATH C:\laragon\www\2kocms\resources\views/admin/pages/create.blade.php ENDPATH**/ ?>

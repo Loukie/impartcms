@@ -173,6 +173,21 @@ class LayoutBlockAdminController extends Controller
         return back()->with('status', 'Updated ✅');
     }
 
+    /**
+     * Bulk move layout blocks to trash.
+     */
+    public function bulk(Request $request): RedirectResponse
+    {
+        $ids = (array) $request->input('ids', []);
+        if (empty($ids)) {
+            return redirect()->route('admin.layout-blocks.index')->with('status', 'No blocks selected.');
+        }
+
+        LayoutBlock::whereIn('id', $ids)->get()->each->delete();
+
+        return redirect()->route('admin.layout-blocks.index')->with('status', 'Selected blocks moved to trash ✅');
+    }
+
     public function destroy(LayoutBlock $layoutBlock): RedirectResponse
     {
         $layoutBlock->delete();

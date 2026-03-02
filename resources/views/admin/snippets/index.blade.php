@@ -103,11 +103,20 @@
                         </form>
                     </div>
 
-                    <div class="mt-6 overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                    <form method="POST" action="{{ route('admin.snippets.bulk') }}" id="bulkForm" onsubmit="return confirm('Move selected snippets to trash?');">
+                        @csrf
+                        <div class="mb-3">
+                            <button type="submit" id="bulkTrashBtn" disabled
+                                    class="px-4 py-2 bg-red-600 text-white rounded-md text-xs uppercase font-semibold hover:bg-red-700">
+                                Trash Selected
+                            </button>
+                        </div>
+                        <div class="mt-6 overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-3 py-2"><input type="checkbox" id="bulk-select-all" class="bulk-checkbox-header" /></th>
+                                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                                     <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
                                     <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Placement</th>
                                     <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Targeting</th>
@@ -120,6 +129,9 @@
                             <tbody class="bg-white divide-y divide-gray-200">
                                 @forelse($snippets as $snippet)
                                     <tr>
+                                        <td class="px-3 py-2 whitespace-nowrap">
+                                            <input type="checkbox" name="ids[]" value="{{ $snippet->id }}" class="bulk-checkbox" />
+                                        </td>
                                         <td class="px-3 py-2 whitespace-nowrap font-medium text-gray-900">{{ $snippet->name }}</td>
                                         <td class="px-3 py-2 whitespace-nowrap text-gray-700">{{ strtoupper($snippet->type) }}</td>
                                         <td class="px-3 py-2 whitespace-nowrap text-gray-700">
@@ -153,7 +165,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="7" class="px-3 py-6 text-center text-gray-500">No snippets found.</td>
+                                        <td colspan="8" class="px-3 py-6 text-center text-gray-500">No snippets found.</td>
                                     </tr>
                                 @endforelse
                             </tbody>
@@ -163,6 +175,28 @@
                     @if(method_exists($snippets, 'links'))
                         <div class="mt-6">{{ $snippets->links() }}</div>
                     @endif
+                    </form>
+
+                    <script>
+                        (function(){
+                            const form = document.getElementById('bulkForm');
+                            if (!form) return;
+                            const selectAll = form.querySelector('#bulk-select-all');
+                            const checkboxes = Array.from(form.querySelectorAll('.bulk-checkbox'));
+                            const submitBtn = form.querySelector('#bulkTrashBtn');
+                            function update(){
+                                const any = checkboxes.some(cb=>cb.checked);
+                                submitBtn.disabled = !any;
+                            }
+                            if(selectAll){
+                                selectAll.addEventListener('change', ()=>{
+                                    checkboxes.forEach(cb=>cb.checked = selectAll.checked);
+                                    update();
+                                });
+                            }
+                            checkboxes.forEach(cb=>cb.addEventListener('change', update));
+                        })();
+                    </script>
                 </div>
             </div>
         </div>

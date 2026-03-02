@@ -164,6 +164,26 @@ class FormAdminController extends Controller
         return back()->with('status', 'Saved ✅');
     }
 
+    /**
+     * Bulk trash selected forms.
+     */
+    public function bulk(Request $request): RedirectResponse
+    {
+        $ids = (array) $request->input('ids', []);
+        if (empty($ids)) {
+            return redirect()->route('admin.forms.index')->with('status', 'No forms selected.');
+        }
+
+        $forms = Form::whereIn('id', $ids)->get();
+        foreach ($forms as $form) {
+            $form->delete();
+        }
+
+        return redirect()
+            ->route('admin.forms.index')
+            ->with('status', 'Selected forms moved to trash ✅');
+    }
+
     public function destroy(Form $form): RedirectResponse
     {
         $form->delete();

@@ -35,8 +35,7 @@
             @endif
 
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6" x-data="{ showUpload: {{ $errors->any() ? 'true' : 'false' }} }">
-
+                <div class="p-6" x-data="{ showUpload: {{ $errors->any() ? 'true' : 'false' }}, bulkMode: false, selected: [] }">
                     {{-- Tabs + Filters --}}
                     <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                         <div class="flex items-center gap-2 text-sm font-semibold">
@@ -96,8 +95,13 @@
 
                                 <button type="button"
                                         class="ml-auto px-3 py-2 rounded-md bg-gray-900 text-white text-xs font-semibold"
-                                        @click="showUpload = !showUpload">
+                                        @click="showUpload = !showUpload" x-show="!bulkMode">
                                     Upload
+                                </button>
+                                <button type="button"
+                                        class="ml-2 px-3 py-2 rounded-md bg-yellow-600 text-white text-xs font-semibold"
+                                        @click="bulkMode = !bulkMode; if(!bulkMode) selected=[]"
+                                        x-text="bulkMode ? 'Cancel' : 'Bulk delete'">
                                 </button>
                             @endif
                         </div>
@@ -124,29 +128,42 @@
                             @include('admin.media.partials.fa-icons', ['mode' => 'copy'])
                         @else
                             {{-- Media grid --}}
-                            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                                @forelse ($media as $item)
-                                    <a href="{{ route('admin.media.show', $item) }}" class="group block border rounded-lg overflow-hidden bg-white hover:shadow">
-                                        <div class="aspect-square bg-gray-50 flex items-center justify-center overflow-hidden">
-                                            @if ($item->is_image)
-                                                <img src="{{ $item->url }}" alt="{{ $item->title ?? $item->original_name ?? '' }}" class="w-full h-full object-contain p-2" />
-                                            @else
-                                                <div class="text-xs font-semibold text-gray-600">{{ strtoupper($item->extension ?? 'FILE') }}</div>
-                                            @endif
+                            <form method="POST" action="{{ route('admin.media.bulk') }}">
+                                @csrf
+                                <div class="mb-3" x-show="bulkMode">
+                                    <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-md text-xs uppercase font-semibold hover:bg-red-700" :disabled="selected.length === 0">
+                                        Trash selected (<span x-text="selected.length"></span>)
+                                    </button>
+                                </div>
+                                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                                    @forelse ($media as $item)
+                                        <div class="relative">
+                                            <template x-if="bulkMode">
+                                                <input type="checkbox" name="ids[]" value="{{ $item->id }}" x-model="selected" class="absolute top-2 left-2 z-10 w-4 h-4" />
+                                            </template>
+                                            <a href="{{ route('admin.media.show', $item) }}" class="group block border rounded-lg overflow-hidden bg-white hover:shadow">
+                                                <div class="aspect-square bg-gray-50 flex items-center justify-center overflow-hidden">
+                                                    @if ($item->is_image)
+                                                        <img src="{{ $item->url }}" alt="{{ $item->title ?? $item->original_name ?? '' }}" class="w-full h-full object-contain p-2" />
+                                                    @else
+                                                        <div class="text-xs font-semibold text-gray-600">{{ strtoupper($item->extension ?? 'FILE') }}</div>
+                                                    @endif
+                                                </div>
+                                                <div class="p-2">
+                                                    <div class="text-sm font-semibold text-gray-900 truncate group-hover:text-gray-900">
+                                                        {{ $item->title ?: ($item->original_name ?? 'Untitled') }}
+                                                    </div>
+                                                    <div class="text-[11px] text-gray-500 truncate">
+                                                        {{ $item->folder ?? '' }}
+                                                    </div>
+                                                </div>
+                                            </a>
                                         </div>
-                                        <div class="p-2">
-                                            <div class="text-sm font-semibold text-gray-900 truncate group-hover:text-gray-900">
-                                                {{ $item->title ?: ($item->original_name ?? 'Untitled') }}
-                                            </div>
-                                            <div class="text-[11px] text-gray-500 truncate">
-                                                {{ $item->folder ?? '' }}
-                                            </div>
-                                        </div>
-                                    </a>
-                                @empty
-                                    <div class="text-sm text-gray-500 col-span-full">No media found.</div>
-                                @endforelse
-                            </div>
+                                    @empty
+                                        <div class="text-sm text-gray-500 col-span-full">No media found.</div>
+                                    @endforelse
+                                </div>
+                            </form>
 
                             <div class="mt-6">
                                 {{ $media->links() }}

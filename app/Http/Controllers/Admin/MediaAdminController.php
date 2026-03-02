@@ -252,6 +252,41 @@ class MediaAdminController extends Controller
         return back()->with('status', 'Media updated.');
     }
 
+    /**
+     * Bulk delete selected media items. Skips files that appear to be in use.
+     */
+    public function bulk(Request $request): RedirectResponse
+    {
+        $ids = (array) $request->input('ids', []);
+        if (empty($ids)) {
+            return redirect()->route('admin.media.index')->with('status', 'No files selected.');
+        }
+
+        $errors = [];
+        $files = MediaFile::whereIn('id', $ids)->get();
+        foreach ($files as $media) {
+            $usage = $this->detectUsage($media);
+            $pagesUsed = ($usage['pages'] ?? collect())->isNotEmpty();
+            $seoUsed = ($usage['seo_pages'] ?? collect())->isNotEmpty();
+            $settingsUsed = !empty($usage['settings'] ?? []);
+
+            if ($pagesUsed || $seoUsed || $settingsUsed) {
+                $errors[] = 'Skipped ' . ($media->original_name ?? $media->filename) . ' (in use).';
+                continue;
+            }
+
+            Storage::disk($media->disk ?? 'public')->delete($media->path);
+            $media->delete();
+        }
+
+        $msg = 'Selected media deleted.';
+        if (!empty($errors)) {
+            $msg .= ' ' . implode(' ', $errors);
+        }
+
+        return redirect()->route('admin.media.index')->with('status', $msg);
+    }
+
     public function destroy(MediaFile $media): RedirectResponse
     {
         // Safety: refuse delete if it appears in any pages/seo/settings.

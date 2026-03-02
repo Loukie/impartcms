@@ -25,6 +25,7 @@
   - homepage can only be set on **published** pages,
   - added **Unset Home** per page and **Clear Home** global action,
   - AI flows that save drafts **unset homepage** to avoid draft homepages.
+- Added **bulk delete/trash** capability to admin list pages (Pages, Media library, Forms, Users, Header/Footer blocks, Custom snippets) with checkboxes, batch actions, new routes/controllers, and corresponding tests.
 
 ### Files added
 - `app/Http/Controllers/Admin/AiAgentSettingsController.php`

@@ -91,6 +91,62 @@ class PageAdminController extends Controller
         ]);
     }
 
+    /**
+     * Bulk move pages to trash. Skips homepage entries.
+     */
+    public function bulk(Request $request): RedirectResponse
+    {
+        $ids = (array) $request->input('ids', []);
+        if (empty($ids)) {
+            return redirect()->route('admin.pages.index')->with('status', 'No pages selected.');
+        }
+
+        $errors = [];
+        $pages = Page::whereIn('id', $ids)->get();
+        foreach ($pages as $page) {
+            if ($this->isCurrentHomepage($page)) {
+                $errors[] = 'Homepage "' . $page->title . '" skipped (unset homepage first).';
+                continue;
+            }
+            $page->delete();
+        }
+
+        $msg = 'Selected pages moved to trash ✅';
+        if (!empty($errors)) {
+            $msg .= ' ' . implode(' ', $errors);
+        }
+
+        return redirect()->route('admin.pages.index')->with('status', $msg);
+    }
+
+    /**
+     * Permanently delete multiple trashed pages. Homepage records are skipped.
+     */
+    public function bulkForceDestroy(Request $request): RedirectResponse
+    {
+        $ids = (array) $request->input('ids', []);
+        if (empty($ids)) {
+            return redirect()->route('admin.pages.trash')->with('status', 'No pages selected.');
+        }
+
+        $errors = [];
+        $pages = Page::onlyTrashed()->whereIn('id', $ids)->get();
+        foreach ($pages as $page) {
+            if ($page->is_homepage) {
+                $errors[] = 'Homepage "' . $page->title . '" skipped (set another homepage first).';
+                continue;
+            }
+            $page->forceDelete();
+        }
+
+        $msg = 'Selected pages permanently deleted ✅';
+        if (!empty($errors)) {
+            $msg .= ' ' . implode(' ', $errors);
+        }
+
+        return redirect()->route('admin.pages.trash')->with('status', $msg);
+    }
+
     public function create(): View
     {
         return view('admin.pages.create', $this->layoutBlockOptions());

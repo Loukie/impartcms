@@ -137,6 +137,9 @@ Route::middleware(['auth', 'can:access-admin'])
         Route::post('/pages-trash/{pageTrash}/restore', [PageAdminController::class, 'restore'])->name('pages.restore');
         Route::delete('/pages-trash/{pageTrash}/force', [PageAdminController::class, 'forceDestroy'])->name('pages.forceDestroy');
 
+        // Bulk permanent delete from trash
+        Route::post('/pages-trash/bulk', [PageAdminController::class, 'bulkForceDestroy'])->name('pages.trash.bulk');
+
         Route::get('/forms-trash', [FormAdminController::class, 'trash'])->name('forms.trash');
         Route::post('/forms-trash/{formTrash}/restore', [FormAdminController::class, 'restore'])->name('forms.restore');
         Route::delete('/forms-trash/{formTrash}/force', [FormAdminController::class, 'forceDestroy'])->name('forms.forceDestroy');
@@ -152,6 +155,7 @@ Route::middleware(['auth', 'can:access-admin'])
         Route::post('/layout-blocks-trash/{layoutBlockTrash}/restore', [LayoutBlockAdminController::class, 'restore'])->name('layout-blocks.restore');
         Route::delete('/layout-blocks-trash/{layoutBlockTrash}/force', [LayoutBlockAdminController::class, 'forceDestroy'])->name('layout-blocks.force-destroy');
 
+        Route::post('/layout-blocks/bulk', [LayoutBlockAdminController::class, 'bulk'])->name('layout-blocks.bulk');
         Route::resource('layout-blocks', LayoutBlockAdminController::class)->parameters([
             'layout-blocks' => 'layoutBlock',
         ]);
@@ -161,6 +165,7 @@ Route::middleware(['auth', 'can:access-admin'])
         Route::post('/snippets-trash/{snippetTrash}/restore', [CustomSnippetAdminController::class, 'restore'])->name('snippets.restore');
         Route::delete('/snippets-trash/{snippetTrash}/force', [CustomSnippetAdminController::class, 'forceDestroy'])->name('snippets.forceDestroy');
 
+        Route::post('/snippets/bulk', [CustomSnippetAdminController::class, 'bulk'])->name('snippets.bulk');
         Route::resource('snippets', CustomSnippetAdminController::class);
 
         // Homepage selection (WordPress-style)
@@ -192,6 +197,9 @@ Route::middleware(['auth', 'can:access-admin'])
             ->middleware(['throttle:6,1'])
             ->name('ai.page-assist');
 
+        // Bulk actions for pages
+        Route::post('/pages/bulk', [PageAdminController::class, 'bulk'])->name('pages.bulk');
+
         // Standard pages CRUD (destroy = Move to Trash)
         Route::resource('pages', PageAdminController::class);
 
@@ -204,10 +212,12 @@ Route::middleware(['auth', 'can:access-admin'])
         Route::post('/users/{user}/send-reset-link', [UserAdminController::class, 'sendResetLink'])->name('users.sendResetLink');
         Route::post('/users/{user}/toggle-admin', [UserAdminController::class, 'toggleAdmin'])->name('users.toggleAdmin');
         Route::delete('/users/{user}', [UserAdminController::class, 'destroy'])->name('users.destroy');
+        Route::post('/users/bulk', [UserAdminController::class, 'bulk'])->name('users.bulk');
 
         // Media
         Route::get('/media', [MediaAdminController::class, 'index'])->name('media.index');
         Route::post('/media', [MediaAdminController::class, 'store'])->name('media.store');
+        Route::post('/media/bulk', [MediaAdminController::class, 'bulk'])->name('media.bulk');
 
         /**
          * ✅ Media picker (WordPress-style modal)
@@ -229,6 +239,8 @@ Route::middleware(['auth', 'can:access-admin'])
         Route::get('/forms/{form}/edit', [FormAdminController::class, 'edit'])->name('forms.edit');
         Route::put('/forms/{form}', [FormAdminController::class, 'update'])->name('forms.update');
         Route::delete('/forms/{form}', [FormAdminController::class, 'destroy'])->name('forms.destroy');
+        // bulk trash
+        Route::post('/forms/bulk', [FormAdminController::class, 'bulk'])->name('forms.bulk');
 
         Route::get('/forms/{form}/submissions', [FormSubmissionAdminController::class, 'index'])->name('forms.submissions.index');
         Route::get('/forms/{form}/submissions/{submission}', [FormSubmissionAdminController::class, 'show'])->name('forms.submissions.show');

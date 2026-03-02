@@ -144,6 +144,22 @@ class CustomSnippetAdminController extends Controller
         return back()->with('status', 'Saved ✅');
     }
 
+    /**
+     * Bulk move snippets to trash.
+     */
+    public function bulk(Request $request): RedirectResponse
+    {
+        $ids = (array) $request->input('ids', []);
+        if (empty($ids)) {
+            return redirect()->route('admin.snippets.index')->with('status', 'No snippets selected.');
+        }
+
+        CustomSnippet::whereIn('id', $ids)->get()->each->delete();
+        CustomSnippet::flushCache();
+
+        return redirect()->route('admin.snippets.index')->with('status', 'Selected snippets moved to trash ✅');
+    }
+
     public function destroy(CustomSnippet $snippet): RedirectResponse
     {
         $snippet->delete();

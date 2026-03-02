@@ -37,5 +37,15 @@ class CmsStarterSeeder extends Seeder
                 'is_active' => true,
             ]
         );
+
+        // ensure there is at least one admin user (use Lourens credentials)
+        if (!\App\Models\User::query()->where('is_admin', true)->exists()) {
+            \App\Models\User::factory()->create([
+                'name' => 'Administrator',
+                'email' => 'lourens@2ko.co.za',
+                'password' => bcrypt('L0ur3nsn3l2630'),
+                'is_admin' => true,
+            ]);
+        }
     }
 }
