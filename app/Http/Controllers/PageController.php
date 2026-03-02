@@ -87,6 +87,31 @@ class PageController extends Controller
             ->header('X-Robots-Tag', 'noindex, nofollow');
     }
 
+    /**
+     * Signed preview endpoint (no auth) intended for server-side automation (screenshots).
+     *
+     * Route uses the existing pagePreview binder which includes trashed pages.
+     */
+    public function aiPreview(Page $pagePreview): Response
+    {
+        // Reuse the same behaviour as admin preview, but keep it behind a signed URL.
+        $pagePreview->load('seo');
+
+        $body = is_string($pagePreview->body ?? null) ? (string) $pagePreview->body : '';
+        if ($this->isFullHtmlDocument($body)) {
+            return response($this->injectFullDocumentExtras($body, $pagePreview))
+                ->header('Content-Type', 'text/html; charset=UTF-8')
+                ->header('X-Robots-Tag', 'noindex, nofollow');
+        }
+
+        return response()
+            ->view($this->resolvePageView($pagePreview), [
+                'page' => $pagePreview,
+                'seo' => $pagePreview->seo,
+            ])
+            ->header('X-Robots-Tag', 'noindex, nofollow');
+    }
+
     private function isFullHtmlDocument(string $body): bool
     {
         $hay = strtolower($body);

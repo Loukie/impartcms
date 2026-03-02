@@ -6,6 +6,29 @@
             </h2>
 
             <div class="flex items-center gap-3">
+                <a href="{{ route('admin.pages.ai.create') }}"
+                   class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 uppercase tracking-widest hover:bg-gray-50">
+                    AI Page
+                </a>
+
+                @if(\Illuminate\Support\Facades\Route::has('admin.site-builder.create'))
+                    <a href="{{ route('admin.site-builder.create') }}"
+                       class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 uppercase tracking-widest hover:bg-gray-50">
+                        AI Site Builder
+                    </a>
+                @endif
+
+                @if(\Illuminate\Support\Facades\Route::has('admin.pages.clearHomepage'))
+                    <form method="POST" action="{{ route('admin.pages.clearHomepage') }}" class="inline"
+                          onsubmit="return confirm('Clear homepage selection? This will unmark the homepage and let you trash/delete pages freely.');">
+                        @csrf
+                        <button type="submit"
+                                class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 uppercase tracking-widest hover:bg-gray-50">
+                            Clear Home
+                        </button>
+                    </form>
+                @endif
+
                 <a href="{{ route('admin.pages.trash') }}"
                    class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 uppercase tracking-widest hover:bg-gray-50">
                     Trash
@@ -123,8 +146,11 @@
                                         <td class="px-3 py-2 whitespace-nowrap font-medium text-gray-900">
                                             {{ $page->title }}
                                             @if($page->is_homepage)
-                                                <span class="ml-2 text-xs px-2 py-0.5 rounded border border-gray-200 bg-gray-50 text-gray-700">
-                                                    Home
+                                                <span class="ml-2 text-xs px-2 py-0.5 rounded border
+                                                    {{ $page->status === 'published'
+                                                        ? 'border-gray-200 bg-gray-50 text-gray-700'
+                                                        : 'border-yellow-200 bg-yellow-50 text-yellow-800' }}">
+                                                    {{ $page->status === 'published' ? 'Home' : 'Home (draft)' }}
                                                 </span>
                                             @endif
                                         </td>
@@ -171,7 +197,16 @@
                                                     Edit
                                                 </a>
 
-                                                @if($page->status === 'published' && !$page->is_homepage)
+                                                @if($page->is_homepage)
+                                                    <form method="POST" action="{{ route('admin.pages.unsetHomepage', $page) }}" class="inline"
+                                                          onsubmit="return confirm('Unset this page as the homepage?');">
+                                                        @csrf
+                                                        <button type="submit"
+                                                                class="text-gray-700 hover:text-gray-900 font-semibold text-sm">
+                                                            Unset Home
+                                                        </button>
+                                                    </form>
+                                                @elseif($page->status === 'published')
                                                     <form method="POST" action="{{ route('admin.pages.setHomepage', $page) }}" class="inline"
                                                           onsubmit="return confirm('Set this page as the homepage (/)?');">
                                                         @csrf
@@ -195,7 +230,7 @@
                                                     </form>
                                                 @else
                                                     <span class="text-gray-400 font-semibold text-sm cursor-not-allowed"
-                                                          title="You can’t trash the homepage. Set a different homepage first.">
+                                                          title="You can’t trash the homepage. Unset the homepage first.">
                                                         Trash
                                                     </span>
                                                 @endif
@@ -213,11 +248,9 @@
                         </table>
                     </div>
 
-                    @if(method_exists($pages, 'links'))
-                        <div class="mt-6">
-                            {{ $pages->links() }}
-                        </div>
-                    @endif
+                    <div class="mt-6">
+                        {{ $pages->links() }}
+                    </div>
                 </div>
             </div>
         </div>

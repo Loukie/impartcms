@@ -116,10 +116,20 @@ class PageAdminController extends Controller
             unset($data['published_at']);
         }
 
+        $homepageIgnored = false;
+
         // Only set homepage if the form explicitly includes it.
         // (Prevents accidentally clearing homepage when the UI doesn't include this field.)
         if ($request->has('is_homepage')) {
-            $data['is_homepage'] = (bool) $request->boolean('is_homepage');
+            $requestedHomepage = (bool) $request->boolean('is_homepage');
+
+            // ✅ Hard rule: homepage must be published.
+            if ($requestedHomepage && $data['status'] !== 'published') {
+                $homepageIgnored = true;
+                $data['is_homepage'] = false;
+            } else {
+                $data['is_homepage'] = $requestedHomepage;
+            }
         }
 
         $data = array_filter($data, fn ($v) => $v !== null);
@@ -127,16 +137,21 @@ class PageAdminController extends Controller
         $page = Page::create($data);
 
         // Enforce single homepage if flagged during create.
-        if (!empty($data['is_homepage'])) {
+        if (!empty($data['is_homepage']) && $page->status === 'published') {
             $this->makeHomepage($page);
         }
 
         $seo = $this->validatedSeo($request);
         $page->seo()->create($seo);
 
+        $statusMsg = $page->status === 'published' ? 'Page published ✅' : 'Draft saved ✅';
+        if ($homepageIgnored) {
+            $statusMsg .= ' (Homepage was not set because only published pages can be the homepage.)';
+        }
+
         return redirect()
             ->route('admin.pages.edit', $page)
-            ->with('status', $page->status === 'published' ? 'Page published ✅' : 'Draft saved ✅');
+            ->with('status', $statusMsg);
     }
 
     public function edit(Page $page): View
@@ -165,17 +180,34 @@ class PageAdminController extends Controller
             unset($data['published_at']);
         }
 
+        $homepageIgnored = false;
+        $homepageClearedOnDraft = false;
+
         // Only update homepage flag if the UI explicitly sends it.
         if ($request->has('is_homepage')) {
-            $data['is_homepage'] = (bool) $request->boolean('is_homepage');
+            $requestedHomepage = (bool) $request->boolean('is_homepage');
+
+            // ✅ Hard rule: homepage must be published.
+            if ($requestedHomepage && $data['status'] !== 'published') {
+                $homepageIgnored = true;
+                $data['is_homepage'] = false;
+            } else {
+                $data['is_homepage'] = $requestedHomepage;
+            }
         }
 
         $data = array_filter($data, fn ($v) => $v !== null);
 
         $page->update($data);
 
+        // If a page that is currently the homepage is moved back to draft, clear homepage selection.
+        if ($page->status !== 'published' && $this->isCurrentHomepage($page)) {
+            $this->clearHomepageSelection();
+            $homepageClearedOnDraft = true;
+        }
+
         // Enforce single homepage if flagged during update.
-        if (!empty($data['is_homepage'])) {
+        if (!empty($data['is_homepage']) && $page->status === 'published') {
             $this->makeHomepage($page);
         }
 
@@ -186,7 +218,15 @@ class PageAdminController extends Controller
             $page->seo()->create($seo);
         }
 
-        return back()->with('status', $page->status === 'published' ? 'Page updated ✅' : 'Draft updated ✅');
+        $statusMsg = $page->status === 'published' ? 'Page updated ✅' : 'Draft updated ✅';
+        if ($homepageIgnored) {
+            $statusMsg .= ' (Homepage was not set because only published pages can be the homepage.)';
+        }
+        if ($homepageClearedOnDraft) {
+            $statusMsg .= ' (Homepage cleared because this page is no longer published.)';
+        }
+
+        return back()->with('status', $statusMsg);
     }
 
     /**
@@ -208,8 +248,43 @@ class PageAdminController extends Controller
         return back()->with('status', 'Homepage updated ✅');
     }
 
+    /**
+     * Toggle OFF: Clear homepage selection.
+     * Useful when you want to delete/reset pages without being blocked by homepage rules.
+     */
+    public function unsetHomepage(Page $page): RedirectResponse
+    {
+        if (!$this->isCurrentHomepage($page)) {
+            return back()->with('status', 'Homepage unchanged ✅');
+        }
+
+        $this->clearHomepageSelection();
+
+        return back()->with('status', 'Homepage cleared ✅');
+    }
+
+    /**
+     * Global: Clear homepage selection (no page is marked as homepage).
+     */
+    public function clearHomepage(): RedirectResponse
+    {
+        $this->clearHomepageSelection();
+
+        return back()->with('status', 'Homepage cleared ✅');
+    }
+
     private function makeHomepage(Page $page): void
     {
+        // ✅ Hard rule: homepage must be published.
+        if ($page->status !== 'published') {
+            // Fail-safe: never allow a draft to remain flagged.
+            if ($page->is_homepage) {
+                $page->is_homepage = false;
+                $page->save();
+            }
+            return;
+        }
+
         // Clear existing homepage flags everywhere (including trashed) to keep it single.
         Page::withTrashed()->where('id', '!=', $page->id)->update(['is_homepage' => false]);
 
@@ -219,6 +294,15 @@ class PageAdminController extends Controller
 
         // Persist selection in settings (used by '/' resolver).
         Setting::set('homepage_page_id', (string) $page->id);
+    }
+
+    private function clearHomepageSelection(): void
+    {
+        // Clear settings-based selection.
+        Setting::set('homepage_page_id', '0');
+
+        // Clear all flags (including trashed) so admin UI stays consistent.
+        Page::withTrashed()->update(['is_homepage' => false]);
     }
 
     private function isCurrentHomepage(Page $page): bool
@@ -239,7 +323,7 @@ class PageAdminController extends Controller
     {
         if ($this->isCurrentHomepage($page)) {
             return back()->withErrors([
-                'delete' => 'You can’t move the homepage to Trash. Set a different homepage first.',
+                'delete' => 'You can’t move the homepage to Trash. Unset the homepage first, or set a different homepage.',
             ]);
         }
 
@@ -269,7 +353,7 @@ class PageAdminController extends Controller
     {
         if ($this->isCurrentHomepage($pageTrash)) {
             return back()->withErrors([
-                'delete' => 'You can’t permanently delete the homepage. Set a different homepage first.',
+                'delete' => 'You can’t permanently delete the homepage. Unset the homepage first, or set a different homepage.',
             ]);
         }
 

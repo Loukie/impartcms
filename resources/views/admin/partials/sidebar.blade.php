@@ -99,5 +99,13 @@
             </svg>
             <span>Settings</span>
         </a>
+
+        <a href="{{ route('admin.ai-agent.edit') }}"
+           class="group flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium {{ $isActive('admin.ai-agent.*') ? 'bg-gray-900 text-white' : 'text-gray-700 hover:bg-gray-50' }}">
+            <svg class="h-4 w-4 flex-none {{ $isActive('admin.ai-agent.*') ? 'text-white' : 'text-gray-400 group-hover:text-gray-600' }}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M12 2.25a.75.75 0 0 1 .75.75v1.08a7.5 7.5 0 0 1 2.18.9l.77-.77a.75.75 0 0 1 1.06 0l1.06 1.06a.75.75 0 0 1 0 1.06l-.77.77c.39.68.68 1.42.85 2.2H19.5a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-.75.75h-1.08a7.5 7.5 0 0 1-.9 2.18l.77.77a.75.75 0 0 1 0 1.06l-1.06 1.06a.75.75 0 0 1-1.06 0l-.77-.77a7.5 7.5 0 0 1-2.2.85V21a.75.75 0 0 1-.75.75h-1.5A.75.75 0 0 1 10.5 21v-1.08a7.5 7.5 0 0 1-2.18-.9l-.77.77a.75.75 0 0 1-1.06 0L5.43 18.5a.75.75 0 0 1 0-1.06l.77-.77a7.5 7.5 0 0 1-.85-2.2H4.5a.75.75 0 0 1-.75-.75v-1.5a.75.75 0 0 1 .75-.75h1.08a7.5 7.5 0 0 1 .9-2.18l-.77-.77a.75.75 0 0 1 0-1.06l1.06-1.06a.75.75 0 0 1 1.06 0l.77.77a7.5 7.5 0 0 1 2.2-.85V3a.75.75 0 0 1 .75-.75H12Zm0 6a3.75 3.75 0 1 0 0 7.5 3.75 3.75 0 0 0 0-7.5Z"/>
+            </svg>
+            <span>AI Agent</span>
+        </a>
     </div>
 </div>

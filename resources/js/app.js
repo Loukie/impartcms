@@ -37,3 +37,6 @@ import './admin/icon-library';
 
 // Forms builder (admin only; no-op unless builder container exists)
 import './admin/forms-builder';
+
+// Admin AI helper popup (no-op unless the popup exists)
+import './admin/ai-popup';

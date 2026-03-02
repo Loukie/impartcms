@@ -42,6 +42,13 @@
     </x-slot>
 
     <div class="py-8">
+        {{-- Used by the global Admin AI popup to auto-target this page --}}
+        <div id="impart-ai-page-context"
+             class="hidden"
+             data-page-id="{{ $page->id }}"
+             data-page-title="{{ e($page->title) }}"
+             data-page-slug="{{ e($page->slug) }}"></div>
+
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             @if (session('status'))
                 <div class="mb-4 p-3 rounded bg-green-50 text-green-800 border border-green-200">

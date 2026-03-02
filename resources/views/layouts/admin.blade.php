@@ -77,6 +77,7 @@ if (empty($faviconUrl) && !empty($faviconIconJson)) {
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <title>{{ $siteName }} Admin</title>
 
@@ -171,6 +172,27 @@ if (empty($faviconUrl) && !empty($faviconIconJson)) {
                 <span>Pages</span>
             </a>
 
+            {{-- AI Site Builder --}}
+            @if(\Illuminate\Support\Facades\Route::has('admin.site-builder.create'))
+                <a href="{{ route('admin.site-builder.create') }}" class="{{ $linkBase }} {{ $isActive('admin.site-builder.*') ? $linkActive : $linkInactive }}">
+                    <svg class="h-4 w-4 flex-none {{ $isActive('admin.site-builder.*') ? $iconActive : $iconInactive }}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                        <path d="M12 2.25a.75.75 0 0 1 .75.75v1.08a7.5 7.5 0 0 1 2.18.9l.77-.77a.75.75 0 0 1 1.06 0l1.06 1.06a.75.75 0 0 1 0 1.06l-.77.77c.39.68.68 1.42.85 2.2H19.5a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-.75.75h-1.08a7.5 7.5 0 0 1-.9 2.18l.77.77a.75.75 0 0 1 0 1.06l-1.06 1.06a.75.75 0 0 1-1.06 0l-.77-.77a7.5 7.5 0 0 1-2.2.85V21a.75.75 0 0 1-.75.75h-1.5A.75.75 0 0 1 10.5 21v-1.08a7.5 7.5 0 0 1-2.18-.9l-.77.77a.75.75 0 0 1-1.06 0L5.43 18.5a.75.75 0 0 1 0-1.06l.77-.77a7.5 7.5 0 0 1-.85-2.2H4.5a.75.75 0 0 1-.75-.75v-1.5a.75.75 0 0 1 .75-.75h1.08a7.5 7.5 0 0 1 .9-2.18l-.77-.77a.75.75 0 0 1 0-1.06l1.06-1.06a.75.75 0 0 1 1.06 0l.77.77a7.5 7.5 0 0 1 2.2-.85V3a.75.75 0 0 1 .75-.75H12Zm0 6a3.75 3.75 0 1 0 0 7.5 3.75 3.75 0 0 0 0-7.5Z"/>
+                    </svg>
+                    <span>AI Site Builder</span>
+                </a>
+            @endif
+
+            {{-- AI Visual Audit (screenshots + redesign) --}}
+            @if(\Illuminate\Support\Facades\Route::has('admin.ai.visual-audit'))
+                <a href="{{ route('admin.ai.visual-audit') }}" class="{{ $linkBase }} {{ $isActive('admin.ai.visual-audit*') ? $linkActive : $linkInactive }}">
+                    <svg class="h-4 w-4 flex-none {{ $isActive('admin.ai.visual-audit*') ? $iconActive : $iconInactive }}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                        <path d="M3.75 6.75A3 3 0 0 1 6.75 3.75h10.5a3 3 0 0 1 3 3v10.5a3 3 0 0 1-3 3H6.75a3 3 0 0 1-3-3V6.75Zm3-1.5a1.5 1.5 0 0 0-1.5 1.5v10.5a1.5 1.5 0 0 0 1.5 1.5h10.5a1.5 1.5 0 0 0 1.5-1.5V6.75a1.5 1.5 0 0 0-1.5-1.5H6.75Z"/>
+                        <path d="M12 8.25a3.75 3.75 0 1 0 0 7.5 3.75 3.75 0 0 0 0-7.5Zm0 1.5a2.25 2.25 0 1 1 0 4.5 2.25 2.25 0 0 1 0-4.5Z"/>
+                    </svg>
+                    <span>AI Visual Audit</span>
+                </a>
+            @endif
+
             {{-- Media --}}
             @if(\Illuminate\Support\Facades\Route::has('admin.media.index'))
                 <a href="{{ route('admin.media.index') }}" class="{{ $linkBase }} {{ $isActive('admin.media.*') ? $linkActive : $linkInactive }}">
@@ -209,6 +231,16 @@ if (empty($faviconUrl) && !empty($faviconIconJson)) {
                         <path d="M11.983 1.5a1.5 1.5 0 0 1 1.484 1.28l.17 1.14a7.92 7.92 0 0 1 1.82.75l1.05-.5a1.5 1.5 0 0 1 1.86.53l1.5 2.6a1.5 1.5 0 0 1-.38 1.95l-.93.72c.08.6.08 1.22 0 1.82l.93.72a1.5 1.5 0 0 1 .38 1.95l-1.5 2.6a1.5 1.5 0 0 1-1.86.53l-1.05-.5a7.92 7.92 0 0 1-1.82.75l-.17 1.14A1.5 1.5 0 0 1 11.983 22.5h-3a1.5 1.5 0 0 1-1.484-1.28l-.17-1.14a7.92 7.92 0 0 1-1.82-.75l-1.05.5a1.5 1.5 0 0 1-1.86-.53l-1.5-2.6a1.5 1.5 0 0 1 .38-1.95l.93-.72a7.7 7.7 0 0 1 0-1.82l-.93-.72a1.5 1.5 0 0 1-.38-1.95l1.5-2.6a1.5 1.5 0 0 1 1.86-.53l1.05.5c.58-.3 1.18-.56 1.82-.75l.17-1.14A1.5 1.5 0 0 1 8.983 1.5h3Zm-1.5 7.5a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z"/>
                     </svg>
                     <span>Settings</span>
+                </a>
+            @endif
+
+            {{-- AI Agent --}}
+            @if(\Illuminate\Support\Facades\Route::has('admin.ai-agent.edit'))
+                <a href="{{ route('admin.ai-agent.edit') }}" class="{{ $linkBase }} {{ $isActive('admin.ai-agent.*') ? $linkActive : $linkInactive }}">
+                    <svg class="h-4 w-4 flex-none {{ $isActive('admin.ai-agent.*') ? $iconActive : $iconInactive }}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                        <path d="M12 2.25a.75.75 0 0 1 .75.75v1.08a7.5 7.5 0 0 1 2.18.9l.77-.77a.75.75 0 0 1 1.06 0l1.06 1.06a.75.75 0 0 1 0 1.06l-.77.77c.39.68.68 1.42.85 2.2H19.5a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-.75.75h-1.08a7.5 7.5 0 0 1-.9 2.18l.77.77a.75.75 0 0 1 0 1.06l-1.06 1.06a.75.75 0 0 1-1.06 0l-.77-.77a7.5 7.5 0 0 1-2.2.85V21a.75.75 0 0 1-.75.75h-1.5A.75.75 0 0 1 10.5 21v-1.08a7.5 7.5 0 0 1-2.18-.9l-.77.77a.75.75 0 0 1-1.06 0L5.43 18.5a.75.75 0 0 1 0-1.06l.77-.77a7.5 7.5 0 0 1-.85-2.2H4.5a.75.75 0 0 1-.75-.75v-1.5a.75.75 0 0 1 .75-.75h1.08a7.5 7.5 0 0 1 .9-2.18l-.77-.77a.75.75 0 0 1 0-1.06l1.06-1.06a.75.75 0 0 1 1.06 0l.77.77a7.5 7.5 0 0 1 2.2-.85V3a.75.75 0 0 1 .75-.75H12Zm0 6a3.75 3.75 0 1 0 0 7.5 3.75 3.75 0 0 0 0-7.5Z"/>
+                    </svg>
+                    <span>AI Agent</span>
                 </a>
             @endif
 
@@ -347,5 +379,8 @@ if (empty($faviconUrl) && !empty($faviconIconJson)) {
     });
 })();
 </script>
+
+{{-- Global admin AI helper (page assist popup) --}}
+@includeIf('admin.partials.ai-popup')
 </body>
 </html>

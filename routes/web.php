@@ -6,6 +6,11 @@ use App\Http\Controllers\Admin\FormSettingsAdminController;
 use App\Http\Controllers\Admin\FormSubmissionAdminController;
 use App\Http\Controllers\Admin\CustomSnippetAdminController;
 use App\Http\Controllers\Admin\LayoutBlockAdminController;
+use App\Http\Controllers\Admin\AiPageAdminController;
+use App\Http\Controllers\Admin\AiPageAssistAdminController;
+use App\Http\Controllers\Admin\AiSiteBuilderAdminController;
+use App\Http\Controllers\Admin\AiAgentSettingsController;
+use App\Http\Controllers\Admin\AiVisualAuditAdminController;
 use App\Http\Controllers\Admin\PageAdminController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\UserAdminController;
@@ -92,6 +97,14 @@ Route::middleware(['auth', 'can:access-admin'])
     ->name('pages.preview');
 
 /**
+ * ✅ Signed preview for automation (screenshots/AI visual audit)
+ * No auth required, but URL is time-limited and signed.
+ */
+Route::get('/_ai_preview/pages/{pagePreview}', [PageController::class, 'aiPreview'])
+    ->middleware(['signed'])
+    ->name('pages.aiPreview');
+
+/**
  * CMS admin routes
  */
 Route::middleware(['auth', 'can:access-admin'])
@@ -108,6 +121,16 @@ Route::middleware(['auth', 'can:access-admin'])
         // Settings
         Route::get('/settings', [SettingsController::class, 'edit'])->name('settings.edit');
         Route::put('/settings', [SettingsController::class, 'update'])->name('settings.update');
+
+        // AI Agent settings
+        Route::get('/ai-agent', [AiAgentSettingsController::class, 'edit'])->name('ai-agent.edit');
+        Route::put('/ai-agent', [AiAgentSettingsController::class, 'update'])->name('ai-agent.update');
+
+        // AI Visual Audit
+        Route::get('/ai-visual-audit', [AiVisualAuditAdminController::class, 'index'])->name('ai.visual-audit');
+        Route::post('/ai-visual-audit/redesign', [AiVisualAuditAdminController::class, 'redesign'])
+            ->middleware(['throttle:2,1'])
+            ->name('ai.visual-audit.redesign');
 
         // Trash routes
         Route::get('/pages-trash', [PageAdminController::class, 'trash'])->name('pages.trash');
@@ -142,6 +165,32 @@ Route::middleware(['auth', 'can:access-admin'])
 
         // Homepage selection (WordPress-style)
         Route::post('/pages/{page}/homepage', [PageAdminController::class, 'setHomepage'])->name('pages.setHomepage');
+        Route::post('/pages/{page}/homepage/unset', [PageAdminController::class, 'unsetHomepage'])->name('pages.unsetHomepage');
+        Route::post('/pages/homepage/clear', [PageAdminController::class, 'clearHomepage'])->name('pages.clearHomepage');
+
+        // AI page generator (creates a new Page and injects generated HTML into body)
+        Route::get('/pages-ai', [AiPageAdminController::class, 'create'])->name('pages.ai.create');
+        Route::post('/pages-ai', [AiPageAdminController::class, 'store'])
+            ->middleware(['throttle:6,1'])
+            ->name('pages.ai.store');
+
+        // AI site builder (blueprint -> bulk pages)
+        Route::get('/site-builder', [AiSiteBuilderAdminController::class, 'create'])->name('site-builder.create');
+        Route::post('/site-builder/blueprint', [AiSiteBuilderAdminController::class, 'blueprint'])
+            ->middleware(['throttle:3,1'])
+            ->name('site-builder.blueprint');
+        Route::post('/site-builder/build', [AiSiteBuilderAdminController::class, 'build'])
+            ->middleware(['throttle:2,1'])
+            ->name('site-builder.build');
+
+        // AI popup helpers
+        Route::get('/ai/pages/search', [AiPageAssistAdminController::class, 'search'])
+            ->middleware(['throttle:30,1'])
+            ->name('ai.pages.search');
+
+        Route::post('/ai/page-assist', [AiPageAssistAdminController::class, 'assist'])
+            ->middleware(['throttle:6,1'])
+            ->name('ai.page-assist');
 
         // Standard pages CRUD (destroy = Move to Trash)
         Route::resource('pages', PageAdminController::class);
