@@ -33,11 +33,6 @@ class OpenAiResponsesClient implements LlmClientInterface
             $req = $req->timeout($this->timeoutSeconds);
         }
         $res = $req->post('https://api.openai.com/v1/responses', $payload);
-            ->withToken($this->apiKey)
-            ->withHeaders([
-                'Content-Type' => 'application/json',
-            ])
-            ->post('https://api.openai.com/v1/responses', $payload);
 
         /** @var RequestException|null $ex */
         $ex = null;
