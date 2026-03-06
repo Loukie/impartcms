@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Support\Ai\LlmClientInterface;
 use App\Support\Ai\NullLlmClient;
 use App\Support\Ai\OpenAiResponsesClient;
+use App\Support\Ai\AnthropicClient;
 use App\Support\Ai\GeminiGenerateContentClient;
 use App\Support\Ai\VisionClientInterface;
 use App\Support\Ai\NullVisionClient;
@@ -84,8 +85,11 @@ class AppServiceProvider extends ServiceProvider
                     }
                 }
                 if (trim($model) === '') {
-                    $model = (string) (env('OPENAI_MODEL', 'gpt-5.2') ?? 'gpt-5.2');
+                    $model = (string) (env('OPENAI_MODEL', 'gpt-4o') ?? 'gpt-4o');
                 }
+
+                // Normalize invalid models (e.g., gpt-5.4, gpt-5.2 -> gpt-4o)
+                $model = $this->normalizeOpenAiModel($model);
 
                 // read from settings; 0 or negative means "no limit" and will skip timeout
                 $timeout = 0;
@@ -116,7 +120,57 @@ class AppServiceProvider extends ServiceProvider
             }
 
             if ($provider === 'anthropic') {
-                return new NullLlmClient('Anthropic is selected, but it is not wired up yet. Switch to OpenAI for now.');
+                $apiKey = '';
+                if ($settingsAvailable) {
+                    try {
+                        $apiKey = (string) Setting::getSecret('ai.anthropic.api_key', '');
+                    } catch (\Throwable $e) {
+                        $apiKey = '';
+                    }
+                }
+
+                if (trim($apiKey) === '') {
+                    $apiKey = (string) (env('ANTHROPIC_API_KEY', '') ?? '');
+                }
+
+                if (trim($apiKey) === '') {
+                    return new NullLlmClient('Anthropic is selected but no API key is configured. Set it in Admin → AI Agent (or ANTHROPIC_API_KEY in .env).');
+                }
+
+                $model = '';
+                if ($settingsAvailable) {
+                    try {
+                        $model = (string) (Setting::get('ai.anthropic.model', '') ?? '');
+                    } catch (\Throwable $e) {
+                        $model = '';
+                    }
+                }
+                if (trim($model) === '') {
+                    $model = (string) (env('ANTHROPIC_MODEL', 'claude-3-5-sonnet-20241022') ?? 'claude-3-5-sonnet-20241022');
+                }
+
+                $timeout = 0;
+                if ($settingsAvailable) {
+                    try {
+                        $timeout = (int) (Setting::get('ai.anthropic.timeout', 0) ?? 0);
+                    } catch (\Throwable $e) {
+                        $timeout = 0;
+                    }
+                }
+                if ($timeout <= 0) {
+                    $timeout = (int) (env('ANTHROPIC_TIMEOUT', 0) ?? 0);
+                }
+                if ($timeout <= 0) {
+                    $timeout = 600;
+                }
+                if ($timeout < 5) $timeout = 5;
+                if ($timeout > 600) $timeout = 600;
+
+                return new AnthropicClient(
+                    apiKey: $apiKey,
+                    model: $model,
+                    timeoutSeconds: $timeout,
+                );
             }
 
             if ($provider === 'gemini') {
@@ -264,5 +318,31 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Gate::define('access-admin', fn ($user) => (bool) $user->is_admin);
+    }
+
+    /**
+     * Normalize invalid/outdated OpenAI model names to valid ones.
+     */
+    private function normalizeOpenAiModel(string $model): string
+    {
+        $model = trim($model);
+        if ($model === '') {
+            return 'gpt-4o';
+        }
+
+        // Valid OpenAI models (as of March 2026)
+        $validModels = [
+            'gpt-4o',
+            'gpt-4-turbo',
+            'gpt-4',
+            'gpt-3.5-turbo',
+        ];
+
+        if (in_array($model, $validModels, true)) {
+            return $model;
+        }
+
+        // Any fake/future models (gpt-5.x, gpt-6.x, etc.) default to gpt-4o
+        return 'gpt-4o';
     }
 }

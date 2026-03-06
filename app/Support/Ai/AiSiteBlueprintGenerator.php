@@ -143,13 +143,15 @@ class AiSiteBlueprintGenerator
         $lines[] = json_encode($schema, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
         $lines[] = '';
         $lines[] = 'Rules:';
+        $lines[] = '⚠️  CRITICAL: EVERY page MUST have is_homepage field (true or false).';
         $lines[] = '- Exactly one page must have is_homepage=true.';
+        $lines[] = '- All other pages must have is_homepage=false.';
         $lines[] = '- Provide a concise tagline.';
         $lines[] = '- Each brief must include an outline of sections (Hero, Benefits, Social proof, FAQ if relevant, CTA).';
         $lines[] = '- Service detail page briefs should focus on one service each.';
         $lines[] = '- Keep it realistic and business-ready.';
         $lines[] = '';
-        $lines[] = 'Return ONLY JSON.';
+        $lines[] = 'Return ONLY valid JSON. No markdown. No backticks. Each page MUST include is_homepage field!';
 
         return implode("\n", $lines);
     }
@@ -158,6 +160,14 @@ class AiSiteBlueprintGenerator
     {
         $raw = trim($raw);
         if ($raw === '') return '';
+
+        // Check if it's HTML (error page or unexpected response)
+        if (str_contains($raw, '<!doctype') || str_contains($raw, '<html') || str_contains($raw, '<head')) {
+            \Log::error('AiSiteBlueprintGenerator: HTML response from AI', [
+                'preview' => substr($raw, 0, 200),
+            ]);
+            throw new \RuntimeException('AI returned HTML instead of JSON. This usually means an API error occurred.');
+        }
 
         // If it already looks like JSON, accept it.
         if (str_starts_with($raw, '{') && str_ends_with($raw, '}')) {
@@ -168,7 +178,7 @@ class AiSiteBlueprintGenerator
             return trim((string) $m[0]);
         }
 
-        throw new \RuntimeException('Could not extract JSON from AI output.');
+        throw new \RuntimeException('Could not extract JSON from AI output. Got: ' . substr($raw, 0, 50));
     }
 
     private function decodeJson(string $json): array
@@ -204,7 +214,9 @@ class AiSiteBlueprintGenerator
         }
 
         $homepageCount = 0;
-        foreach ($pages as $p) {
+        $homepagePageIndex = 0;
+        
+        foreach ($pages as $idx => $p) {
             if (!is_array($p)) {
                 throw new \RuntimeException('Blueprint pages must be objects.');
             }
@@ -214,15 +226,33 @@ class AiSiteBlueprintGenerator
             if (!array_key_exists('brief', $p) || trim((string) ($p['brief'] ?? '')) === '') {
                 throw new \RuntimeException('A page is missing a brief.');
             }
+            
+            // Auto-fix missing is_homepage field
             if (!array_key_exists('is_homepage', $p)) {
-                throw new \RuntimeException('Each page must include is_homepage.');
+                $pages[$idx]['is_homepage'] = false;  // Default to false, will set first to true below
             }
-            if ((bool) $p['is_homepage']) {
+            
+            if ((bool) $pages[$idx]['is_homepage']) {
                 $homepageCount++;
+                $homepagePageIndex = $idx;
             }
         }
-        if ($homepageCount !== 1) {
-            throw new \RuntimeException('Blueprint must mark exactly one page as the homepage.');
+        
+        // If no homepage was marked, mark the first page as homepage
+        if ($homepageCount === 0) {
+            $pages[0]['is_homepage'] = true;
+        } elseif ($homepageCount > 1) {
+            // If multiple marked as homepage, only keep first one
+            $found = false;
+            foreach ($pages as $idx => $p) {
+                if ((bool) $p['is_homepage']) {
+                    if (!$found) {
+                        $found = true;
+                    } else {
+                        $pages[$idx]['is_homepage'] = false;
+                    }
+                }
+            }
         }
     }
 
@@ -235,5 +265,174 @@ class AiSiteBlueprintGenerator
         $slug = trim($slug, '/');
 
         return $slug !== '' ? $slug : 'page-' . Str::lower(Str::random(6));
+    }
+
+    /**
+     * Generate a blueprint from cloned site analysis.
+     *
+     * @param array{
+     *   url: string,
+     *   title: string,
+     *   pages: array,
+     *   navigation: array<string>,
+     *   colors: array<string>,
+     *   fonts: array<string>,
+     * } $siteAnalysis
+     *
+     * @param array $designSystem Design system from DesignSystemGenerator
+     *
+     * @param string $modification Requested modification
+     *
+     * @return array{raw_json:string, blueprint:array, model?:string, meta?:array}
+     */
+    public function generateForClone(array $siteAnalysis, array $designSystem, string $modification = ''): array
+    {
+        $siteName = trim((string) ($siteAnalysis['title'] ?? 'Website'));
+        if ($siteName === '') {
+            $siteName = 'Website';
+        }
+
+        $instructions = $this->instructionsForClone();
+        $prompt = $this->promptForClone($siteAnalysis, $designSystem, $modification);
+
+        try {
+            $res = $this->llm->generateText($prompt, $instructions);
+        } catch (\Throwable $e) {
+            throw new \RuntimeException('Failed to generate blueprint: ' . $e->getMessage());
+        }
+
+        $raw = trim((string) ($res['output_text'] ?? ($res['text'] ?? '')));
+        if ($raw === '') {
+            throw new \RuntimeException('Blueprint generator returned empty response.');
+        }
+
+        // Extract JSON
+        try {
+            $json = $this->extractJsonObject($raw);
+        } catch (\Throwable $e) {
+            throw new \RuntimeException('Could not extract JSON from blueprint response: ' . $e->getMessage());
+        }
+
+        try {
+            $blueprint = $this->decodeJson($json);
+        } catch (\Throwable $e) {
+            throw new \RuntimeException('Failed to parse blueprint JSON: ' . $e->getMessage());
+        }
+
+        $this->validateBlueprint($blueprint, 'business');
+
+        // Normalise slugs
+        if (isset($blueprint['pages']) && is_array($blueprint['pages'])) {
+            $norm = [];
+            foreach ($blueprint['pages'] as $p) {
+                if (!is_array($p)) continue;
+                $title = trim((string) ($p['title'] ?? ''));
+                $slug = trim((string) ($p['slug'] ?? ''));
+                if ($slug === '' && $title !== '') {
+                    $slug = Str::slug($title);
+                }
+                $p['slug'] = $this->normaliseSlug($slug);
+                $norm[] = $p;
+            }
+            $blueprint['pages'] = $norm;
+        }
+
+        return [
+            'raw_json' => $json,
+            'blueprint' => $blueprint,
+            'model' => $res['model'] ?? null,
+            'meta' => $res['meta'] ?? null,
+        ];
+    }
+
+    private function instructionsForClone(): string
+    {
+        return implode("\n", [
+            'Return ONLY valid JSON. No markdown. No backticks. No commentary.',
+            'The JSON must match the schema exactly.',
+            'Do not include any HTML in the JSON, only plain text briefs.',
+            'Keep meta_description <= 160 characters.',
+            'All slugs must be lowercase and URL-safe (a-z, 0-9, dashes, optional /).',
+            'Briefs should reference the design system for styling consistency.',
+        ]);
+    }
+
+    private function promptForClone(array $siteAnalysis, array $designSystem, string $modification): string
+    {
+        $siteTitle = $siteAnalysis['title'] ?? 'Website';
+        $pageCount = count($siteAnalysis['pages'] ?? []);
+        $navItems = implode(', ', array_slice($siteAnalysis['navigation'] ?? [], 0, 8));
+        $primaryColor = $designSystem['primary_color'] ?? '#3498db';
+        $layout = $designSystem['layout_pattern'] ?? 'modern';
+        $navStyle = $designSystem['nav_style'] ?? 'top-bar';
+
+        $pageExamples = '';
+        foreach (array_slice($siteAnalysis['pages'] ?? [], 0, 3) as $page) {
+            $pageExamples .= "\n- " . ($page['title'] ?? 'Page') . ": " . mb_substr((string) ($page['content_sample'] ?? ''), 0, 100);
+        }
+
+        $schema = [
+            'site' => [
+                'name' => 'string',
+                'tagline' => 'string',
+                'tone' => 'string',
+                'primary_cta' => 'string',
+                'nav' => ['array of page titles in order'],
+            ],
+            'pages' => [[
+                'title' => 'string',
+                'slug' => 'string (no leading slash)',
+                'is_homepage' => 'boolean',
+                'template' => 'string (use "blank")',
+                'meta_title' => 'string',
+                'meta_description' => 'string (<=160 chars)',
+                'brief' => 'string (plain text brief including design system reference)',
+            ]],
+        ];
+
+        $lines = [];
+        $lines[] = 'Clone and improve a website with a unified design system.';
+        $lines[] = '';
+        $lines[] = 'Source site: ' . $siteTitle;
+        $lines[] = 'Page count: ' . $pageCount;
+        $lines[] = 'Navigation: ' . $navItems;
+        $lines[] = '';
+        $lines[] = 'Unified Design System:';
+        $lines[] = '- Primary Color: ' . $primaryColor;
+        $lines[] = '- Layout Pattern: ' . $layout;
+        $lines[] = '- Navigation Style: ' . $navStyle;
+        $lines[] = '- Heading Font: ' . ($designSystem['heading_font'] ?? 'Segoe UI');
+        $lines[] = '- Body Font: ' . ($designSystem['body_font'] ?? 'Segoe UI');
+        $lines[] = '';
+        $lines[] = 'Original Content Sample:' . $pageExamples;
+
+        if (trim($modification) !== '') {
+            $lines[] = '';
+            $lines[] = 'Improvement: ' . $modification;
+        }
+
+        $lines[] = '';
+        $lines[] = 'Schema:';
+        $lines[] = json_encode($schema, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
+        $lines[] = '';
+        $lines[] = 'Rules:';
+        $lines[] = '⚠️  CRITICAL: EVERY page MUST have is_homepage field (true or false).';
+        $lines[] = '- Exactly one page must have is_homepage=true (usually the Home page).';
+        $lines[] = '- All other pages must have is_homepage=false.';
+        $lines[] = '- Maintain the original site structure and navigation.';
+        $lines[] = '- Preserve all page titles and sections from the original.';
+        $lines[] = '- Each brief must describe content in context of the design system.';
+        $lines[] = '- Include suggestions for using primary_color, layout, and nav_style in visual hierarchy.';
+        $lines[] = '- Briefs should highlight opportunities for visual richness: hero sections with backgrounds, service cards in grids, testimonials with blockquotes, image+text sections.';
+        $lines[] = '- Suggest layout patterns: hero at top, then alternating image-left/text-right sections, card grids for services, testimonials with author info.';
+        $lines[] = '- Mention color applications: use primary_color for CTAs and important elements, rotate section backgrounds for visual separation.';
+        $lines[] = '- Include guidance on using spacing, shadows, and border-radius for professional polish.';
+        $lines[] = '- For service/product pages: recommend card layouts with icons/emojis, descriptions, and CTAs.';
+        $lines[] = '- For homepages: suggest multi-section layouts with hero, benefits, key services as cards, testimonials, and CTA.';
+        $lines[] = '- Keep it professional and consistent.';
+        $lines[] = '';
+        $lines[] = 'Return ONLY valid JSON. No markdown. No backticks. Each page MUST include is_homepage field!';
+
+        return implode("\n", $lines);
     }
 }

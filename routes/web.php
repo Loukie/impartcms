@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\LayoutBlockAdminController;
 use App\Http\Controllers\Admin\AiPageAdminController;
 use App\Http\Controllers\Admin\AiPageAssistAdminController;
 use App\Http\Controllers\Admin\AiSiteBuilderAdminController;
+use App\Http\Controllers\Admin\AiSiteCloneAdminController;
 use App\Http\Controllers\Admin\AiAgentSettingsController;
 use App\Http\Controllers\Admin\AiVisualAuditAdminController;
 use App\Http\Controllers\Admin\PageAdminController;
@@ -188,6 +189,17 @@ Route::middleware(['auth', 'can:access-admin'])
             ->middleware(['throttle:2,1'])
             ->name('site-builder.build');
 
+        // AI site cloning (fetch existing site -> improve & clone)
+        Route::get('/site-clone', [AiSiteCloneAdminController::class, 'create'])->name('site-clone.create');
+        Route::get('/site-clone/health', [AiSiteCloneAdminController::class, 'health'])->name('site-clone.health');
+        Route::get('/site-clone/debug-llm', [AiSiteCloneAdminController::class, 'debugLlm'])->name('site-clone.debug-llm');
+        Route::post('/site-clone/analyze', [AiSiteCloneAdminController::class, 'analyze'])
+            ->middleware(['throttle:3,1'])
+            ->name('site-clone.analyze');
+        Route::post('/site-clone/build', [AiSiteCloneAdminController::class, 'build'])
+            ->middleware(['throttle:2,1'])
+            ->name('site-clone.build');
+
         // AI popup helpers
         Route::get('/ai/pages/search', [AiPageAssistAdminController::class, 'search'])
             ->middleware(['throttle:30,1'])
@@ -257,6 +269,133 @@ Route::post('/forms/{form:slug}/submit', [FormSubmissionController::class, 'subm
  * Auth routes (login/register/etc)
  */
 require __DIR__ . '/auth.php';
+
+/**
+ * Public debug endpoints (for testing without auth)
+ */
+Route::get('/test/llm-config', function () {
+    $llm = app(\App\Support\Ai\LlmClientInterface::class);
+    $config = [
+        'llm_class' => get_class($llm),
+        'is_null' => $llm instanceof \App\Support\Ai\NullLlmClient,
+        'timestamp' => now()->toIso8601String(),
+    ];
+    
+    if (!($llm instanceof \App\Support\Ai\NullLlmClient)) {
+        try {
+            $result = $llm->generateText('reply: ok');
+            $config['test_result'] = 'success';
+            $config['response_length'] = strlen($result['output_text'] ?? '');
+            $config['response_sample'] = substr($result['output_text'], 0, 50);
+        } catch (\Throwable $e) {
+            $config['test_result'] = 'error';
+            $config['error'] = $e->getMessage();
+        }
+    }
+    
+    return response()->json($config);
+});
+
+Route::get('/test/internet-access', function () {
+    $tests = [];
+    
+    // Test 1: example.com
+    try {
+        $response = \Illuminate\Support\Facades\Http::timeout(5)->withoutVerifying()->get('https://www.example.com');
+        $tests['example.com'] = [
+            'success' => true,
+            'status' => $response->status(),
+            'content_length' => strlen($response->body()),
+        ];
+    } catch (\Throwable $e) {
+        $tests['example.com'] = [
+            'success' => false,
+            'error' => $e->getMessage(),
+        ];
+    }
+    
+    // Test 2: google.com
+    try {
+        $response = \Illuminate\Support\Facades\Http::timeout(5)->withoutVerifying()->get('https://www.google.com');
+        $tests['google.com'] = [
+            'success' => true,
+            'status' => $response->status(),
+            'content_length' => strlen($response->body()),
+        ];
+    } catch (\Throwable $e) {
+        $tests['google.com'] = [
+            'success' => false,
+            'error' => $e->getMessage(),
+        ];
+    }
+    
+    return response()->json([
+        'internet_access' => collect($tests)->every(fn($t) => $t['success'] ?? false),
+        'tests' => $tests,
+    ]);
+});
+
+Route::get('/test/site-clone-fetch/{url?}', function ($url = 'https://www.example.com') {
+    $url = urldecode($url);
+    $results = [];
+    
+    // Exactly mimic what SiteCloneAnalyzer does
+    try {
+        \Log::info('Debug: Testing site clone fetch', ['url' => $url]);
+        
+        $response = \Illuminate\Support\Facades\Http::withUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
+            ->withHeaders([
+                'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Accept-Language' => 'en-US,en;q=0.5',
+                'Accept-Encoding' => 'gzip, deflate',
+                'DNT' => '1',
+                'Connection' => 'keep-alive',
+                'Upgrade-Insecure-Requests' => '1',
+            ])
+            ->timeout(30)
+            ->retry(2, 500)
+            ->withoutVerifying()
+            ->get($url);
+
+        $response->throw();
+        
+        $body = (string) $response->body();
+        
+        $results['fetch_success'] = true;
+        $results['status'] = $response->status();
+        $results['content_type'] = $response->header('Content-Type');
+        $results['content_length'] = strlen($body);
+        $results['first_100_chars'] = substr($body, 0, 100);
+        
+        // Check if HTML
+        $isHtml = stripos($response->header('Content-Type'), 'text/html') !== false || 
+                  preg_match('/<html|<!doctype/i', substr($body, 0, 500));
+        $results['is_valid_html'] = $isHtml;
+        
+        if (!$isHtml) {
+            $results['warning'] = 'Response does not appear to be HTML';
+        }
+        
+    } catch (\Illuminate\Http\Client\ConnectionException $e) {
+        $results['fetch_success'] = false;
+        $results['error_type'] = 'ConnectionException';
+        $results['error'] = $e->getMessage();
+    } catch (\Illuminate\Http\Client\RequestException $e) {
+        $results['fetch_success'] = false;
+        $results['error_type'] = 'RequestException';
+        $results['status'] = $e->response?->status() ?? 'unknown';
+        $results['error'] = $e->getMessage();
+    } catch (\Throwable $e) {
+        $results['fetch_success'] = false;
+        $results['error_type'] = get_class($e);
+        $results['error'] = $e->getMessage();
+    }
+    
+    return response()->json([
+        'url' => $url,
+        'results' => $results,
+    ]);
+});
 
 /**
  * ✅ Public CMS pages (published only) - MUST be last

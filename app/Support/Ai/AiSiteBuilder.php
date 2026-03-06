@@ -51,6 +51,11 @@ class AiSiteBuilder
         $reportRows = [];
         $warnings = [];
 
+        $canonicalNavHtml = $this->buildCanonicalNavigationHtml(
+            $pages,
+            (array) ($options['design_system'] ?? [])
+        );
+
         // Published homepage ID (only set if the homepage ends up published)
         $homepageId = null;
         // Track intended homepage (even if draft) for helpful warnings
@@ -122,9 +127,11 @@ class AiSiteBuilder
                         'title' => $title,
                         'style_mode' => $styleMode,
                         'full_document' => false,
+                        'design_system' => $options['design_system'] ?? [],
                     ]);
 
-                    $page->body = (string) ($gen['clean_html'] ?? '');
+                    $body = (string) ($gen['clean_html'] ?? '');
+                    $page->body = $this->applyCanonicalNavigation($body, $canonicalNavHtml);
                 } catch (\Throwable $e) {
                     // We still create the page, but leave it blank so nothing breaks.
                     $page->body = '';
@@ -239,5 +246,242 @@ class AiSiteBuilder
             $i++;
         }
         return $slug;
+    }
+
+    /**
+     * Build a single shared nav HTML block for all generated pages.
+     */
+    private function buildCanonicalNavigationHtml(array $pages, array $designSystem = []): string
+    {
+        if (count($pages) === 0) {
+            return '';
+        }
+
+        $primaryColor = trim((string) ($designSystem['primary_color'] ?? '#2563eb'));
+        if ($primaryColor === '') {
+            $primaryColor = '#2563eb';
+        }
+
+        $textColor = trim((string) ($designSystem['text_color'] ?? '#1f2937'));
+        if ($textColor === '') {
+            $textColor = '#1f2937';
+        }
+
+        $navItems = [];
+        foreach ($pages as $page) {
+            if (!is_array($page)) {
+                continue;
+            }
+
+            $title = trim((string) ($page['title'] ?? ''));
+            if ($title === '') {
+                continue;
+            }
+
+            $isHomepage = (bool) ($page['is_homepage'] ?? false);
+            $slug = trim((string) ($page['slug'] ?? Str::slug($title)));
+            $slug = $this->normaliseSlug($slug);
+
+            $href = $isHomepage ? '/' : '/' . ltrim($slug, '/');
+            $navItems[] = [
+                'title' => $title,
+                'href' => $href,
+            ];
+        }
+
+        if (count($navItems) === 0) {
+            return '';
+        }
+
+        $links = '';
+        foreach ($navItems as $item) {
+            $title = e($item['title']);
+            $href = e($item['href']);
+            $links .= '<a href="' . $href . '" style="text-decoration:none;color:' . e($textColor) . ';font-weight:600;padding:8px 10px;border-radius:8px;">' . $title . '</a>';
+        }
+
+        return '<nav data-ai-shared-nav="1" style="position:sticky;top:0;z-index:40;background:#ffffff;border-bottom:1px solid #e5e7eb;padding:12px 16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">'
+            . '<span style="display:inline-block;width:10px;height:10px;border-radius:999px;background:' . e($primaryColor) . ';"></span>'
+            . $links
+            . '</nav>';
+    }
+
+    /**
+     * Ensure each page uses exactly one canonical nav at the top.
+     */
+    private function applyCanonicalNavigation(string $bodyHtml, string $canonicalNavHtml): string
+    {
+        if (trim($canonicalNavHtml) === '') {
+            return $bodyHtml;
+        }
+
+        $body = trim($bodyHtml);
+        if ($body === '') {
+            return $canonicalNavHtml;
+        }
+
+        // Remove the first existing nav block if present to avoid duplicate menu bars.
+        $body = preg_replace('/<nav\\b[^>]*>.*?<\\/nav>/is', '', $body, 1) ?? $body;
+
+        // Inject global CSS for professional polish
+        $css = $this->buildGlobalStyling();
+
+        return $canonicalNavHtml . "\n" . $css . "\n" . ltrim($body);
+    }
+
+    /**
+     * Generate global CSS for professional visual polish across all cloned pages.
+     */
+    private function buildGlobalStyling(): string
+    {
+        return <<<'CSS'
+<style>
+    :root {
+        --spacing-xs: 8px;
+        --spacing-sm: 16px;
+        --spacing-md: 24px;
+        --spacing-lg: 32px;
+        --spacing-xl: 48px;
+        --spacing-2xl: 64px;
+        --border-radius: 8px;
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
+        --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05);
+        --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.15);
+    }
+
+    /* Global section styling */
+    section {
+        scroll-margin-top: 80px;
+    }
+
+    /* Alternating section backgrounds */
+    section:nth-child(even) {
+        background-color: #f9fafb;
+    }
+
+    /* Container max-width for readability */
+    section > div:first-child {
+        max-width: 1200px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    /* Responsive grid defaults */
+    [style*="grid-template-columns"] {
+        gap: var(--spacing-lg);
+    }
+
+    /* Card hover effects */
+    [style*="box-shadow"] {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    [style*="box-shadow"]:hover {
+        box-shadow: var(--shadow-xl) !important;
+        transform: translateY(-4px);
+    }
+
+    /* Link/button hover effects */
+    a[style*="padding"][style*="background"],
+    a[style*="padding"][style*="color"] {
+        transition: all 0.3s ease;
+    }
+
+    a[style*="padding"][style*="background"]:hover {
+        opacity: 0.9;
+        transform: translateY(-2px);
+    }
+
+    /* Typography hierarchy */
+    h1 {
+        line-height: 1.2;
+        letter-spacing: -0.02em;
+        margin-bottom: var(--spacing-md);
+    }
+
+    h2 {
+        line-height: 1.3;
+        letter-spacing: -0.01em;
+        margin-bottom: var(--spacing-md);
+    }
+
+    h3, h4, h5, h6 {
+        line-height: 1.4;
+        margin-bottom: var(--spacing-sm);
+    }
+
+    p {
+        line-height: 1.6;
+        margin-bottom: var(--spacing-md);
+        color: #4b5563;
+    }
+
+    /* Image responsiveness and styling */
+    img {
+        max-width: 100% !important;
+        height: auto !important;
+        display: block;
+    }
+
+    /* Blockquote styling */
+    blockquote {
+        margin: var(--spacing-lg) 0;
+        padding: var(--spacing-md) var(--spacing-lg);
+        border-left: 4px solid currentColor;
+        background: rgba(255, 255, 255, 0.5);
+        opacity: 0.85;
+        font-style: italic;
+        border-radius: 4px;
+    }
+
+    /* List improvements */
+    ul, ol {
+        margin-bottom: var(--spacing-md);
+        padding-left: var(--spacing-lg);
+        line-height: 1.8;
+    }
+
+    li {
+        margin-bottom: var(--spacing-sm);
+    }
+
+    /* Responsive design for mobile */
+    @media (max-width: 768px) {
+        section {
+            padding: 40px 16px;
+        }
+
+        h1 {
+            font-size: 32px;
+        }
+
+        h2 {
+            font-size: 24px;
+        }
+
+        [style*="grid-template-columns"],
+        [style*="grid"] {
+            grid-template-columns: 1fr !important;
+        }
+
+        [style*="display: grid; gap"],
+        [style*="display: flex; gap"] {
+            flex-direction: column;
+        }
+    }
+
+    /* Print styles */
+    @media print {
+        section {
+            page-break-inside: avoid;
+        }
+
+        a {
+            text-decoration: underline;
+        }
+    }
+</style>
+CSS;
     }
 }

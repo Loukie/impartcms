@@ -44,7 +44,7 @@
                             <select id="ai_provider" name="provider" class="mt-1 block w-full rounded-md border-gray-300 focus:border-gray-500 focus:ring-gray-500">
                                 <option value="openai" {{ old('provider', $provider) === 'openai' ? 'selected' : '' }}>OpenAI</option>
                                 <option value="gemini" {{ old('provider', $provider) === 'gemini' ? 'selected' : '' }}>Google Gemini</option>
-                                <option value="anthropic" {{ old('provider', $provider) === 'anthropic' ? 'selected' : '' }}>Anthropic (Claude) — coming soon</option>
+                                <option value="anthropic" {{ old('provider', $provider) === 'anthropic' ? 'selected' : '' }}>Anthropic (Claude){{ old('provider', $provider) !== 'anthropic' ? ' — coming soon' : '' }}</option>
                                 <option value="disabled" {{ old('provider', $provider) === 'disabled' ? 'selected' : '' }}>Disabled</option>
                             </select>
                             @error('provider') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
@@ -104,7 +104,7 @@
                                     <input type="text"
                                            id="openai_model_custom"
                                            value="{{ old('openAiModelCustom', $openAiModelCustom) }}"
-                                           placeholder="e.g. gpt-5.2"
+                                           placeholder="e.g. gpt-4o"
                                            class="mt-1 block w-full rounded-md border-gray-300 focus:border-gray-500 focus:ring-gray-500" />
                                     <p class="mt-1 text-xs text-gray-500">Only use this if your model isn’t in the list.</p>
                                 </div>

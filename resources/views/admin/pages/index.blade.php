@@ -18,16 +18,21 @@
                     </a>
                 @endif
 
-                @if(\Illuminate\Support\Facades\Route::has('admin.pages.clearHomepage'))
-                    <form method="POST" action="{{ route('admin.pages.clearHomepage') }}" class="inline"
-                          onsubmit="return confirm('Clear homepage selection? This will unmark the homepage and let you trash/delete pages freely.');">
-                        @csrf
-                        <button type="submit"
-                                class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 uppercase tracking-widest hover:bg-gray-50">
-                            Clear Home
-                        </button>
-                    </form>
+                @if(\Illuminate\Support\Facades\Route::has('admin.site-clone.create'))
+                    <a href="{{ route('admin.site-clone.create') }}"
+                       class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 uppercase tracking-widest hover:bg-gray-50">
+                        Clone Website
+                    </a>
                 @endif
+
+                <form method="POST" action="{{ route('admin.pages.clearHomepage') }}" class="inline"
+                      onsubmit="return confirm('Clear homepage selection? This will unmark the homepage and let you trash/delete pages freely.');">
+                    @csrf
+                    <button type="submit"
+                            class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 uppercase tracking-widest hover:bg-gray-50">
+                        Clear Home
+                    </button>
+                </form>
 
                 <a href="{{ route('admin.pages.trash') }}"
                    class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 uppercase tracking-widest hover:bg-gray-50">
