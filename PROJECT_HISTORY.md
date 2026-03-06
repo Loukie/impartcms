@@ -771,4 +771,119 @@ php artisan optimize:clear        # Clear caches
 **Document History**
 - 2026-02-20: Initial ChatGPT change log created
 - 2026-03-02: Merged with base project history; added AI integration, bulk admin actions, and fixes
+- 2026-03-06: Site cloning feature implementation with AI-powered analysis and design extraction
 
+---
+
+# Part 4: Site Cloning & Enhanced AI Features
+
+## 2026-03-06 – Site Cloning Feature Implementation
+
+**What was done**
+- Complete site cloning workflow (analyze → design system → blueprint → build)
+- Implemented `SiteCloneAnalyzer` for fetching and parsing external websites
+  - HTTP client with retry logic, SSL bypass for dev, proper User-Agent headers
+  - HTML parsing via Symfony DomCrawler
+  - Navigation extraction, page discovery, content sampling
+  - Enhanced color detection (inline styles + CSS <style> tags)
+  - Font detection from Google Fonts links
+- Added `DesignSystemGenerator` for extracting unified design tokens
+  - Analyzes site structure and generates cohesive color palette
+  - Determines layout patterns, nav style, typography
+  - AI-powered design system unification
+- Enhanced `AiSiteBlueprintGenerator` with `generateForClone()` method
+  - Clone-specific prompting with design system context
+  - Visual richness guidance (hero sections, cards, testimonials)
+  - Auto-fix for missing `is_homepage` field
+- Improved `AiPageGenerator` with rich section templates
+  - Hero sections with backgrounds and CTAs
+  - Service/feature card grids with icons
+  - Testimonial blocks with author attribution
+  - Alternating image+text sections
+  - Stats displays and full-width CTAs
+- Enhanced `AiSiteBuilder` with canonical navigation and global CSS
+  - Shared navigation extracted once and injected into all pages
+  - Global CSS styling with design system variables
+  - Professional polish (shadows, hover effects, spacing)
+- Created `AiSiteCloneAdminController`
+  - POST `/admin/site-clone/analyze` - fetch and analyze site
+  - POST `/admin/site-clone/build` - build cloned pages
+  - GET `/admin/site-clone/health` - LLM health check
+  - GET `/admin/site-clone/debug-llm` - debug endpoint
+- Built Vue 2 frontend UI (`ai-clone-site.blade.php`)
+  - Step-by-step clone workflow
+  - Pre-flight LLM health check
+  - Analysis review (site title, nav, colors, pages found)
+  - Design system preview
+  - Build options (draft/publish, set homepage)
+- Fixed OpenAI model configuration issues
+  - Corrected default model from non-existent `gpt-5.x` to `gpt-4o`
+  - Added model normalization function
+  - Updated AI agent settings UI to show only valid models
+- Fixed HTTP client compatibility issue (`followRedirects()` method doesn't exist)
+- Created debug/test endpoints
+  - `/test/llm-config` - verify LLM configuration
+  - `/test/internet-access` - test outbound connectivity
+  - `/test/site-clone-fetch/{url}` - test URL fetching
+- Enhanced error handling with detailed logging throughout pipeline
+
+**Why**
+- Users need ability to clone existing sites with AI-powered improvements (like same.new)
+- Design system extraction ensures visual consistency across cloned pages
+- Rich templates create professional, modern-looking cloned sites
+- Debug endpoints help troubleshoot configuration and connectivity issues
+
+**Files created**
+- `app/Http/Controllers/Admin/AiSiteCloneAdminController.php`
+- `app/Support/Ai/SiteCloneAnalyzer.php`
+- `app/Support/Ai/DesignSystemGenerator.php`
+- `app/Support/Ai/AnthropicClient.php` (prepared for future use)
+- `app/Support/Ai/LinkRewriter.php` (URL normalization)
+- `resources/views/admin/pages/ai-clone-site.blade.php`
+
+**Files modified**
+- `app/Support/Ai/AiSiteBlueprintGenerator.php` - added clone-specific generation
+- `app/Support/Ai/AiPageGenerator.php` - rich section template guidance
+- `app/Support/Ai/AiSiteBuilder.php` - canonical nav + global CSS injection
+- `app/Support/Ai/OpenAiResponsesClient.php` - model validation fixes
+- `app/Providers/AppServiceProvider.php` - model normalization, default to gpt-4o
+- `app/Http/Controllers/Admin/AiAgentSettingsController.php` - model options updated
+- `routes/web.php` - clone routes, debug endpoints
+- `.env.example` - corrected default OpenAI model
+
+**Resolved** ✅
+- Complete site cloning workflow from URL to published pages
+- External website fetching with proper headers and SSL handling
+- Color extraction from inline styles and CSS
+- Design system unification via AI
+- Canonical navigation consistency across all cloned pages
+- Rich, professional page layouts with visual polish
+- Model configuration validation and normalization
+- LLM health checking before clone operations
+- Auto-fix for missing blueprint fields
+
+**Partially resolved** ⚠️
+- Color detection works but may miss colors in external CSS files (only scans inline + <style> tags)
+- No CSS stylesheet parsing (future enhancement)
+
+**Not resolved** ❌
+- External CSS file parsing for comprehensive color extraction
+- Image downloading/hosting (cloned sites link to original images)
+- JavaScript functionality cloning (only HTML/CSS)
+
+**Known issues**
+- Color detection limited to inline styles and embedded CSS
+- Requires internet access from server to clone external sites
+- Some sites block automated access (403 Forbidden)
+- Cloned sites may need manual color refinement
+
+**Technical notes**
+- HTTP client uses `withoutVerifying()` for SSL bypass in local dev
+- Laravel HTTP client doesn't have `followRedirects()` method (redirects handled automatically)
+- Vue 2.6.14 loaded from CDN for frontend interactivity
+- Retry logic: 2 retries with 500ms delay
+- Max pages per clone: 3-15 (configurable)
+- Color extraction returns up to 8 colors, filters out near-white/near-black
+- Blueprint validation auto-adds missing `is_homepage` field (defaults first page to true)
+
+---
