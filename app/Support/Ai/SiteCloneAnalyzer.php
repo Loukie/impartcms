@@ -59,8 +59,10 @@ class SiteCloneAnalyzer
         $pages = $this->extractPages($crawler, $url, array_slice($navLinks, 0, $maxPages));
 
         // Extract design elements
-        $colors = $this->extractColors($crawler);
+        $colors = $this->extractColors($crawler, $url);
         $fonts = $this->extractFonts($crawler);
+        $images = $this->extractImages($crawler, $url);
+        $videos = $this->extractVideos($crawler, $url);
 
         return [
             'url' => $url,
@@ -69,6 +71,8 @@ class SiteCloneAnalyzer
             'navigation' => $navLinks,
             'colors' => $colors,
             'fonts' => $fonts,
+            'images' => $images,
+            'videos' => $videos,
         ];
     }
 
@@ -315,7 +319,7 @@ class SiteCloneAnalyzer
         }
     }
 
-    private function extractColors(Crawler $crawler): array
+    private function extractColors(Crawler $crawler, string $baseUrl): array
     {
         $colors = [];
 
@@ -323,7 +327,7 @@ class SiteCloneAnalyzer
         try {
             $crawler->filterXPath('//*[@style]')->each(function (Crawler $node) use (&$colors) {
                 $style = (string) $node->attr('style');
-                if (preg_match_all('/#[0-9a-fA-F]{6}|rgb\([^)]+\)|rgba\([^)]+\)/', $style, $matches)) {
+                if (preg_match_all('/#[0-9a-fA-F]{6}|#[0-9a-fA-F]{3}|rgb\([^)]+\)|rgba\([^)]+\)/', $style, $matches)) {
                     $colors = array_merge($colors, $matches[0]);
                 }
             });
@@ -343,20 +347,58 @@ class SiteCloneAnalyzer
             // Continue
         }
 
-        // Normalize hex colors to 6-digit format
+        // Extract colors from external CSS files (NEW!)
+        try {
+            $crawler->filterXPath('//link[@rel="stylesheet"]')->each(function (Crawler $node) use (&$colors, $baseUrl) {
+                $href = (string) $node->attr('href');
+                if (trim($href) === '') {
+                    return;
+                }
+
+                // Make URL absolute
+                $cssUrl = $this->resolveUrl($href, $baseUrl);
+
+                try {
+                    \Log::info('Fetching external CSS', ['url' => $cssUrl]);
+                    $response = \Illuminate\Support\Facades\Http::timeout(10)
+                        ->withoutVerifying()
+                        ->get($cssUrl);
+                    
+                    if ($response->successful()) {
+                        $css = (string) $response->body();
+                        if (preg_match_all('/#[0-9a-fA-F]{6}|#[0-9a-fA-F]{3}|rgb\([^)]+\)|rgba\([^)]+\)/', $css, $matches)) {
+                            $colors = array_merge($colors, $matches[0]);
+                            \Log::info('Found colors in CSS', ['count' => count($matches[0]), 'url' => $cssUrl]);
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    \Log::debug('Failed to fetch CSS file', ['url' => $cssUrl, 'error' => $e->getMessage()]);
+                    // Continue with other files
+                }
+            });
+        } catch (\Throwable $e) {
+            // Continue
+        }
+
+        // Normalize hex colors to 6-digit format and uppercase
         $colors = array_map(function($color) {
-            // Expand 3-digit hex to 6-digit (#fff -> #ffffff)
+            // Expand 3-digit hex to 6-digit (#e09 -> #EE0099)
             if (preg_match('/#([0-9a-fA-F]{3})$/i', $color, $m)) {
-                return '#' . implode('', array_map(fn($c) => $c.$c, str_split($m[1])));
+                return strtoupper('#' . implode('', array_map(fn($c) => $c.$c, str_split($m[1]))));
+            }
+            // Normalize to uppercase
+            if (preg_match('/#[0-9a-fA-F]{6}/i', $color)) {
+                return strtoupper($color);
             }
             return $color;
         }, $colors);
 
-        // Remove duplicates and keep most common colors
-        $colors = array_unique($colors);
-        
-        // Filter out very light/dark grays that aren't meaningful
-        $colors = array_filter($colors, function($color) {
+        // Count color frequency
+        $colorCounts = array_count_values($colors);
+        arsort($colorCounts);  // Sort by frequency (most common first)
+
+        // Filter out very light/dark colors that aren't meaningful
+        $colorCounts = array_filter($colorCounts, function($count, $color) {
             // Remove very light (#f0f0f0+) or very dark (#1a1a1a-) unless they're meaningful
             if (preg_match('/#([0-9a-fA-F]{6})/i', $color, $m)) {
                 $hex = $m[1];
@@ -365,15 +407,16 @@ class SiteCloneAnalyzer
                 $g = hexdec(substr($hex, 2, 2));
                 $b = hexdec(substr($hex, 4, 2));
                 
-                // Skip if it's basically white (>240) or black (<15)
-                if (($r > 240 && $g > 240 && $b > 240) || ($r < 15 && $g < 15 && $b < 15)) {
+                // Skip if it's basically white (>245) or black (<10)
+                if (($r > 245 && $g > 245 && $b > 245) || ($r < 10 && $g < 10 && $b < 10)) {
                     return false;
                 }
             }
             return true;
-        });
+        }, ARRAY_FILTER_USE_BOTH);
 
-        return array_slice(array_values($colors), 0, 8);  // Return up to 8 colors instead of 5
+        // Return top colors by frequency (up to 12)
+        return array_slice(array_keys($colorCounts), 0, 12);
     }
 
     private function extractFonts(Crawler $crawler): array
@@ -397,6 +440,125 @@ class SiteCloneAnalyzer
 
         $fonts = array_unique($fonts);
         return array_slice(array_values($fonts), 0, 3);
+    }
+
+    private function extractImages(Crawler $crawler, string $baseUrl): array
+    {
+        $images = [
+            'logo' => null,
+            'hero' => [],
+            'content' => [],
+            'icons' => [],
+        ];
+
+        try {
+            // Extract logo (header, footer, common logo classes/IDs)
+            $logoSelectors = [
+                '//header//img[contains(@class, "logo")]',
+                '//img[contains(@class, "logo")]',
+                '//img[contains(@id, "logo")]',
+                '//a[contains(@class, "logo")]//img',
+                '//header//img[1]',
+            ];
+            
+            foreach ($logoSelectors as $selector) {
+                try {
+                    $logoNode = $crawler->filterXPath($selector)->first();
+                    if ($logoNode->count() > 0) {
+                        $logoSrc = $logoNode->attr('src');
+                        if ($logoSrc) {
+                            $images['logo'] = $this->resolveUrl($logoSrc, $baseUrl);
+                            break;
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    continue;
+                }
+            }
+
+            // Extract hero/banner images (large images, backgrounds, first slider images)
+            $heroCount = 0;
+            $crawler->filterXPath('//header//img | //section[1]//img | //*[contains(@class, "hero")]//img | //*[contains(@class, "banner")]//img | //*[contains(@class, "slider")]//img')->each(function (Crawler $node) use (&$images, $baseUrl, &$heroCount) {
+                if ($heroCount >= 10) return;
+                $src = $node->attr('src');
+                if ($src && !in_array($this->resolveUrl($src, $baseUrl), $images['hero'])) {
+                    $images['hero'][] = $this->resolveUrl($src, $baseUrl);
+                    $heroCount++;
+                }
+            });
+
+            // Extract content images (increased limit for better coverage)
+            $contentCount = 0;
+            $crawler->filterXPath('//main//img | //article//img | //*[@id="content"]//img | //section//img')->each(function (Crawler $node) use (&$images, $baseUrl, &$contentCount) {
+                if ($contentCount >= 30) return;
+                $src = $node->attr('src');
+                if ($src) {
+                    $resolvedUrl = $this->resolveUrl($src, $baseUrl);
+                    if (!in_array($resolvedUrl, $images['content']) && !in_array($resolvedUrl, $images['hero'])) {
+                        $images['content'][] = $resolvedUrl;
+                        $contentCount++;
+                    }
+                }
+            });
+
+            // Extract icons (SVG, small images with "icon" in class/src)
+            $iconCount = 0;
+            $crawler->filterXPath('//img[contains(@class, "icon") or contains(@src, "icon")] | //svg')->each(function (Crawler $node) use (&$images, $baseUrl, &$iconCount) {
+                if ($iconCount >= 8) return;
+                if ($node->nodeName() === 'svg') {
+                    try {
+                        $images['icons'][] = ['type' => 'svg', 'html' => $node->html()];
+                        $iconCount++;
+                    } catch (\Throwable $e) {
+                        // Continue
+                    }
+                } else {
+                    $src = $node->attr('src');
+                    if ($src) {
+                        $images['icons'][] = ['type' => 'img', 'url' => $this->resolveUrl($src, $baseUrl)];
+                        $iconCount++;
+                    }
+                }
+            });
+        } catch (\Throwable $e) {
+            \Log::debug('Image extraction error', ['error' => $e->getMessage()]);
+        }
+
+        return $images;
+    }
+
+    private function extractVideos(Crawler $crawler, string $baseUrl): array
+    {
+        $videos = [];
+
+        try {
+            // Extract video elements
+            $crawler->filterXPath('//video | //iframe[contains(@src, "youtube") or contains(@src, "vimeo")]')->each(function (Crawler $node) use (&$videos, $baseUrl) {
+                if (count($videos) >= 5) return;
+                
+                if ($node->nodeName() === 'video') {
+                    $src = $node->attr('src');
+                    if ($src) {
+                        $videos[] = [
+                            'type' => 'video',
+                            'url' => $this->resolveUrl($src, $baseUrl),
+                        ];
+                    }
+                } elseif ($node->nodeName() === 'iframe') {
+                    $src = $node->attr('src');
+                    if ($src) {
+                        $videos[] = [
+                            'type' => 'embed',
+                            'url' => $src,
+                        ];
+                    }
+                }
+            });
+        } catch (\Throwable $e) {
+            \Log::debug('Video extraction error', ['error' => $e->getMessage()]);
+        }
+
+        return $videos;
     }
 
     private function slugToTitle(string $slug): string

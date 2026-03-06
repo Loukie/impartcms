@@ -771,7 +771,8 @@ php artisan optimize:clear        # Clear caches
 **Document History**
 - 2026-02-20: Initial ChatGPT change log created
 - 2026-03-02: Merged with base project history; added AI integration, bulk admin actions, and fixes
-- 2026-03-06: Site cloning feature implementation with AI-powered analysis and design extraction
+- 2026-03-06 (Part 1): Site cloning feature implementation with AI-powered analysis and design extraction
+- 2026-03-06 (Part 2): Media import integration, enhanced image extraction, soft delete system for images
 
 ---
 
@@ -885,5 +886,143 @@ php artisan optimize:clear        # Clear caches
 - Max pages per clone: 3-15 (configurable)
 - Color extraction returns up to 8 colors, filters out near-white/near-black
 - Blueprint validation auto-adds missing `is_homepage` field (defaults first page to true)
+
+---
+## 2026-03-06 Part 2 – Media Integration, Image Enhancement & Soft Delete System
+
+**What was done**
+- Created `MediaImporter` service for downloading external media
+  - Downloads images and videos from external URLs
+  - Stores to `storage/app/public/media/YYYY/MM/` with UUID filenames
+  - Supports comprehensive formats: jpg, jpeg, png, gif, webp, svg, ico, avif, bmp, tiff, mp4, webm, ogg, ogv, mov, avi, wmv, flv, mkv, m4v, 3gp
+  - Extracts image dimensions via `getimagesize()`, MIME types for all files
+  - HTTP download with timeout(15), SSL bypass, proper error handling
+  - Creates MediaFile database records with metadata (size, dimensions, MIME type, caption)
+  - User attribution via `created_by` field
+  - Full logging of import successes and failures
+- Enhanced `SiteCloneAnalyzer` image extraction
+  - Hero images: 3 → 10 (includes slider images)
+  - Content images: 10 → 30 (scans all sections, not just main/article)
+  - Better XPath selectors for broader coverage
+  - Deduplicated URLs to avoid duplicates in result sets
+- Enhanced `AiSiteBlueprintGenerator` prompting
+  - Added `📸 AVAILABLE MEDIA ASSETS` section in clone prompt
+  - Instructions to use logo URL in all page headers
+  - Instructions to reference specific image URLs in page briefs
+  - Added `🎨 ICONS` section documenting FontAwesome/Lucide shortcodes
+  - Available FontAwesome icons listed: fa-check, fa-users, fa-shield, fa-star, fa-heart, fa-phone, fa-envelope, fa-map-marker, fa-clock, fa-building, fa-cog, fa-chart-line, fa-briefcase, fa-lightbulb, fa-trophy, fa-comments, fa-thumbs-up, fa-rocket
+- Enhanced `AiPageGenerator` with icon shortcode documentation
+  - Added icon examples to brief context
+  - FontAwesome: `[icon kind="fa" value="fa-solid fa-house" size="24" colour="#..."]`
+  - Lucide: `[icon kind="lucide" value="home" size="24" colour="#..."]`
+  - Instructs AI to use shortcodes instead of downloading icon images
+- Integrated `MediaImporter` into build process (`AiSiteCloneAdminController`)
+  - Extracts all image/video URLs from analysis
+  - Downloads via MediaImporter during build
+  - Creates external URL → internal storage URL mapping
+  - Passes mapping to AiSiteBuilder
+  - Skips downloading actual icon images (uses shortcodes instead)
+  - Full logging of media import process
+- Enhanced `AiSiteBuilder` with URL replacement
+  - Added `replaceMediaUrls()` method
+  - Replaces external URLs with internal storage URLs in page briefs before AI generation
+  - Passes media_mapping via options array
+- Updated frontend (`ai-clone-site.blade.php`)
+  - Modified buildSite() to send analysis data to build endpoint
+  - Analysis includes downloaded media for URL mapping
+- Added soft delete support to `MediaFile` model
+  - Uses Laravel's SoftDeletes trait
+  - Adds `deleted_at` column via migration
+  - Files remain on disk when "deleted"
+  - Can be restored or force-deleted later
+- Enhanced media deletion workflow
+  - `MediaAdminController::bulk()` now uses soft delete
+  - `MediaAdminController::destroy()` changed to soft delete (files stay on disk)
+  - Added `MediaAdminController::trash()` - view all trashed media
+  - Added `MediaAdminController::restore()` - restore from trash
+  - Added `MediaAdminController::forceDelete()` - permanently remove from disk
+- Created media trash UI
+  - New view: `resources/views/admin/media/trash.blade.php`
+  - Shows deleted_at timestamp
+  - Restore or permanently delete buttons
+  - Displays file info (size, dimensions, original name)
+  - Paginated trash view
+- Enhanced media admin index
+  - Added "Trash" link to media type tabs
+  - Easy access to trash from main media page
+- Added routes for media trash system
+  - GET `/admin/media/trash` - view trash
+  - POST `/admin/media/trash/{id}/restore` - restore file
+  - DELETE `/admin/media/trash/{id}/force` - permanent delete
+- Enhanced `AiSiteBuilder` with improved error logging
+  - Warns when pages generate very short content (< 50 chars)
+  - Logs brief and HTML length for debugging
+  - Better error messages with page title context
+  - Adds warnings to response for user visibility
+- Improved blueprint generation prompting
+  - Added explicit brief requirements for all pages
+  - 3-5+ sentence briefs mandatory
+  - Examples of good vs bad briefs
+  - Emphasis on avoiding vague/short briefs like "Contact page"
+  - Special guidance for Privacy/Terms pages with structural requirements
+
+**Why**
+- Clone feature needs to pull images/videos from source sites and store locally
+- FontAwesome integration exists but wasn't being used by AI
+- Bulk delete should be reversible (soft delete pattern)
+- Media trash system follows WordPress conventions
+- Better error logging helps debug why some pages generate empty content
+
+**Files created**
+- `app/Support/MediaImporter.php` - service for downloading media
+- `database/migrations/2026_03_06_120000_add_deleted_at_to_media_files_table.php` - soft delete migration
+- `resources/views/admin/media/trash.blade.php` - trash view UI
+
+**Files modified**
+- `app/Models/MediaFile.php` - added SoftDeletes, isVideo() method, is_video attribute
+- `app/Http/Controllers/Admin/MediaAdminController.php` - soft delete in bulk/destroy, added trash/restore/forceDelete methods
+- `app/Support/Ai/SiteCloneAnalyzer.php` - increased image extract limits (3→10 hero, 10→30 content)
+- `app/Support/Ai/AiSiteBlueprintGenerator.php` - added media asset docs, icon shortcode examples, stronger brief requirements
+- `app/Support/Ai/AiPageGenerator.php` - icon shortcode context added to briefs
+- `app/Support/Ai/AiSiteBuilder.php` - URL replacement, improved error logging, warnings for short content
+- `app/Http/Controllers/Admin/AiSiteCloneAdminController.php` - media download integration, mapping creation
+- `resources/views/admin/pages/ai-clone-site.blade.php` - send analysis to build endpoint
+- `resources/views/admin/media/index.blade.php` - Trash tab added
+- `routes/web.php` - media trash routes added
+
+**Resolved** ✅
+- External images/videos downloaded and stored locally during clone
+- Internal storage URLs used instead of external links in generated HTML
+- FontAwesome icon shortcodes documented and targeted in AI prompts
+- Media files can be soft-deleted and restored (trash system)
+- Better visibility into why pages generate empty content
+- More comprehensive image extraction from cloned sites
+- Better brief guidance for AI-powered content generation
+
+**Partially resolved** ⚠️
+- Icon extraction still in place (skipped during download, but detected during analysis)
+- Not all page types may get thorough briefs yet
+
+**Known issues**
+- Last 2 pages in clones may generate blank/short content if briefs are vague
+- OpenAI quota exceeded during testing (need API credits or switch to Claude)
+- Media trash not auto-cleaned (requires manual force-delete for disk space)
+
+**Technical notes**
+- MediaImporter downloads with timeout(15) and withoutVerifying()
+- Video dimensions not extracted (getimagesize fails for videos)
+- Icon images skipped in media import but FontAwesome shortcodes used instead
+- Soft delete uses `deleted_at` timestamp instead of permanent deletion
+- Media files kept on disk for recovery/restoration
+- `replaceMediaUrls()` simple string replacement (works for most URL patterns)
+- Enhanced error logging helps identify brief quality issues
+
+**Next steps to improve clone quality**
+1. Increase brief detail further - all pages need 4-6 sentence briefs
+2. Add image URL requirement verification in prompts
+3. Test with more diverse websites (different industries/designs)
+4. Add CSS stylesheet parsing for wider color detection
+5. Implement automatic brief validation before page generation
+6. Add retry logic for failed page generations
 
 ---

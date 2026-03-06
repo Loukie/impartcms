@@ -371,6 +371,20 @@ class AiSiteBlueprintGenerator
             $pageExamples .= "\n- " . ($page['title'] ?? 'Page') . ": " . mb_substr((string) ($page['content_sample'] ?? ''), 0, 100);
         }
 
+        $imageInfo = '';
+        if (!empty($siteAnalysis['images'])) {
+            $imgs = $siteAnalysis['images'];
+            if (!empty($imgs['logo'])) {
+                $imageInfo .= "\nLogo: " . $imgs['logo'];
+            }
+            if (!empty($imgs['hero'])) {
+                $imageInfo .= "\nHero images: " . implode(', ', array_slice($imgs['hero'], 0, 3));
+            }
+            if (!empty($imgs['content']) && count($imgs['content']) > 0) {
+                $imageInfo .= "\nContent images available: " . count($imgs['content']) . " images";
+            }
+        }
+
         $schema = [
             'site' => [
                 'name' => 'string',
@@ -386,7 +400,7 @@ class AiSiteBlueprintGenerator
                 'template' => 'string (use "blank")',
                 'meta_title' => 'string',
                 'meta_description' => 'string (<=160 chars)',
-                'brief' => 'string (plain text brief including design system reference)',
+                'brief' => 'string (MUST include: content, design system, AND specific image URLs to use)',
             ]],
         ];
 
@@ -394,17 +408,40 @@ class AiSiteBlueprintGenerator
         $lines[] = 'Clone and improve a website with a unified design system.';
         $lines[] = '';
         $lines[] = 'Source site: ' . $siteTitle;
-        $lines[] = 'Page count: ' . $pageCount;
+        $lines[] = '🚨 CRITICAL REQUIREMENT: You MUST create EXACTLY ' . $pageCount . ' pages.';
+        $lines[] = '🚨 DO NOT consolidate or merge pages. Each URL = One separate page in blueprint.';
+        $lines[] = '🚨 Count verification: If you create ' . ($pageCount - 1) . ' or ' . ($pageCount + 1) . ' pages, your response is INVALID.';
         $lines[] = 'Navigation: ' . $navItems;
         $lines[] = '';
-        $lines[] = 'Unified Design System:';
-        $lines[] = '- Primary Color: ' . $primaryColor;
+        $lines[] = '🎨 UNIFIED Design System (USE ON ALL PAGES):';
+        $lines[] = '- Primary Color: ' . $primaryColor . ' ← USE THIS COLOR for ALL hero sections, CTAs, accents';
+        $lines[] = '- DO NOT use different gradients or color schemes per page';
+        $lines[] = '- ALL pages must have consistent visual identity';
         $lines[] = '- Layout Pattern: ' . $layout;
         $lines[] = '- Navigation Style: ' . $navStyle;
         $lines[] = '- Heading Font: ' . ($designSystem['heading_font'] ?? 'Segoe UI');
         $lines[] = '- Body Font: ' . ($designSystem['body_font'] ?? 'Segoe UI');
         $lines[] = '';
         $lines[] = 'Original Content Sample:' . $pageExamples;
+
+        if ($imageInfo !== '') {
+            $lines[] = '';
+            $lines[] = '📸 AVAILABLE MEDIA ASSETS:' . $imageInfo;
+            $lines[] = '- USE the logo URL in the navigation/header of ALL pages';
+            $lines[] = '- USE hero images for page hero sections (full-width backgrounds)';
+            $lines[] = '- REFERENCE these image URLs in page briefs so they are included in generated HTML';
+            $lines[] = '- Each page brief MUST include specific image URLs like: "Use ' . ($siteAnalysis['images']['logo'] ?? 'logo.png') . ' for the header logo"';
+            $lines[] = '- Include hero image URLs in briefs: "Hero section with background image: [URL]"';
+            $lines[] = '- The page generator will only use images that are explicitly referenced in the brief';
+        }
+
+        $lines[] = '';
+        $lines[] = '🎨 ICONS: Use [icon] shortcodes instead of downloading icon images:';
+        $lines[] = '- FontAwesome: [icon kind="fa" value="fa-solid fa-house" size="24" colour="' . $primaryColor . '"]';
+        $lines[] = '- Lucide: [icon kind="lucide" value="home" size="24" colour="' . $primaryColor . '"]';
+        $lines[] = '- Available FA icons: fa-check, fa-users, fa-shield, fa-star, fa-heart, fa-phone, fa-envelope, fa-map-marker, fa-clock, fa-building, fa-cog, fa-chart-line, fa-briefcase, fa-lightbulb, fa-trophy, fa-comments, fa-thumbs-up, fa-rocket';
+        $lines[] = '- Use appropriate icons for services, features, benefits sections';
+        $lines[] = '- Reference icon shortcodes in briefs: "Services section with 3 cards, each with an icon: [icon kind=\'fa\' value=\'fa-solid fa-shield\']..."';
 
         if (trim($modification) !== '') {
             $lines[] = '';
@@ -421,7 +458,14 @@ class AiSiteBlueprintGenerator
         $lines[] = '- All other pages must have is_homepage=false.';
         $lines[] = '- Maintain the original site structure and navigation.';
         $lines[] = '- Preserve all page titles and sections from the original.';
-        $lines[] = '- Each brief must describe content in context of the design system.';
+        $lines[] = '';
+        $lines[] = '🚨 BRIEF REQUIREMENTS (CRITICAL - All pages need detailed briefs):';
+        $lines[] = '- EVERY page brief must be 3-5+ sentences with specific content details';
+        $lines[] = '- NEVER create short/empty briefs like "Contact page" or "Privacy policy page"';
+        $lines[] = '- Each brief MUST include: content structure (sections), design system usage, AND specific image URLs';
+        $lines[] = '- Example GOOD brief: "Contact page with hero section using [hero image URL]. Contact form section with fields for name, email, message. Contact details section with phone [icon kind=\'fa\' value=\'fa-solid fa-phone\'], email [icon], address [icon] in a 3-column grid. Map section if possible. Use primary color ' . $primaryColor . ' for form submit button."';
+        $lines[] = '- Example BAD brief: "Contact page" or "Privacy policy page" - TOO VAGUE';
+        $lines[] = '- For Privacy/Terms pages: describe sections like "Data Collection, Cookie Policy, User Rights, Contact Info" with structured content';
         $lines[] = '- Include suggestions for using primary_color, layout, and nav_style in visual hierarchy.';
         $lines[] = '- Briefs should highlight opportunities for visual richness: hero sections with backgrounds, service cards in grids, testimonials with blockquotes, image+text sections.';
         $lines[] = '- Suggest layout patterns: hero at top, then alternating image-left/text-right sections, card grids for services, testimonials with author info.';

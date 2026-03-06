@@ -53,6 +53,11 @@
                                class="{{ $isDocs ? 'text-gray-900' : 'text-gray-500 hover:text-gray-900' }}">
                                 Docs <span class="text-gray-400">({{ $counts['docs'] ?? 0 }})</span>
                             </a>
+                            <span class="text-gray-300">|</span>
+                            <a href="{{ route('admin.media.trash') }}"
+                               class="text-red-600 hover:text-red-700">
+                                Trash
+                            </a>
                         </div>
 
                         {{-- Right-side controls --}}

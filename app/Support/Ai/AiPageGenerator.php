@@ -95,6 +95,16 @@ class AiPageGenerator
         $brief = trim($brief);
         $title = trim($title);
 
+        // Add icon shortcode examples to brief context
+        $primary = $designSystem['primary_color'] ?? '#3498db';
+        $iconDocs = "\n\n🎨 ICON SHORTCODES (use these instead of icon images):\n";
+        $iconDocs .= "FontAwesome: [icon kind=\"fa\" value=\"fa-solid fa-house\" size=\"24\" colour=\"$primary\"]\n";
+        $iconDocs .= "Lucide: [icon kind=\"lucide\" value=\"home\" size=\"24\" colour=\"$primary\"]\n";
+        $iconDocs .= "Common icons: fa-check, fa-users, fa-shield, fa-star, fa-heart, fa-phone, fa-envelope, fa-briefcase\n";
+        $iconDocs .= "Use icons for: service cards, feature lists, contact info, benefits sections\n";
+        
+        $brief = $brief . $iconDocs;
+
         $parts = [];
 
         if ($title !== '') {

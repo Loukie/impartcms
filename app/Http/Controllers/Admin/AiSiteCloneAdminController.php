@@ -11,6 +11,7 @@ use App\Support\Ai\AiSiteBuilder;
 use App\Support\Ai\AiPageGenerator;
 use App\Support\Ai\LinkRewriter;
 use App\Support\Ai\HtmlSanitiser;
+use App\Support\MediaImporter;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Illuminate\Support\Facades\Log;
@@ -125,7 +126,8 @@ class AiSiteCloneAdminController extends Controller
             $request->validate([
                 'url' => 'required|url',
                 'modification' => 'nullable|string|max:2000',
-                'max_pages' => 'nullable|integer|min:3|max:15',
+                'max_pages' => 'nullable|integer|min:3|max:20',
+                'selected_pages' => 'nullable|array',
             ]);
         } catch (\Throwable $e) {
             // Validation error - convert to JSON response
@@ -155,6 +157,7 @@ class AiSiteCloneAdminController extends Controller
             $url = trim((string) $request->input('url'));
             $modification = trim((string) ($request->input('modification') ?? ''));
             $maxPages = (int) ($request->input('max_pages') ?? 8);
+            $selectedPages = (array) ($request->input('selected_pages') ?? []);
 
             // Normalize URL
             if (!str_starts_with($url, 'http://') && !str_starts_with($url, 'https://')) {
@@ -170,6 +173,15 @@ class AiSiteCloneAdminController extends Controller
             // Analyze the site
             $analyzer = new SiteCloneAnalyzer();
             $analysis = $analyzer->analyze($url, $maxPages);
+
+            // If selected pages provided, filter the analysis to only those pages
+            if (count($selectedPages) > 0) {
+                $selectedUrls = array_map('strtolower', $selectedPages);
+                $filteredPages = array_filter($analysis['pages'], function($page) use ($selectedUrls) {
+                    return in_array(strtolower($page['url'] ?? ''), $selectedUrls);
+                });
+                $analysis['pages'] = array_values($filteredPages);  // Re-index array
+            }
 
             Log::info('Site analysis complete', [
                 'pages_found' => count($analysis['pages'] ?? []),
@@ -252,6 +264,7 @@ class AiSiteCloneAdminController extends Controller
             'source_url' => 'required|url',
             'blueprint_json' => 'required|json',
             'design_system' => 'required|json',
+            'analysis' => 'nullable|json',
             'publish' => 'boolean',
             'set_homepage' => 'boolean',
         ]);
@@ -260,11 +273,54 @@ class AiSiteCloneAdminController extends Controller
             $sourceUrl = trim((string) $request->input('source_url'));
             $blueprintJson = (string) $request->input('blueprint_json');
             $designSystem = json_decode((string) $request->input('design_system'), true);
+            $analysis = json_decode((string) ($request->input('analysis') ?? '{}'), true);
             $publish = (bool) $request->input('publish', false);
             $setHomepage = (bool) $request->input('set_homepage', false);
 
             if (!is_array($designSystem)) {
                 throw new \InvalidArgumentException('Invalid design system.');
+            }
+
+            // Download images/videos and create URL mapping
+            $mediaMapping = [];
+            if (!empty($analysis['images']) || !empty($analysis['videos'])) {
+                Log::info('Downloading media assets for clone');
+                $mediaImporter = new MediaImporter($request->user()->id);
+                $allMediaUrls = [];
+                
+                // Collect all image URLs
+                if (!empty($analysis['images'])) {
+                    $imgs = $analysis['images'];
+                    if (!empty($imgs['logo'])) {
+                        $allMediaUrls[] = $imgs['logo'];
+                    }
+                    if (!empty($imgs['hero']) && is_array($imgs['hero'])) {
+                        $allMediaUrls = array_merge($allMediaUrls, $imgs['hero']);
+                    }
+                    if (!empty($imgs['content']) && is_array($imgs['content'])) {
+                        $allMediaUrls = array_merge($allMediaUrls, $imgs['content']);
+                    }
+                    if (!empty($imgs['icons']) && is_array($imgs['icons'])) {
+                        // Skip icons - we'll use FontAwesome shortcodes instead
+                    }
+                }
+                
+                // Collect video URLs
+                if (!empty($analysis['videos']) && is_array($analysis['videos'])) {
+                    $allMediaUrls = array_merge($allMediaUrls, $analysis['videos']);
+                }
+                
+                // Download all media and create mapping
+                $allMediaUrls = array_unique($allMediaUrls);
+                foreach ($allMediaUrls as $url) {
+                    $mediaFile = $mediaImporter->importFromUrl($url);
+                    if ($mediaFile) {
+                        $mediaMapping[$url] = $mediaFile->url;
+                        Log::info('Media imported', ['external' => $url, 'internal' => $mediaFile->url]);
+                    }
+                }
+                
+                Log::info('Media import complete', ['total' => count($mediaMapping)]);
             }
 
             // Build pages from blueprint
@@ -280,6 +336,7 @@ class AiSiteCloneAdminController extends Controller
                 'set_homepage' => $setHomepage,
                 'design_system' => $designSystem,
                 'source_url' => $sourceUrl,
+                'media_mapping' => $mediaMapping,
             ]);
 
             return response()->json([

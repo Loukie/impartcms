@@ -99,6 +99,11 @@ class AiSiteBuilder
                     $brief = 'Create a page for: ' . $title;
                 }
 
+                // Replace external media URLs with internal storage URLs
+                if (!empty($options['media_mapping']) && is_array($options['media_mapping'])) {
+                    $brief = $this->replaceMediaUrls($brief, $options['media_mapping']);
+                }
+
                 $status = $action === 'publish' ? 'published' : 'draft';
                 $publishedAt = $status === 'published' ? now() : null;
 
@@ -131,16 +136,37 @@ class AiSiteBuilder
                     ]);
 
                     $body = (string) ($gen['clean_html'] ?? '');
+                    
+                    // Warn if HTML is empty or very short
+                    if (strlen($body) < 50) {
+                        $warnings[] = 'Page "' . $title . '" generated very little content (brief may be too vague).';
+                        \Log::warning('AiSiteBuilder: Short HTML content', [
+                            'title' => $title,
+                            'brief' => $brief,
+                            'html_length' => strlen($body),
+                        ]);
+                    }
+                    
                     $page->body = $this->applyCanonicalNavigation($body, $canonicalNavHtml);
                 } catch (\Throwable $e) {
                     // We still create the page, but leave it blank so nothing breaks.
                     $page->body = '';
+                    $errorMsg = 'HTML generation failed: ' . $e->getMessage();
+                    $warnings[] = 'Page "' . $title . '" failed: ' . $e->getMessage();
+                    
+                    \Log::error('AiSiteBuilder: Page generation failed', [
+                        'title' => $title,
+                        'brief' => $brief,
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString(),
+                    ]);
+                    
                     $reportRows[] = [
                         'title' => $title,
                         'slug' => $slug,
                         'status' => $status,
                         'id' => null,
-                        'error' => 'HTML generation failed: ' . $e->getMessage(),
+                        'error' => $errorMsg,
                     ];
                     $page->save();
                     $page->seo()->create([
@@ -483,5 +509,20 @@ class AiSiteBuilder
     }
 </style>
 CSS;
+    }
+
+    /**
+     * Replace external media URLs with internal storage URLs.
+     *
+     * @param string $brief The page brief text
+     * @param array $mapping Array mapping external URL => internal URL
+     * @return string Brief with replaced URLs
+     */
+    private function replaceMediaUrls(string $brief, array $mapping): string
+    {
+        foreach ($mapping as $external => $internal) {
+            $brief = str_replace($external, $internal, $brief);
+        }
+        return $brief;
     }
 }

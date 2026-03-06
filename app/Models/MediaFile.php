@@ -4,10 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
 
 class MediaFile extends Model
 {
+    use SoftDeletes;
     protected $fillable = [
         'disk',
         'path',
@@ -45,12 +47,25 @@ class MediaFile extends Model
         return is_string($this->mime_type) && str_starts_with($this->mime_type, 'image/');
     }
 
+    public function isVideo(): bool
+    {
+        return is_string($this->mime_type) && str_starts_with($this->mime_type, 'video/');
+    }
+
     /**
      * Blade convenience: $media->is_image (bool)
      */
     public function getIsImageAttribute(): bool
     {
         return $this->isImage();
+    }
+
+    /**
+     * Blade convenience: $media->is_video (bool)
+     */
+    public function getIsVideoAttribute(): bool
+    {
+        return $this->isVideo();
     }
 
     /**

@@ -230,6 +230,11 @@ Route::middleware(['auth', 'can:access-admin'])
         Route::get('/media', [MediaAdminController::class, 'index'])->name('media.index');
         Route::post('/media', [MediaAdminController::class, 'store'])->name('media.store');
         Route::post('/media/bulk', [MediaAdminController::class, 'bulk'])->name('media.bulk');
+        
+        // Media trash (soft delete system)
+        Route::get('/media/trash', [MediaAdminController::class, 'trash'])->name('media.trash');
+        Route::post('/media/trash/{id}/restore', [MediaAdminController::class, 'restore'])->whereNumber('id')->name('media.restore');
+        Route::delete('/media/trash/{id}/force', [MediaAdminController::class, 'forceDelete'])->whereNumber('id')->name('media.forceDelete');
 
         /**
          * ✅ Media picker (WordPress-style modal)

@@ -254,6 +254,7 @@ class MediaAdminController extends Controller
 
     /**
      * Bulk delete selected media items. Skips files that appear to be in use.
+     * Now uses soft delete - files remain on disk and can be restored.
      */
     public function bulk(Request $request): RedirectResponse
     {
@@ -275,11 +276,11 @@ class MediaAdminController extends Controller
                 continue;
             }
 
-            Storage::disk($media->disk ?? 'public')->delete($media->path);
+            // Soft delete only - file remains on disk
             $media->delete();
         }
 
-        $msg = 'Selected media deleted.';
+        $msg = 'Selected media moved to trash.';
         if (!empty($errors)) {
             $msg .= ' ' . implode(' ', $errors);
         }
@@ -302,10 +303,44 @@ class MediaAdminController extends Controller
             ]);
         }
 
-        Storage::disk($media->disk ?? 'public')->delete($media->path);
+        // Soft delete only - file remains on disk
         $media->delete();
 
-        return redirect()->route('admin.media.index')->with('status', 'Media deleted.');
+        return redirect()->route('admin.media.index')->with('status', 'Media moved to trash.');
+    }
+
+    /**
+     * View trashed media files.
+     */
+    public function trash(): View
+    {
+        $trashed = MediaFile::onlyTrashed()->orderBy('deleted_at', 'desc')->paginate(30);
+        return view('admin.media.trash', compact('trashed'));
+    }
+
+    /**
+     * Restore a trashed media file.
+     */
+    public function restore(int $id): RedirectResponse
+    {
+        $media = MediaFile::onlyTrashed()->findOrFail($id);
+        $media->restore();
+
+        return redirect()->route('admin.media.trash')->with('status', 'Media restored.');
+    }
+
+    /**
+     * Permanently delete a trashed media file (removes from disk).
+     */
+    public function forceDelete(int $id): RedirectResponse
+    {
+        $media = MediaFile::onlyTrashed()->findOrFail($id);
+        
+        // Now actually delete the file from disk
+        Storage::disk($media->disk ?? 'public')->delete($media->path);
+        $media->forceDelete();
+
+        return redirect()->route('admin.media.trash')->with('status', 'Media permanently deleted.');
     }
 
     /**
