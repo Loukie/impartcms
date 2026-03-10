@@ -626,15 +626,21 @@ class AiSiteBuilder
 
         $css = '<style>'
             . ':root{--ai-nav-primary:' . e($primaryColor) . ';--ai-nav-text:' . e($textColor) . ';--ai-nav-ink:' . e($secondaryColor) . ';--ai-nav-head:' . e($headingFont) . ';--ai-nav-body:' . e($bodyFont) . ';}'
-            . '.ai-shared-nav{position:fixed;top:0;left:0;right:0;z-index:1000;transition:background-color .25s ease,border-color .25s ease,box-shadow .25s ease,backdrop-filter .25s ease;}'
+            . '.ai-shared-nav{position:fixed;top:0;left:0;right:0;z-index:1000;transition:background-color .3s ease,border-color .3s ease,box-shadow .3s ease,backdrop-filter .3s ease;}'
             . '.ai-shared-nav.nav-transparent{background:linear-gradient(to bottom,rgba(17,24,39,.56),rgba(17,24,39,.18));border-bottom:1px solid rgba(255,255,255,.12);backdrop-filter:blur(2px);}'
             . '.ai-shared-nav.nav-solid{background:#ffffff;border-bottom:1px solid rgba(15,23,42,.12);box-shadow:0 8px 30px rgba(15,23,42,.08);backdrop-filter:blur(8px);}'
             . '.ai-nav-inner{max-width:1200px;margin:0 auto;padding:14px 20px;display:flex;align-items:center;gap:18px;}'
-            . '.ai-nav-brand{font-family:var(--ai-nav-head);font-size:1.15rem;font-weight:700;color:var(--ai-nav-text);text-decoration:none;letter-spacing:.02em;}'
+            . '.ai-nav-brand{font-family:var(--ai-nav-head);font-size:1.15rem;font-weight:700;text-decoration:none;letter-spacing:.02em;transition:color .3s ease;}'
+            . '.ai-shared-nav.nav-transparent .ai-nav-brand{color:#ffffff;}'
+            . '.ai-shared-nav.nav-solid .ai-nav-brand{color:var(--ai-nav-text);}'
             . '.ai-nav-logo-wrap{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;}'
-            . '.ai-nav-logo{max-height:78px;max-width:300px;width:auto;height:auto;display:block;}'
+            . '.ai-nav-logo{max-height:78px;max-width:300px;width:auto;height:auto;display:block;transition:filter .3s ease;}'
+            . '.ai-shared-nav.nav-transparent .ai-nav-logo{filter:brightness(10);}'
+            . '.ai-shared-nav.nav-solid .ai-nav-logo{filter:none;}'
             . '.ai-nav-links{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}'
-            . '.ai-nav-link{font-family:var(--ai-nav-body);font-size:.95rem;font-weight:600;text-decoration:none;color:var(--ai-nav-text);padding:8px 11px;border-radius:999px;transition:background-color .2s ease,color .2s ease;}'
+            . '.ai-nav-link{font-family:var(--ai-nav-body);font-size:.95rem;font-weight:600;text-decoration:none;padding:8px 11px;border-radius:999px;transition:background-color .2s ease,color .3s ease;}'
+            . '.ai-shared-nav.nav-transparent .ai-nav-link{color:rgba(255,255,255,.9);}'
+            . '.ai-shared-nav.nav-solid .ai-nav-link{color:var(--ai-nav-text);}'
             . '.ai-nav-link:hover{background:rgba(224,153,0,.12);color:var(--ai-nav-ink);}'
             . '.ai-nav-link.is-active{background:rgba(224,153,0,.16);color:var(--ai-nav-ink);}'
             . '.ai-nav-cta{margin-left:auto;font-family:var(--ai-nav-body);text-decoration:none;font-size:.88rem;font-weight:700;color:#fff;background:var(--ai-nav-primary);padding:9px 14px;border-radius:999px;transition:transform .2s ease,opacity .2s ease;}'
@@ -656,7 +662,7 @@ class AiSiteBuilder
             . '@media (max-width: 640px){.ai-nav-links{width:100%;order:3;gap:4px;}.ai-nav-inner{align-items:flex-start;}}'
             . '</style>';
 
-        $js = '<script>(function(){var nav=document.querySelector(".ai-shared-nav[data-ai-shared-nav=\"1\"]");if(!nav)return;var links=nav.querySelectorAll(".ai-nav-link");var path=(location.pathname||"/").replace(/\/$/,"")||"/";for(var i=0;i<links.length;i++){var href=(links[i].getAttribute("href")||"/").replace(/\/$/,"")||"/";if(href===path){links[i].classList.add("is-active");}}function sync(){var isHome=path==="/";var h=nav.offsetHeight||72;if(!isHome){document.body.style.paddingTop=h+"px";nav.classList.add("inner-page");}else{document.body.style.paddingTop="0px";nav.classList.remove("inner-page");}if(!isHome||window.scrollY>16){nav.classList.add("nav-solid");nav.classList.remove("nav-transparent");}else{nav.classList.add("nav-transparent");nav.classList.remove("nav-solid");}}window.addEventListener("scroll",sync,{passive:true});window.addEventListener("resize",sync,{passive:true});sync();})();</script>';
+        $js = '<script>(function(){var nav=document.querySelector(".ai-shared-nav[data-ai-shared-nav=\"1\"]");if(!nav)return;var links=nav.querySelectorAll(".ai-nav-link");var path=(location.pathname||"/").replace(/\/$/,"")||"/";for(var i=0;i<links.length;i++){var href=(links[i].getAttribute("href")||"/").replace(/\/$/,"")||"/";if(href===path){links[i].classList.add("is-active");}}function sync(){var isHome=path==="/";var h=nav.offsetHeight||72;if(!isHome){nav.classList.add("inner-page");nav.classList.add("nav-solid");nav.classList.remove("nav-transparent");var hero=document.querySelector("section:first-of-type");if(hero){hero.style.paddingTop=Math.max(parseInt(getComputedStyle(hero).paddingTop)||0,h)+"px";}}else{nav.classList.remove("inner-page");if(window.scrollY>16){nav.classList.add("nav-solid");nav.classList.remove("nav-transparent");}else{nav.classList.add("nav-transparent");nav.classList.remove("nav-solid");}}}window.addEventListener("scroll",sync,{passive:true});window.addEventListener("resize",sync,{passive:true});sync();})();</script>';
 
         return $css
             . '<nav class="ai-shared-nav nav-transparent" data-ai-shared-nav="1">'

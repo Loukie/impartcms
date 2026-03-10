@@ -170,6 +170,11 @@ class AiPageGenerator
             '- Do NOT invent image URLs — only use URLs explicitly provided in the brief.',
             '- Do NOT output plain sections with just a heading and one paragraph — every section needs visual depth.',
             '',
+            '=== SCROLL ANIMATIONS (MANDATORY) ===',
+            'Add class="reveal" to every <section> element so they animate on scroll.',
+            'For staggered child elements (like cards in a grid), add class="reveal reveal-delay-1", reveal-delay-2, reveal-delay-3.',
+            'The animation CSS and IntersectionObserver JS are injected globally — you just need the classes.',
+            '',
             '=== ACCESSIBILITY ===',
             '- Sensible heading hierarchy (one H1, then H2s, then H3s).',
             '- Alt text on all images.',
@@ -205,8 +210,9 @@ class AiPageGenerator
 
         // Add icon shortcode examples to brief context
         $primary = $designSystem['primary_color'] ?? '#3498db';
-        $iconDocs = "\n\n🎨 ICON SHORTCODES (use these instead of icon images):\n";
+        $iconDocs = "\n\nICON SHORTCODES (use these instead of icon images):\n";
         $iconDocs .= "FontAwesome: [icon kind=\"fa\" value=\"fa-solid fa-house\" size=\"24\" colour=\"$primary\"]\n";
+        $iconDocs .= "Use SVG icons inline when possible for visual richness. Shortcodes are for simple icon placement.\n";
         $iconDocs .= "Lucide: [icon kind=\"lucide\" value=\"home\" size=\"24\" colour=\"$primary\"]\n";
         $iconDocs .= "Common icons: fa-check, fa-users, fa-shield, fa-star, fa-heart, fa-phone, fa-envelope, fa-briefcase\n";
         $iconDocs .= "Use icons for: service cards, feature lists, contact info, benefits sections\n";
@@ -227,7 +233,7 @@ class AiPageGenerator
         // Inject the full visual design system — not just colors, but the visual character
         if (!empty($designSystem)) {
             $parts[] = '';
-            $parts[] = '🎨 VISUAL DESIGN SYSTEM (REFERENCE-LOCKED — follow this exactly):';
+            $parts[] = 'VISUAL DESIGN SYSTEM (REFERENCE-LOCKED — follow this exactly):';
             $parts[] = '';
 
             // Colors
