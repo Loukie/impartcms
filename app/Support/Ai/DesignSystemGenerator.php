@@ -76,12 +76,12 @@ class DesignSystemGenerator
     {
         return implode("\n", [
             'Return ONLY valid JSON. No markdown. No backticks. No commentary.',
-            'Design system must include: primary_color, secondary_color, accent_color, background_color, text_color, heading_font, body_font, layout_pattern, nav_style, cta_style.',
+            'Design system must capture the full visual language of the reference site — not just colors and fonts.',
             'Colors must be hex codes (e.g., #3498db).',
             'Fonts must be web-safe or Google Font names.',
-            'Layout pattern should be one of: "minimalist", "classic", "modern", "bold".',
-            'nav_style should be one of: "top-bar", "sidebar", "centered".',
-            'cta_style should describe the button/link style.',
+            'Layout pattern should be one of: "minimalist", "classic", "modern", "bold", "editorial", "luxury".',
+            'nav_style should be one of: "top-bar", "sidebar", "centered", "overlay", "split".',
+            'Visual character fields must describe the reference site\'s actual design approach, not generic defaults.',
         ]);
     }
 
@@ -92,27 +92,50 @@ class DesignSystemGenerator
         $existingFonts = implode(', ', $siteAnalysis['fonts'] ?? []) ?: 'not detected';
         $existingNav = implode(', ', array_slice($siteAnalysis['navigation'] ?? [], 0, 5));
 
+        // Build content context from analyzed pages
+        $pageContext = '';
+        foreach (array_slice($siteAnalysis['pages'] ?? [], 0, 4) as $page) {
+            if (!is_array($page)) continue;
+            $pTitle = trim((string) ($page['title'] ?? ''));
+            $headings = implode(' | ', array_slice((array) ($page['headings'] ?? []), 0, 3));
+            $desc = trim((string) ($page['description'] ?? ''));
+            if ($pTitle !== '') {
+                $pageContext .= "\n  - " . $pTitle;
+                if ($headings !== '') $pageContext .= ' (sections: ' . $headings . ')';
+                if ($desc !== '') $pageContext .= ' — ' . mb_substr($desc, 0, 80);
+            }
+        }
+
         $lines = [
-            'Create a unified, professional design system for a website.',
+            'Analyze this reference website and extract its FULL visual design language as a design system.',
             '',
-            'Original site: ' . $siteTitle,
-            'Original colors detected: ' . $existingColors,
-            'Original fonts detected: ' . $existingFonts,
+            'Reference site: ' . $siteTitle,
+            'Colors detected on site: ' . $existingColors,
+            'Fonts detected on site: ' . $existingFonts,
             'Navigation items: ' . $existingNav,
         ];
 
+        if ($pageContext !== '') {
+            $lines[] = 'Page structure:' . $pageContext;
+        }
+
         if (trim($modification) !== '') {
+            $lines[] = '';
             $lines[] = 'Modification request: ' . $modification;
         }
 
         $lines[] = '';
         $lines[] = 'Requirements:';
-        $lines[] = '- Design should feel cohesive and professional';
-        $lines[] = '- Colors should work well together (primary, secondary, accent)';
-        $lines[] = '- Fonts should be readable and modern';
-        $lines[] = '- Layout pattern should support all page types (home, service, contact, etc.)';
-        $lines[] = '- Navigation style should be clean and intuitive';
-        $lines[] = '- CTA buttons should be prominent and encouraging';
+        $lines[] = '- Capture the ACTUAL visual character of this reference site, not generic defaults.';
+        $lines[] = '- Describe how the site uses space, contrast, and density — is it airy with lots of whitespace, or dense with content-heavy sections?';
+        $lines[] = '- Identify the hero treatment: full-bleed image, video, gradient overlay, split layout, or text-only?';
+        $lines[] = '- Describe the section rhythm: do sections alternate backgrounds? Use image-text pairs? Feature card grids?';
+        $lines[] = '- Capture the mood/tone: luxury, corporate, playful, technical, editorial, warm, clinical?';
+        $lines[] = '- Describe the typography scale: large dramatic headings or understated? How much contrast between h1/h2/body?';
+        $lines[] = '- Describe the spacing approach: generous padding between sections or compact information-dense layout?';
+        $lines[] = '- Capture the contrast philosophy: high-contrast dark/light sections or low-contrast subtle tones?';
+        $lines[] = '- Note the dominant colors from the detected palette and which role they play (primary accent, backgrounds, text).';
+        $lines[] = '- Identify the CTA treatment: rounded/square buttons, ghost/filled, color scheme, positioning.';
 
         if (trim($modification) !== '') {
             $lines[] = '';
@@ -129,9 +152,19 @@ class DesignSystemGenerator
         $lines[] = '  "text_color": "#hex",';
         $lines[] = '  "heading_font": "font name",';
         $lines[] = '  "body_font": "font name",';
-        $lines[] = '  "layout_pattern": "minimalist|classic|modern|bold",';
-        $lines[] = '  "nav_style": "top-bar|sidebar|centered",';
-        $lines[] = '  "cta_style": "description"';
+        $lines[] = '  "layout_pattern": "minimalist|classic|modern|bold|editorial|luxury",';
+        $lines[] = '  "nav_style": "top-bar|sidebar|centered|overlay|split",';
+        $lines[] = '  "cta_style": "describe button treatment: shape, fill, color, hover behavior",';
+        $lines[] = '  "hero_treatment": "describe the hero section approach: full-bleed image with overlay, split image-text, gradient background, video background, text-only minimal, etc.",';
+        $lines[] = '  "section_rhythm": "describe how sections flow: alternating light/dark backgrounds, image-text pairs, card grids, full-width breaks, etc.",';
+        $lines[] = '  "spacing_density": "airy|balanced|dense — how much whitespace between and within sections",';
+        $lines[] = '  "visual_mood": "1-3 word mood: e.g. luxury-warm, corporate-clean, bold-technical, editorial-minimal",';
+        $lines[] = '  "contrast_approach": "describe the contrast strategy: high-contrast dark/light alternation, low-contrast subtle tones, dramatic hero with muted body, etc.",';
+        $lines[] = '  "typography_scale": "describe heading sizes and hierarchy: dramatic large h1 (60px+), moderate (40px), understated (32px), and body text relationship",';
+        $lines[] = '  "section_backgrounds": "describe the background pattern: solid white, alternating white/cream, dark sections, gradient accents, image backgrounds, etc.",';
+        $lines[] = '  "border_radius": "none|subtle (4-6px)|rounded (8-12px)|pill (50px) — what radius do cards, buttons, images use?",';
+        $lines[] = '  "shadow_depth": "none|subtle|medium|dramatic — how much shadow/elevation is used on cards and elements?",';
+        $lines[] = '  "brand_name": "the business/brand name from the site title"';
         $lines[] = '}';
 
         return implode("\n", $lines);
@@ -175,6 +208,16 @@ class DesignSystemGenerator
             'layout_pattern' => 'modern',
             'nav_style' => 'top-bar',
             'cta_style' => 'Prominent rounded button with primary color',
+            'hero_treatment' => 'Full-bleed image background with dark overlay and centered white text',
+            'section_rhythm' => 'Alternating white and light-gray section backgrounds with image-text pairs',
+            'spacing_density' => 'balanced',
+            'visual_mood' => 'modern-professional',
+            'contrast_approach' => 'Medium contrast with alternating light/dark sections',
+            'typography_scale' => 'Moderate heading scale with 40-48px h1, 28-32px h2, 16px body',
+            'section_backgrounds' => 'Alternating white and light gray',
+            'border_radius' => 'rounded (8-12px)',
+            'shadow_depth' => 'subtle',
+            'brand_name' => '',
         ];
 
         // Validate colors
@@ -197,14 +240,14 @@ class DesignSystemGenerator
 
         // Validate patterns
         $pattern = (string) ($design['layout_pattern'] ?? '');
-        if (!in_array($pattern, ['minimalist', 'classic', 'modern', 'bold'], true)) {
+        if (!in_array($pattern, ['minimalist', 'classic', 'modern', 'bold', 'editorial', 'luxury'], true)) {
             $pattern = 'modern';
         }
         $design['layout_pattern'] = $pattern;
 
         // Validate nav style
         $navStyle = (string) ($design['nav_style'] ?? '');
-        if (!in_array($navStyle, ['top-bar', 'sidebar', 'centered'], true)) {
+        if (!in_array($navStyle, ['top-bar', 'sidebar', 'centered', 'overlay', 'split'], true)) {
             $navStyle = 'top-bar';
         }
         $design['nav_style'] = $navStyle;
@@ -215,6 +258,36 @@ class DesignSystemGenerator
             $ctaStyle = $defaults['cta_style'];
         }
         $design['cta_style'] = $ctaStyle;
+
+        // Validate visual character fields (text descriptions, use defaults if empty)
+        foreach (['hero_treatment', 'section_rhythm', 'visual_mood', 'contrast_approach', 'typography_scale', 'section_backgrounds', 'brand_name'] as $key) {
+            $value = trim((string) ($design[$key] ?? ''));
+            if ($value === '') {
+                $value = (string) ($defaults[$key] ?? '');
+            }
+            $design[$key] = $value;
+        }
+
+        // Validate spacing density
+        $density = strtolower(trim((string) ($design['spacing_density'] ?? '')));
+        if (!in_array($density, ['airy', 'balanced', 'dense'], true)) {
+            $density = 'balanced';
+        }
+        $design['spacing_density'] = $density;
+
+        // Validate border radius
+        $radius = strtolower(trim((string) ($design['border_radius'] ?? '')));
+        if ($radius === '') {
+            $radius = $defaults['border_radius'];
+        }
+        $design['border_radius'] = $radius;
+
+        // Validate shadow depth
+        $shadow = strtolower(trim((string) ($design['shadow_depth'] ?? '')));
+        if ($shadow === '') {
+            $shadow = $defaults['shadow_depth'];
+        }
+        $design['shadow_depth'] = $shadow;
 
         return $design;
     }

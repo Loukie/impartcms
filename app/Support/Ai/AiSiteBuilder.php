@@ -413,6 +413,16 @@ class AiSiteBuilder
             $issues[] = 'generic filler language';
         }
 
+        // Detect generic template patterns — these indicate the AI ignored the design system
+        if (str_contains($html, '#667eea') || str_contains($html, '#764ba2')) {
+            $score -= 15;
+            $issues[] = 'uses default gradient colors instead of brand palette';
+        }
+        if (substr_count(strtolower($html), '#f5f7fa') + substr_count(strtolower($html), '#f9fafb') >= 3) {
+            $score -= 10;
+            $issues[] = 'overuses generic gray backgrounds instead of design system colors';
+        }
+
         return [
             'score' => max(0, $score),
             'issues' => $issues,
@@ -432,6 +442,8 @@ class AiSiteBuilder
         $parts[] = '- Expand to 6-8 sections with richer, domain-specific copy.';
         $parts[] = '- Add concrete examples/use-cases and avoid generic marketing phrasing.';
         $parts[] = '- Keep visuals and copy tightly aligned to the page purpose.';
+        $parts[] = '- Use the ACTUAL design system colors and visual character — do not fall back to default gradients or generic grays.';
+        $parts[] = '- Follow the hero_treatment, section_rhythm, and contrast_approach from the design system exactly.';
 
         return implode("\n", $parts);
     }

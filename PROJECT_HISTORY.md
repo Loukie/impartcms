@@ -1332,3 +1332,45 @@ php artisan optimize:clear        # Clear caches
 - Clone prompts now include stronger premium design contract by default.
 - Multi-client mode supported via non-enforced brand defaults.
 - Navigation output no longer forced to one generic header style.
+
+---
+
+## 2026-03-10 — Anti-Generic-Template Overhaul: Reference-Locked Design System + Prompt Architecture
+
+**Problem**
+AI site clone output consistently looked like generic Bootstrap/Tailwind starter templates regardless of the reference site. Every page used the same gradient hero (#667eea → #764ba2), generic gray backgrounds (#f5f7fa), centered text, and identical card-grid patterns — completely ignoring the reference site's actual visual language.
+
+**Root causes identified**
+1. **Thin design system** — `DesignSystemGenerator` only extracted 10 basic tokens (5 colors, 2 fonts, 3 enums). Zero information about visual character: no hero treatment, section rhythm, spacing philosophy, contrast approach, mood, or density.
+2. **Canned HTML examples in prompts** — `AiPageGenerator::buildInput()` included 4 literal generic HTML examples (gradient hero, card grid, image+text split, testimonial). The LLM followed these examples verbatim for every page.
+3. **No reference visual context reaching page generator** — The analyzer collected structural data but visual character never flowed through the pipeline to the HTML generation prompt.
+
+**Changes**
+
+### DesignSystemGenerator — expanded from 10 to 20+ tokens
+- `buildPrompt()` rewritten to analyze the reference site's full visual language: hero treatment, section rhythm, spacing density, contrast approach, visual mood, typography scale, section backgrounds, border radius, shadow depth, brand name.
+- `buildInstructions()` updated for visual character awareness.
+- `normalizeDesignSystem()` expanded with validation and defaults for all new fields. Added 'editorial' and 'luxury' layout patterns, 'overlay' and 'split' nav styles.
+
+### AiPageGenerator — prompt architecture overhaul
+- `buildInput()` completely rewritten. Removed all 4 generic HTML example blocks. Replaced with structured design system injection: full color palette, typography, visual character fields, component treatment.
+- Added "ANTI-TEMPLATE RULES" section: bans default gradient colors, generic grays, emoji icons, and repeating section patterns.
+- Added "VISUAL EXECUTION RULES" section: enforces section_rhythm, contrast_approach, spacing_density, border_radius, shadow_depth, and typography_scale from the design system.
+- `buildInstructions()` updated with reference-locked design mandate: "Your output must look like that specific site was professionally redesigned — NOT like a generic Bootstrap or Tailwind starter template."
+
+### AiSiteBuilder — template-drift quality gates
+- `assessPageQuality()` now detects and penalizes:
+  - Default gradient colors (#667eea, #764ba2) → -15 score
+  - Overuse of generic gray backgrounds (#f5f7fa, #f9fafb) → -10 score
+- `buildQualityGateRetryBrief()` now explicitly instructs retries to use actual design system colors and follow visual character fields.
+
+**Files modified**
+- `app/Support/Ai/DesignSystemGenerator.php`
+- `app/Support/Ai/AiPageGenerator.php`
+- `app/Support/Ai/AiSiteBuilder.php`
+
+**Resolved** ✅
+- Design system now captures full visual language of reference site (hero treatment, section rhythm, mood, contrast, density, typography scale, border radius, shadow depth).
+- Page generator uses reference-locked visual character tokens instead of canned generic examples.
+- Quality gates detect and penalize generic template patterns, triggering retries with design-system-aware instructions.
+- Pipeline flow: Analyzer → DesignSystemGenerator (20+ tokens) → AiSiteBuilder → AiPageGenerator (reference-locked prompts) → quality gates.

@@ -54,8 +54,12 @@ class AiPageGenerator
             'Keep the structure clean and readable.',
             'Use accessible markup (labels for inputs, sensible heading hierarchy).',
             'Do NOT include global site navigation bars/menus or global footer navigation; output page-body content sections only.',
-            'Avoid generic starter-template patterns and repetitive section clones.',
-            'Use an intentional visual concept with clear hierarchy, spacing rhythm, and contrast.',
+            'You are redesigning a reference website. The design system provided describes the ACTUAL visual language of that site.',
+            'Your output must look like that specific site was professionally redesigned — NOT like a generic Bootstrap or Tailwind starter template.',
+            'Follow every visual character field in the design system: hero_treatment, section_rhythm, contrast_approach, spacing_density, visual_mood, border_radius, shadow_depth.',
+            'Do NOT use default gradient colors (#667eea, #764ba2), generic grays (#f5f7fa, #f9fafb), or placeholder patterns unless the design system specifically calls for them.',
+            'Use the ACTUAL brand colors from the design system for all backgrounds, gradients, accents, and interactive elements.',
+            'Vary section structures across the page: combine full-width, split-layout, card-grid, and asymmetric sections instead of repeating one pattern.',
             'Preserve brand cues from the provided design system across every section.',
             'Avoid placeholder copy and weak one-line section descriptions.',
             'Generate substantial content depth with domain-specific details, not generic agency filler.',
@@ -131,17 +135,79 @@ class AiPageGenerator
             $parts[] = 'Critical: keep all content and media references aligned with this domain.';
         }
 
+        // Inject the full visual design system — not just colors, but the visual character
         if (!empty($designSystem)) {
             $parts[] = '';
-            $parts[] = 'Design System (apply consistently):';
-            if (isset($designSystem['layout_pattern'])) {
-                $parts[] = '- Layout: ' . $designSystem['layout_pattern'];
+            $parts[] = '🎨 VISUAL DESIGN SYSTEM (REFERENCE-LOCKED — follow this exactly):';
+            $parts[] = '';
+
+            // Colors
+            $parts[] = 'Color palette:';
+            if (isset($designSystem['primary_color'])) {
+                $parts[] = '  Primary: ' . $designSystem['primary_color'] . ' (CTAs, key accents, interactive elements)';
             }
-            if (isset($designSystem['nav_style'])) {
-                $parts[] = '- Navigation: ' . $designSystem['nav_style'];
+            if (isset($designSystem['secondary_color'])) {
+                $parts[] = '  Secondary: ' . $designSystem['secondary_color'] . ' (supporting elements, secondary backgrounds)';
             }
-            if (isset($designSystem['cta_style'])) {
-                $parts[] = '- CTA Style: ' . $designSystem['cta_style'];
+            if (isset($designSystem['accent_color'])) {
+                $parts[] = '  Accent: ' . $designSystem['accent_color'] . ' (highlights, badges, small emphasis)';
+            }
+            if (isset($designSystem['text_color'])) {
+                $parts[] = '  Text: ' . $designSystem['text_color'];
+            }
+            if (isset($designSystem['background_color'])) {
+                $parts[] = '  Background: ' . $designSystem['background_color'];
+            }
+
+            // Typography
+            $parts[] = '';
+            $parts[] = 'Typography:';
+            if (isset($designSystem['heading_font'])) {
+                $parts[] = '  Heading font: "' . $designSystem['heading_font'] . '"';
+            }
+            if (isset($designSystem['body_font'])) {
+                $parts[] = '  Body font: "' . $designSystem['body_font'] . '"';
+            }
+            if (isset($designSystem['typography_scale']) && trim((string) $designSystem['typography_scale']) !== '') {
+                $parts[] = '  Scale: ' . $designSystem['typography_scale'];
+            }
+
+            // Visual character — the key differentiation from generic templates
+            $parts[] = '';
+            $parts[] = 'Visual character (MUST follow):';
+            if (isset($designSystem['hero_treatment']) && trim((string) $designSystem['hero_treatment']) !== '') {
+                $parts[] = '  Hero treatment: ' . $designSystem['hero_treatment'];
+            }
+            if (isset($designSystem['section_rhythm']) && trim((string) $designSystem['section_rhythm']) !== '') {
+                $parts[] = '  Section rhythm: ' . $designSystem['section_rhythm'];
+            }
+            if (isset($designSystem['section_backgrounds']) && trim((string) $designSystem['section_backgrounds']) !== '') {
+                $parts[] = '  Section backgrounds: ' . $designSystem['section_backgrounds'];
+            }
+            if (isset($designSystem['contrast_approach']) && trim((string) $designSystem['contrast_approach']) !== '') {
+                $parts[] = '  Contrast approach: ' . $designSystem['contrast_approach'];
+            }
+            if (isset($designSystem['spacing_density']) && trim((string) $designSystem['spacing_density']) !== '') {
+                $parts[] = '  Spacing density: ' . $designSystem['spacing_density'];
+            }
+            if (isset($designSystem['visual_mood']) && trim((string) $designSystem['visual_mood']) !== '') {
+                $parts[] = '  Visual mood: ' . $designSystem['visual_mood'];
+            }
+
+            // Component treatment
+            $parts[] = '';
+            $parts[] = 'Component treatment:';
+            if (isset($designSystem['cta_style']) && trim((string) $designSystem['cta_style']) !== '') {
+                $parts[] = '  CTA buttons: ' . $designSystem['cta_style'];
+            }
+            if (isset($designSystem['border_radius']) && trim((string) $designSystem['border_radius']) !== '') {
+                $parts[] = '  Border radius: ' . $designSystem['border_radius'];
+            }
+            if (isset($designSystem['shadow_depth']) && trim((string) $designSystem['shadow_depth']) !== '') {
+                $parts[] = '  Shadow depth: ' . $designSystem['shadow_depth'];
+            }
+            if (isset($designSystem['layout_pattern']) && trim((string) $designSystem['layout_pattern']) !== '') {
+                $parts[] = '  Layout pattern: ' . $designSystem['layout_pattern'];
             }
         }
 
@@ -150,33 +216,36 @@ class AiPageGenerator
         $parts[] = $brief;
 
         $parts[] = '';
-        $parts[] = 'Content guidelines:';
-        $parts[] = '- Use clear section headings.';
-        $parts[] = '- Include a strong above-the-fold section.';
-        $parts[] = '- Include at least 5 supporting sections (features, benefits, FAQ, testimonials, services, process, proof) when appropriate.';
-        $parts[] = '- Include a CTA section.';
-        $parts[] = '- Expand section copy with specifics: processes, outcomes, differentiators, and practical examples.';
-        $parts[] = '- Avoid generic placeholders such as "innovation", "quality", "trusted" without concrete context.';
-        $parts[] = '- Keep section narratives distinct; avoid copy-paste repetition across sections.';
+        $parts[] = 'CONTENT REQUIREMENTS:';
+        $parts[] = '- Use clear, domain-specific section headings (not generic "Our Services" or "Why Choose Us")';
+        $parts[] = '- Include a strong above-the-fold section that follows the hero_treatment defined above';
+        $parts[] = '- Include at least 5 supporting sections appropriate to the page type';
+        $parts[] = '- Expand section copy with specifics: processes, outcomes, differentiators, practical examples';
+        $parts[] = '- Avoid generic corporate filler: "innovation", "quality", "trusted", "cutting-edge" without context';
+        $parts[] = '- Keep section narratives distinct; avoid copy-paste repetition across sections';
+        $parts[] = '- Include a CTA section with the button treatment defined in the design system above';
+
         $parts[] = '';
-        $parts[] = 'LAYOUT PATTERNS - Use generously for visual richness:';
-        $parts[] = '- Hero sections: use <section> with centered text, padding 60-80px, large heading with supporting text.';
-        $parts[] = '- Service/Feature cards: use 2-3 column responsive grid, card containers with padding, icons/emoji, clear copy.';
-        $parts[] = '- Testimonials: use <blockquote> with author name/title, quotation marks styling, proper spacing.';
-        $parts[] = '- Image + text sections: alternate image-left/text-right, image-right/text-left for visual flow and hierarchy.';
-        $parts[] = '- Stats/numbers: grid layout with large numbers (font-size 36-48px), smaller labels beneath (font-size 14-16px).';
-        $parts[] = '- CTA sections: full-width, centered layout with prominent button, supporting text, contrast with surroundings.';
-        $parts[] = '- Lists: use ul/ol for scannable content, add icons or emojis before items for visual interest.';
+        $parts[] = 'VISUAL EXECUTION RULES:';
+        $parts[] = '- Follow the section_rhythm from the design system: replicate the flow pattern described above';
+        $parts[] = '- Apply the contrast_approach: use the described background alternation/contrast strategy';
+        $parts[] = '- Match the spacing_density: if "airy" use generous padding (80-120px sections), if "dense" use compact spacing (40-60px)';
+        $parts[] = '- Use the border_radius consistently on ALL cards, buttons, and image containers';
+        $parts[] = '- Apply the shadow_depth described: if "dramatic" use strong shadows, if "none" avoid box-shadow';
+        $parts[] = '- Typography scale must follow the described hierarchy — don\'t default to 48/32/20 unless that matches';
+        $parts[] = '- Images: max-width 100%, height auto, radius matching the design system';
+        $parts[] = '- Ensure image references are context-relevant for the business domain and section purpose';
+
         $parts[] = '';
-        $parts[] = 'STYLING FOR PROFESSIONAL APPEARANCE:';
-        $parts[] = '- Set section padding: min 40px top/bottom, 20px left/right (desktop should be 60-80px).';
-        $parts[] = '- Use alternating background colors: white, light gray (#f5f7fa), or brand color for section separation.';
-        $parts[] = '- Cards: add box-shadow: 0 2px 8px rgba(0,0,0,0.1), border-radius: 8px, padding 24-32px.';
-        $parts[] = '- Typography: use multiple heading sizes for hierarchy (h1 for page, h2 for sections 32-40px, h3 for subsections 24-28px), body text 16px.';
-        $parts[] = '- Line height: 1.2 for headings, 1.6 for body text for readability.';
-        $parts[] = '- Buttons: use primary color, padding 12px 24px, border-radius: 4px, white text, hover effect (opacity or shadow).';
-        $parts[] = '- Images: max-width 100%, height auto, border-radius: 8px, add subtle shadow if overlaid on backgrounds.';
-        $parts[] = '- Ensure image references are context-relevant for the business domain and section purpose.';
+        $parts[] = 'ANTI-TEMPLATE RULES (mandatory):';
+        $parts[] = '- Do NOT use generic gradient heroes (#667eea → #764ba2 or similar defaults)';
+        $parts[] = '- Do NOT use the same card grid pattern for every section';
+        $parts[] = '- Do NOT center-align all text by default — use left-aligned body text';
+        $parts[] = '- Do NOT use emoji icons (🎯 📱 etc.) unless the mood is casual/playful';
+        $parts[] = '- Do NOT use generic light-gray (#f5f7fa, #f9fafb) backgrounds unless the design system specifies them';
+        $parts[] = '- Do NOT repeat the same section structural pattern more than twice on one page';
+        $parts[] = '- Use the ACTUAL design system colors for backgrounds, gradients, and accents — not safe defaults';
+        $parts[] = '- Vary section structures: combine full-width, split layouts, overlapping elements, asymmetric grids';
 
         if (!$fullDocument) {
             $parts[] = '';
@@ -188,20 +257,9 @@ class AiPageGenerator
             $parts[] = 'Styling: you may use classes, but avoid depending on any specific framework unless the brief explicitly says so.';
         }
 
-        $parts[] = '';
-        $parts[] = 'EXAMPLE SECTION STRUCTURES (follow these patterns):';
-        $parts[] = '';
-        $parts[] = 'Hero Example: <section style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 80px 20px; text-align: center;"><div style="max-width: 800px; margin: 0 auto;"><h1 style="font-size: 48px; margin-bottom: 16px; margin-top: 0;">Main Headline</h1><p style="font-size: 18px; line-height: 1.6; margin-bottom: 32px; opacity: 0.95;">Supporting description goes here</p><a href="#" style="background: white; color: #667eea; padding: 14px 32px; border-radius: 4px; text-decoration: none; font-weight: 600; display: inline-block; transition: transform 0.2s;">Get Started</a></div></section>';
-        $parts[] = '';
-        $parts[] = 'Cards Grid Example: <section style="padding: 60px 20px; background: #f9fafb;"><div style="max-width: 1200px; margin: 0 auto;"><h2 style="font-size: 32px; text-align: center; margin-bottom: 48px;">Our Services</h2><div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px;"><div style="background: white; padding: 32px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); transition: transform 0.3s;"><div style="font-size: 32px; margin-bottom: 16px;">🎯</div><h3 style="margin-top: 0; font-size: 20px;">Card Title</h3><p style="color: #666; line-height: 1.6;">Clear description of the service or feature.</p></div></div></div></section>';
-        $parts[] = '';
-        $parts[] = 'Image + Text Example: <section style="padding: 60px 20px;"><div style="max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center;"><img src="image.jpg" style="width: 100%; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);" /><div><h2 style="font-size: 32px; margin-top: 0;">Section Heading</h2><p style="color: #666; line-height: 1.6; font-size: 16px;">Content paragraph with details.</p><ul style="line-height: 1.8; font-size: 16px;"><li>Feature one</li><li>Feature two</li><li>Feature three</li></ul></div></div></section>';
-        $parts[] = '';
-        $parts[] = 'Testimonial Example: <section style="padding: 60px 20px; background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);"><div style="max-width: 800px; margin: 0 auto;"><blockquote style="font-size: 18px; font-style: italic; margin: 0 0 24px 0; padding: 24px 24px 24px 32px; border-left: 4px solid #667eea; background: white; border-radius: 4px; line-height: 1.6;">&quot;This is a powerful testimonial quote that validates the service or product.&quot;</blockquote><p style="text-align: center; margin: 0; color: #333;"><strong>Author Name</strong><br /><span style="color: #666; font-size: 14px;">Title or Company</span></p></div></section>';
-
         // Prevent prompt injection from brief by explicitly delimiting it.
         $final = implode("\n", $parts);
-        $final .= "\n\n---\nOnly output HTML.";
+        $final .= "\n\n---\nOnly output HTML. Follow the visual design system exactly. Do not fall back to generic template patterns.";
 
         return $final;
     }
