@@ -1374,3 +1374,41 @@ AI site clone output consistently looked like generic Bootstrap/Tailwind starter
 - Page generator uses reference-locked visual character tokens instead of canned generic examples.
 - Quality gates detect and penalize generic template patterns, triggering retries with design-system-aware instructions.
 - Pipeline flow: Analyzer → DesignSystemGenerator (20+ tokens) → AiSiteBuilder → AiPageGenerator (reference-locked prompts) → quality gates.
+
+---
+
+## 2026-03-10 — Fix: Logo Plastered as Body Content + Repetitive Section Layouts
+
+**Problem**
+1. The company logo (Smart Home Architects house icon) appeared as a large body content image in nearly every section across all cloned pages.
+2. Every page used the same text-left/image-right alternating layout with no structural variety.
+
+**Root causes**
+1. **Logo URL not tracked from analysis** — `SiteCloneAnalyzer` correctly identifies the logo URL in `$analysis['images']['logo']`, but this URL was never cross-referenced when building per-page media pools or resolving images. `isLikelyLogoMediaUrl()` only checked for keywords like "logo" in the URL path — if the logo file was named generically (e.g., `site-icon.png`), it passed through.
+2. **Logo imported into media library** — The logo was explicitly imported alongside all other images in `build()`, making it available as a contextual replacement fallback. When pages had no real images in their pool, the logo was returned.
+3. **No logo check after pool/import resolution** — `resolveImageSource()` returned the first result from the page media pool or import without checking if it was the logo.
+4. **No section layout variety instructions** — The page generator had no explicit instruction to vary section structures, so the LLM defaulted to the same two-column split pattern on every page.
+
+**Changes**
+
+### AiSiteCloneAdminController — Known logo URL tracking
+- Added `$knownLogoUrls` class property to track logo URLs (original + mapped).
+- In `build()`, both the original analysis logo URL and its mapped local URL are registered as known logos.
+- `isLikelyLogoMediaUrl()` now checks against `$knownLogoUrls` in addition to keyword patterns. Added `favicon`, `site-icon`, `site_icon` keywords. Removed hardcoded `smarthomearchitects_footer_logo`.
+- `buildPageMediaHints()` now filters logos at the SOURCE URL level (before mapping), not just the mapped internal URL.
+- `resolveImageSource()` now checks the pool result and import result against `isLikelyLogoMediaUrl()` before using them.
+
+### AiPageGenerator — Section layout variety
+- Added "SECTION LAYOUT VARIETY" instruction block listing 10 distinct section types.
+- Explicitly bans repeating the same two-column split direction more than twice.
+- Explicitly bans using the company logo as an `<img>` source in body content sections.
+- Strengthened existing logo exclusion in build instructions.
+
+**Files modified**
+- `app/Http/Controllers/Admin/AiSiteCloneAdminController.php`
+- `app/Support/Ai/AiPageGenerator.php`
+
+**Resolved** ✅
+- Logo is now tracked from analysis and excluded at every image assignment point in the pipeline.
+- Page media pools, import resolution, and contextual replacement all respect the logo exclusion.
+- Section layouts now have explicit variety requirements preventing repetitive text/image alternation.

@@ -24,6 +24,9 @@ use Illuminate\Support\Facades\Validator;
 
 class AiSiteCloneAdminController extends Controller
 {
+    /** @var array<int,string> Known logo URLs (original + mapped) to exclude from body content */
+    private array $knownLogoUrls = [];
+
     public function __construct(
         private readonly LlmClientInterface $llm,
         private readonly AiImageClientInterface $imageClient,
@@ -391,6 +394,11 @@ class AiSiteCloneAdminController extends Controller
             $analysisLogo = trim((string) (($analysis['images']['logo'] ?? '') ?: ''));
             if ($analysisLogo !== '') {
                 $navLogoUrl = (string) ($mediaMapping[$analysisLogo] ?? $analysisLogo);
+                // Track known logo URLs so they're excluded from body content images.
+                $this->knownLogoUrls[] = strtolower($analysisLogo);
+                if ($navLogoUrl !== '' && strtolower($navLogoUrl) !== strtolower($analysisLogo)) {
+                    $this->knownLogoUrls[] = strtolower($navLogoUrl);
+                }
             }
 
             $pageMediaHints = $this->buildPageMediaHints($analysis, $mediaMapping);
@@ -594,7 +602,7 @@ class AiSiteCloneAdminController extends Controller
         // Deterministic page lock: use this page's imported media pool first.
         if (!empty($pageMediaPool)) {
             $pageLocked = $this->takeNextPageMediaUrl($pageMediaPool, $pageMediaCursor);
-            if ($pageLocked !== '') {
+            if ($pageLocked !== '' && !$this->isLikelyLogoMediaUrl($pageLocked)) {
                 return $pageLocked;
             }
         }
@@ -603,12 +611,15 @@ class AiSiteCloneAdminController extends Controller
 
         $resolvedFromImport = false;
 
-        // Try importing original
-        if ($candidate !== '') {
+        // Try importing original (but skip if it's the logo)
+        if ($candidate !== '' && !$this->isLikelyLogoMediaUrl($candidate)) {
             $imported = $mediaImporter->importFromUrl($candidate);
             if ($imported) {
-                $resolved = (string) $imported->url;
-                $resolvedFromImport = true;
+                $importedUrl = (string) $imported->url;
+                if (!$this->isLikelyLogoMediaUrl($importedUrl)) {
+                    $resolved = $importedUrl;
+                    $resolvedFromImport = true;
+                }
             }
         }
 
@@ -1049,6 +1060,12 @@ class AiSiteCloneAdminController extends Controller
                 }
 
                 $imgUrl = trim($imgUrl);
+
+                // Filter logos at the source URL level too (not just the mapped URL)
+                if ($this->isLikelyLogoMediaUrl($imgUrl)) {
+                    continue;
+                }
+
                 $internal = $mediaMapping[$imgUrl] ?? null;
                 if (!is_string($internal) || trim($internal) === '') {
                     $canonical = $this->canonicalMediaKey($imgUrl);
@@ -1090,10 +1107,19 @@ class AiSiteCloneAdminController extends Controller
             return false;
         }
 
+        // Check against known logo URLs from analysis
+        foreach ($this->knownLogoUrls as $knownLogo) {
+            if ($knownLogo !== '' && (str_contains($needle, $knownLogo) || str_contains($knownLogo, $needle))) {
+                return true;
+            }
+        }
+
         return str_contains($needle, 'logo')
             || str_contains($needle, 'brand')
-            || str_contains($needle, 'smarthomearchitects_footer_logo')
             || str_contains($needle, '/header-')
-            || str_contains($needle, '/footer-');
+            || str_contains($needle, '/footer-')
+            || str_contains($needle, 'favicon')
+            || str_contains($needle, 'site-icon')
+            || str_contains($needle, 'site_icon');
     }
 }

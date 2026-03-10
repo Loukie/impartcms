@@ -65,6 +65,7 @@ class AiPageGenerator
             'Generate substantial content depth with domain-specific details, not generic agency filler.',
             'Target at least 6 meaningful sections for standard pages, with substantial copy in each section.',
             'Do not place brand/logo assets as large body images in normal content sections.',
+            'NEVER use the company logo image as an <img> source in body content sections — logos are handled by the navigation/footer system separately.',
             'Avoid repeating the same hero/content image throughout the page unless section is explicitly a gallery.',
         ];
 
@@ -246,6 +247,24 @@ class AiPageGenerator
         $parts[] = '- Do NOT repeat the same section structural pattern more than twice on one page';
         $parts[] = '- Use the ACTUAL design system colors for backgrounds, gradients, and accents — not safe defaults';
         $parts[] = '- Vary section structures: combine full-width, split layouts, overlapping elements, asymmetric grids';
+
+        $parts[] = '';
+        $parts[] = 'SECTION LAYOUT VARIETY (critical — prevents clone pages from looking identical):';
+        $parts[] = '- Do NOT use a repeating "text-left / image-right" alternating layout for every section';
+        $parts[] = '- Each page should use at least 4 DIFFERENT section layouts from this list:';
+        $parts[] = '  1. Full-width hero with background image/color and overlay text';
+        $parts[] = '  2. Two-column split (image left, text right)';
+        $parts[] = '  3. Two-column split (text left, image right)';
+        $parts[] = '  4. Three or four column card/feature grid';
+        $parts[] = '  5. Full-width content band with centered text (no image)';
+        $parts[] = '  6. Asymmetric grid (60/40 or 70/30 split)';
+        $parts[] = '  7. Icon + text feature list (vertical or horizontal)';
+        $parts[] = '  8. Testimonial/quote block with distinctive styling';
+        $parts[] = '  9. Stats/numbers row with large typography';
+        $parts[] = '  10. Full-width image with overlaid text';
+        $parts[] = '- NEVER use the same two-column split direction more than twice consecutively';
+        $parts[] = '- NEVER place a brand logo as the image in a content section — use contextual images only';
+        $parts[] = '- Images (img tags) should depict scenes, products, or environments relevant to the section topic — NOT the company logo';
 
         if (!$fullDocument) {
             $parts[] = '';
