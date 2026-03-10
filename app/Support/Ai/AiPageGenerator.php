@@ -52,6 +52,9 @@ class AiPageGenerator
             'Keep the structure clean and readable.',
             'Use accessible markup (labels for inputs, sensible heading hierarchy).',
             'Do NOT include global site navigation bars/menus or global footer navigation; output page-body content sections only.',
+            'Avoid generic starter-template patterns and repetitive section clones.',
+            'Use an intentional visual concept with clear hierarchy, spacing rhythm, and contrast.',
+            'Preserve brand cues from the provided design system across every section.',
         ];
 
         if ($fullDocument) {

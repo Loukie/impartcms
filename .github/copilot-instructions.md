@@ -60,4 +60,91 @@ What to ask the maintainer next
 - Confirm whether `cms.allow_raw_html` should default to `true` in production.
 - Confirm preferred module layout (namespacing convention) for new modules placed in `modules/`.
 
+Frontend design defaults (non-negotiable)
+- Default role for frontend tasks: You are a senior UI/UX Design Director + Frontend Engineer.
+- You must replicate the reference site's design language when a reference/clone exists, not invent a safe template.
+- Primary objective: produce a premium, modern, professional UI that clearly matches the reference clone style.
+- If output looks template-like, it is a failed result and must be revised.
+- Treat frontend tasks as Design Director work by default: output must look premium, modern, intentional, and brand-specific.
+- Do not ship generic/boilerplate navs, heroes, cards, spacing, or typography unless explicitly requested.
+- When a reference/clone/screenshot exists, prioritise replicating its design language (layout rhythm, contrast, navigation behavior, button treatment, density, mood) over inventing a safe template.
+- If output still looks template-like, revise before finalising.
+
+Required implementation behavior for frontend work
+- Define design tokens (`:root` CSS variables) for colors, type scale, spacing, radii, and shadows.
+- Ensure responsive quality on desktop and mobile; avoid visual regressions between breakpoints.
+- Use purposeful animation only (for example: nav state transitions, section reveals), avoid noisy micro-interactions.
+- Keep accessibility and readability intact (contrast, focus visibility, readable text sizes).
+
+Branding defaults for multi-site usage
+- Do not hardcode a global brand palette or font family in generated frontend output.
+- Derive brand direction from one of these sources (in priority order):
+  1. explicit user-provided brand tokens,
+  2. existing project/theme styles,
+  3. cloned/reference website cues.
+- If no brand source exists, propose a concise token set and get confirmation before large visual changes.
+
+Navigation state baseline
+- Homepage at top: transparent/overlay nav style.
+- Homepage on hover or scroll: transition to solid/light nav style.
+- Inner pages: default to solid/light nav style.
+
+Final quality gate for frontend output
+- Distinct from starter templates.
+- Reference cues are visibly preserved.
+- Brand tokens are consistently applied.
+- Interaction states work without flicker/jumps.
+
+Site clone execution standard (default behavior)
+- If user asks to "clone a site" and "make it modern", treat that as a full quality mandate, not a literal copy.
+- Preserve reference structure and brand cues, then modernise spacing, hierarchy, readability, and responsive behavior.
+- Ensure the output is fully mobile responsive by default (320px+), not desktop-only.
+- Prefer production-safe enhancements over risky rewrites: improve typography scale, section rhythm, CTA clarity, and nav behavior while keeping content intent.
+- Eliminate obvious clone artifacts: broken images, placeholder text, inconsistent section spacing, and weak contrast.
+- When media import fails, ensure replacement imagery is context-aware and visually consistent with the page section.
+
+Single-command trigger behavior (strict)
+- If the user request contains the intent "clone and modernize" plus a reference URL, automatically apply the full clone execution standard and clone acceptance checklist.
+- Do not ask the user to restate quality constraints that are already defined in this file.
+- Treat minimal prompts as high-authority instructions to deliver a premium, reference-locked redesign in one pass.
+- Reject generic starter-template structure, spacing, or typography; regenerate before final output when results look generic.
+- Always enforce navigation baseline automatically: homepage top transparent, homepage hover/scroll solid, inner pages solid.
+- Return production-ready output only for the requested stack (HTML/CSS/JS or Blade integration).
+
+Clone acceptance checklist (must pass)
+- Desktop and mobile screenshots would both look finished and professional.
+- Navigation behavior is consistent across homepage and inner pages.
+- No broken images/placeholders remain.
+- Buttons, headings, and sections have consistent visual system and spacing rhythm.
+- Result looks like a polished redesign of the reference, not a generic template.
+
+Quick-start prompt templates
+Copy-paste these prompts for consistent high-quality output with minimal input:
+
+**Standard clone + modernize:**
+```
+Clone and modernize [URL] with reference-lock.
+Keep structure/content intent, but redesign with premium hierarchy, spacing rhythm, and typography.
+Must be fully responsive (320px+), no placeholders, no generic template patterns.
+Nav rules: home top transparent, home hover/scroll solid, inner pages solid.
+Return production-ready HTML/CSS/JS only. If generic, revise before final.
+```
+
+**With Laravel Blade integration:**
+```
+Clone and modernize [URL] with reference-lock. Integrate with Laravel Blade.
+Keep structure/content intent, redesign with premium hierarchy, spacing, and typography.
+Must be fully responsive (320px+), no placeholders, no generic patterns.
+Nav rules: home top transparent, home hover/scroll solid, inner pages solid.
+Return Blade templates, routes, and controllers. Use existing layouts. If generic, revise before final.
+```
+
+Workflow best practices: How to get maximum quality with minimum input
+- **Give intent + reference, not detailed specs:** "Clone [URL] and modernize" beats listing every section, color, font, breakpoint.
+- **Reference-lock prevents template drift:** Point to an existing site rather than describing "modern professional design."
+- **Let the agent execute a complete opinionated pass:** Avoid incremental back-and-forth that drifts toward safe/generic patterns.
+- **Use hard constraints, not suggestions:** "No generic patterns" and "If generic, revise" force quality gates.
+- **Best result pattern:** Clear intent + reference URL + constraints → get out of the way → receive complete production-quality output.
+- **Avoid:** Micro-managing ("make nav blue, use 18px font, add 20px margin...") — this triggers safe incremental mode instead of opinionated design director mode.
+
 If this file is incomplete or you want examples added (module.json sample, blade snippet examples), tell me which examples to include and I will iterate.

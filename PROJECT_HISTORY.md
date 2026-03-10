@@ -1026,3 +1026,172 @@ php artisan optimize:clear        # Clear caches
 6. Add retry logic for failed page generations
 
 ---
+
+## 2026-03-09 - Clone Image Auto-Fallback (Broken/Missing Image Protection)
+
+**What was done**
+- Added automatic image fallback handling in `AiSiteBuilder` so cloned pages do not show broken image icons.
+- Any `<img>` with a missing/empty `src` is now assigned an immediate generated SVG placeholder.
+- Every generated `<img>` now gets an `onerror` fallback that swaps to a generated placeholder if the original image fails at runtime.
+- Placeholder image is generated from clone context (design system colors + brand/domain label) so fallback visuals match the site theme.
+- Applied fallback handling after media URL replacement and before final page body save.
+
+**Why**
+- Clone targets can have dead links, blocked hotlinks, or missing assets.
+- Editors should never see broken image icons or blank image areas in generated pages.
+
+**Files modified**
+- `app/Support/Ai/AiSiteBuilder.php`
+
+**Resolved** ✅
+- Missing image sources now auto-fill with themed placeholders.
+- Broken image URLs now auto-recover client-side using fallback placeholders.
+- Clone output is visually resilient even when source media is unavailable.
+
+**Note**
+- This protects against missing/broken loads. It does not classify image content quality (for example, intentionally dark or low-quality source images).
+
+### 2026-03-09 Update - Real Stored Fallback Image (Media Library)
+
+**What was done**
+- Added `FallbackImageGenerator` to create a real fallback SVG file in `storage/app/public/media/YYYY/MM/`.
+- Automatically creates a `MediaFile` record so the fallback appears in Media Library.
+- Clone build now generates one fallback media asset per run and passes its URL into `AiSiteBuilder`.
+- `AiSiteBuilder` now prefers this stored fallback URL for missing/broken `<img>` tags (with data-URI as last-resort backup).
+
+**Why**
+- You requested fallback images to be real media assets, not inline data URIs.
+- Real assets are reusable, visible in admin Media Library, and easier to audit/manage.
+
+**Files modified**
+- `app/Support/Ai/FallbackImageGenerator.php` (new)
+- `app/Http/Controllers/Admin/AiSiteCloneAdminController.php`
+- `app/Support/Ai/AiSiteBuilder.php`
+
+### 2026-03-09 Update - AI-Generated Fallback Images (Preferred)
+
+**What was done**
+- Added provider-level AI image generation abstraction:
+  - `AiImageClientInterface`
+  - `OpenAiImageClient`
+  - `NullAiImageClient`
+- Bound image generation in `AppServiceProvider` (OpenAI-backed for now).
+- Updated `FallbackImageGenerator` to attempt AI image generation first for fallback assets.
+- If AI image generation succeeds, stores real AI image (PNG/JPG/WebP/SVG) in Media Library.
+- If AI image generation fails, automatically falls back to generated SVG so clone build remains resilient.
+
+**Why**
+- Requirement: when source image is missing/broken, fallback should be a real AI-generated image instead of a plain static placeholder.
+
+**Files modified**
+- `app/Support/Ai/AiImageClientInterface.php` (new)
+- `app/Support/Ai/OpenAiImageClient.php` (new)
+- `app/Support/Ai/NullAiImageClient.php` (new)
+- `app/Providers/AppServiceProvider.php`
+- `app/Support/Ai/FallbackImageGenerator.php`
+- `app/Http/Controllers/Admin/AiSiteCloneAdminController.php`
+
+### 2026-03-09 Update - Per-Image Media Normalization (Always Local Media URLs)
+
+**What was done**
+- Added post-build image normalization in clone flow to process every `<img>` tag in generated pages.
+- For each image source:
+  - Try importing original source into Media Library.
+  - If import fails or source is missing, generate AI image and save to Media Library.
+  - Rewrite `<img src>` to the resulting local media URL.
+- Local media URLs already under `/storage/media/...` are preserved.
+
+**Why**
+- Requirement: all images used by cloned pages should be stored in Media Library and linked locally.
+- Requirement: if original image cannot be found/retrieved, always generate an AI image.
+
+**Files modified**
+- `app/Http/Controllers/Admin/AiSiteCloneAdminController.php`
+
+### 2026-03-09 Update - Free Temporary Image Fallback (Last Resort)
+
+**What was done**
+- Extended `FallbackImageGenerator` fallback chain to include free temporary image providers.
+- New order:
+  1. Import original source image to Media
+  2. AI generate replacement image to Media
+  3. Download free temporary image to Media
+  4. Final internal SVG fallback
+- Free image fallback is downloaded and saved as a normal `MediaFile` record, then linked locally.
+
+**Why**
+- Requirement: if original + AI both fail, system should still use a usable temporary image instead of broken/black placeholders.
+
+**Files modified**
+- `app/Support/Ai/FallbackImageGenerator.php`
+
+### 2026-03-09 Update - Added GPT-5.4 Thinking Model Option
+
+**What was done**
+- Added `gpt-5.4-thinking` to OpenAI model options in AI Agent settings UI.
+- Updated OpenAI model normalization in settings save flow to accept aliases:
+  - `gpt-5.4`
+  - `gpt-5.4 thinking`
+  - `gpt54-thinking`
+- Updated runtime provider normalization to keep `gpt-5.4-thinking` valid when binding the OpenAI LLM client.
+
+**Files modified**
+- `app/Http/Controllers/Admin/AiAgentSettingsController.php`
+- `app/Providers/AppServiceProvider.php`
+
+---
+
+### 2026-03-09 Update - CSS Background Image Support + Creative Context-Aware AI Image Generation
+
+**What was done**
+- Enhanced image normalization to process **inline CSS background images** in addition to `<img>` tags.
+  - Now parses `style="background-image: url(...)"` and `style="background: url(...)"` attributes.
+  - Applies same fallback chain: original import → AI generation → free temporary → SVG.
+- Completely rewrote AI image prompt generation to be **creative and context-aware** instead of generic placeholders:
+  - Analyzes page title, body content, and original image URL to understand context.
+  - Detects image type: hero, team, contact, product, feature, location.
+  - Detects industry from keywords: restaurant, tech, legal, healthcare, real estate, fashion, finance, creative agency, construction, education, fitness, automotive, travel, smart home/automated blinds, etc.
+  - Generates **specific, photorealistic prompts** tailored to detected context.
+  - Example: "Contact Us" page → generates "modern business exterior with glass facades and professional atmosphere" instead of generic placeholder.
+  - Example: "Find Us Here" page → generates "welcoming office entrance with architectural details" instead of "Map Placeholder".
+  - Explicitly instructs: **NO placeholder text**, **NO watermarks**, **NO "image unavailable" graphics**, **photorealistic quality**.
+- Extracted `resolveImageSource()` helper method to centralize image resolution logic.
+
+**Why**
+- User reported broken background images behind sections like "Get in Touch".
+- User requested: **"there should never be placeholder like this"** – wants creative, real images, not generic placeholder graphics.
+- Clone results must look professional with context-appropriate imagery, not generic fallbacks.
+
+**How it works**
+1. Image normalization now detects both `<img>` tags and inline `style` attributes with CSS `url()` functions.
+2. For each image URL:
+   - Try importing original from source site.
+   - On failure, generate AI image using **context-aware prompt** based on page content and detected industry.
+   - Prompt generator analyzes text for keywords like "contact", "team", "product", "hero" and creates specific imagery.
+   - Industry detection identifies business type (restaurant, tech, legal, etc.) and tailors imagery accordingly.
+3. Generated image is saved to Media Library and URL is rewritten in HTML/CSS.
+
+**Files modified**
+- `app/Http/Controllers/Admin/AiSiteCloneAdminController.php`
+  - Added CSS `background-image` and `background` processing in `materializeCloneImagesToMedia()`.
+  - Extracted `resolveImageSource()` helper method.
+- `app/Support/Ai/FallbackImageGenerator.php`
+  - Completely rewrote `buildAiImagePrompt()` to be context-aware and creative.
+  - Added `extractImageContext()` method to detect image type from page content.
+  - Added `detectIndustry()` method to identify business type and appropriate imagery.
+  - Now accepts `page_body` and `original_src` in context for better analysis.
+
+**Example transformations**
+- "Contact Us" / "Find Us Here" → Modern office exterior or welcoming entrance
+- "Get in Touch" → Professional business atmosphere with architectural details
+- "Our Team" → Collaborative workspace with natural light (no people)
+- "Explore Our Styles" → Elegant fashion displays or product showcase
+- "About Us" → Modern office environment with contemporary design
+- Automated blinds site → Smart home imagery with modern window treatments
+
+**Impact**
+- No more generic placeholder images in cloned sites.
+- Every generated image is contextually appropriate and looks professional.
+- Background images in CSS are now properly handled alongside `<img>` tags.
+
+---

@@ -3,10 +3,13 @@
 namespace App\Providers;
 
 use App\Support\Ai\LlmClientInterface;
+use App\Support\Ai\AiImageClientInterface;
 use App\Support\Ai\NullLlmClient;
 use App\Support\Ai\OpenAiResponsesClient;
+use App\Support\Ai\OpenAiImageClient;
 use App\Support\Ai\AnthropicClient;
 use App\Support\Ai\GeminiGenerateContentClient;
+use App\Support\Ai\NullAiImageClient;
 use App\Support\Ai\VisionClientInterface;
 use App\Support\Ai\NullVisionClient;
 use App\Support\Ai\GeminiVisionClient;
@@ -231,6 +234,83 @@ class AppServiceProvider extends ServiceProvider
             return new NullLlmClient('Unknown AI provider selected. Please choose a valid provider in Admin → AI Agent.');
         });
 
+        // AI image generation binding (for fallback media when source images are missing/broken)
+        $this->app->bind(AiImageClientInterface::class, function () {
+            $settingsAvailable = false;
+            try {
+                $settingsAvailable = Schema::hasTable('settings');
+            } catch (\Throwable $e) {
+                $settingsAvailable = false;
+            }
+
+            $provider = '';
+            if ($settingsAvailable) {
+                try {
+                    $provider = (string) (Setting::get('ai.provider', '') ?? '');
+                } catch (\Throwable $e) {
+                    $provider = '';
+                }
+            }
+            $provider = strtolower(trim($provider));
+            if ($provider === '') {
+                $provider = strtolower(trim((string) (env('AI_PROVIDER', '') ?? '')));
+            }
+
+            if ($provider !== 'openai') {
+                return new NullAiImageClient('AI image fallback currently requires OpenAI provider. Switch AI provider to OpenAI in Admin → AI Agent.');
+            }
+
+            $apiKey = '';
+            if ($settingsAvailable) {
+                try {
+                    $apiKey = (string) Setting::getSecret('ai.openai.api_key', '');
+                } catch (\Throwable $e) {
+                    $apiKey = '';
+                }
+            }
+            if (trim($apiKey) === '') {
+                $apiKey = (string) (env('OPENAI_API_KEY', '') ?? '');
+            }
+            if (trim($apiKey) === '') {
+                return new NullAiImageClient('OpenAI image fallback is selected but no API key is configured.');
+            }
+
+            $model = '';
+            if ($settingsAvailable) {
+                try {
+                    $model = (string) (Setting::get('ai.openai.image_model', '') ?? '');
+                } catch (\Throwable $e) {
+                    $model = '';
+                }
+            }
+            if (trim($model) === '') {
+                $model = (string) (env('OPENAI_IMAGE_MODEL', 'gpt-image-1') ?? 'gpt-image-1');
+            }
+
+            $timeout = 0;
+            if ($settingsAvailable) {
+                try {
+                    $timeout = (int) (Setting::get('ai.openai.timeout', 0) ?? 0);
+                } catch (\Throwable $e) {
+                    $timeout = 0;
+                }
+            }
+            if ($timeout <= 0) {
+                $timeout = (int) (env('OPENAI_TIMEOUT', 0) ?? 0);
+            }
+            if ($timeout <= 0) {
+                $timeout = 60;
+            }
+            if ($timeout < 5) $timeout = 5;
+            if ($timeout > 600) $timeout = 600;
+
+            return new OpenAiImageClient(
+                apiKey: $apiKey,
+                model: $model,
+                timeoutSeconds: $timeout,
+            );
+        });
+
         // Vision binding (for screenshot-based redesign)
         // - Gemini supports vision via the same API key/model.
         // - OpenAI vision can be wired later if needed.
@@ -321,17 +401,23 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /**
-     * Normalize invalid/outdated OpenAI model names to valid ones.
+     * Normalize OpenAI model names and accept supported aliases.
      */
     private function normalizeOpenAiModel(string $model): string
     {
-        $model = trim($model);
+        $model = strtolower(trim($model));
         if ($model === '') {
             return 'gpt-4o';
         }
 
-        // Valid OpenAI models (as of March 2026)
+        // Accept friendly/legacy variants for GPT-5.4 Thinking.
+        if (in_array($model, ['gpt-5.4', 'gpt-5.4 thinking', 'gpt54-thinking'], true)) {
+            return 'gpt-5.4-thinking';
+        }
+
+        // Valid OpenAI models (as configured in this CMS)
         $validModels = [
+            'gpt-5.4-thinking',
             'gpt-4o',
             'gpt-4-turbo',
             'gpt-4',
@@ -342,7 +428,7 @@ class AppServiceProvider extends ServiceProvider
             return $model;
         }
 
-        // Any fake/future models (gpt-5.x, gpt-6.x, etc.) default to gpt-4o
+        // Unknown models default to gpt-4o
         return 'gpt-4o';
     }
 }

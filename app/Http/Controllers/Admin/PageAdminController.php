@@ -96,6 +96,12 @@ class PageAdminController extends Controller
      */
     public function bulk(Request $request): RedirectResponse
     {
+        \Log::info('Bulk trash request received', [
+            'ids' => $request->input('ids'),
+            'url' => $request->fullUrl(),
+            'method' => $request->method(),
+        ]);
+
         $ids = (array) $request->input('ids', []);
         if (empty($ids)) {
             return redirect()->route('admin.pages.index')->with('status', 'No pages selected.');
@@ -116,7 +122,10 @@ class PageAdminController extends Controller
             $msg .= ' ' . implode(' ', $errors);
         }
 
-        return redirect()->route('admin.pages.index')->with('status', $msg);
+        \Log::info('Bulk trash completed', ['message' => $msg]);
+
+        // Redirect to pages list without preserving query strings
+        return redirect(route('admin.pages.index'))->with('status', $msg);
     }
 
     /**

@@ -49,6 +49,82 @@
                             </select>
                             @error('provider') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                         </div>
+
+                        <div class="mt-5 max-w-xl">
+                            <label class="block text-sm font-medium text-gray-700">AI image generation (fallbacks)</label>
+                            <input type="hidden" name="ai_images_enabled" value="0">
+                            <label class="mt-2 inline-flex items-center gap-2 text-sm text-gray-700">
+                                <input
+                                    type="checkbox"
+                                    name="ai_images_enabled"
+                                    value="1"
+                                    class="rounded border-gray-300 text-gray-900 focus:ring-gray-500"
+                                    {{ old('ai_images_enabled', $aiImagesEnabled ? '1' : '0') === '1' ? 'checked' : '' }}
+                                >
+                                Enable AI image generation when replacement images cannot be imported
+                            </label>
+                            <p class="mt-1 text-xs text-gray-500">
+                                When disabled, missing source images use contextual Media Library replacements first, then non-AI fallback assets.
+                            </p>
+                            @error('ai_images_enabled') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                        </div>
+
+                        <div class="mt-8 border rounded-lg p-4 bg-gray-50">
+                            <h4 class="text-sm font-semibold text-gray-900">Clone Design Defaults</h4>
+                            <p class="text-xs text-gray-500 mt-1">These defaults are injected into site-clone prompts so output stays premium and brand-consistent.</p>
+
+                            <div class="mt-4 max-w-xl">
+                                <label class="block text-sm font-medium text-gray-700">Design mode</label>
+                                <select name="clone_design_mode" class="mt-1 block w-full rounded-md border-gray-300 focus:border-gray-500 focus:ring-gray-500">
+                                    <option value="safe" {{ old('clone_design_mode', $cloneDesignMode) === 'safe' ? 'selected' : '' }}>Safe</option>
+                                    <option value="premium" {{ old('clone_design_mode', $cloneDesignMode) === 'premium' ? 'selected' : '' }}>Premium (recommended)</option>
+                                    <option value="strict_reference" {{ old('clone_design_mode', $cloneDesignMode) === 'strict_reference' ? 'selected' : '' }}>Strict reference-lock</option>
+                                </select>
+                                <p class="mt-1 text-xs text-gray-500">Premium avoids generic templates. Strict reference-lock keeps structure and visual cues closest to source.</p>
+                                @error('clone_design_mode') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                            </div>
+
+                            <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Brand primary color</label>
+                                    <input type="text" name="clone_brand_primary_color" value="{{ old('clone_brand_primary_color', $cloneBrandPrimaryColor) }}" placeholder="#e09900" class="mt-1 block w-full rounded-md border-gray-300 focus:border-gray-500 focus:ring-gray-500 font-mono" />
+                                    @error('clone_brand_primary_color') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Brand secondary color</label>
+                                    <input type="text" name="clone_brand_secondary_color" value="{{ old('clone_brand_secondary_color', $cloneBrandSecondaryColor) }}" placeholder="#666666" class="mt-1 block w-full rounded-md border-gray-300 focus:border-gray-500 focus:ring-gray-500 font-mono" />
+                                    @error('clone_brand_secondary_color') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Brand accent color</label>
+                                    <input type="text" name="clone_brand_accent_color" value="{{ old('clone_brand_accent_color', $cloneBrandAccentColor) }}" placeholder="#8f806a" class="mt-1 block w-full rounded-md border-gray-300 focus:border-gray-500 focus:ring-gray-500 font-mono" />
+                                    @error('clone_brand_accent_color') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                                </div>
+                            </div>
+
+                            <div class="mt-4 max-w-2xl">
+                                <label class="block text-sm font-medium text-gray-700">Global font stack (optional lock)</label>
+                                <input type="text" name="clone_global_font" value="{{ old('clone_global_font', $cloneGlobalFont) }}" placeholder="'EB Garamond', Georgia, 'Times New Roman', serif" class="mt-1 block w-full rounded-md border-gray-300 focus:border-gray-500 focus:ring-gray-500" />
+                                <p class="mt-1 text-xs text-gray-500">Optional default. Leave blank for client-specific font choices.</p>
+                                @error('clone_global_font') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                            </div>
+
+                            <div class="mt-4 max-w-2xl">
+                                <input type="hidden" name="clone_enforce_brand_tokens" value="0">
+                                <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+                                    <input
+                                        type="checkbox"
+                                        name="clone_enforce_brand_tokens"
+                                        value="1"
+                                        class="rounded border-gray-300 text-gray-900 focus:ring-gray-500"
+                                        {{ old('clone_enforce_brand_tokens', $cloneEnforceBrandTokens ? '1' : '0') === '1' ? 'checked' : '' }}
+                                    >
+                                    Enforce these brand colors/font globally for all clone jobs
+                                </label>
+                                <p class="mt-1 text-xs text-gray-500">Leave unchecked for multi-client mode (recommended): colors/font act as hints only when provided.</p>
+                                @error('clone_enforce_brand_tokens') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                            </div>
+                        </div>
                     </section>
 
                     {{-- OPENAI --}}

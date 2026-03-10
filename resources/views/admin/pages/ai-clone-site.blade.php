@@ -424,6 +424,29 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         },
         methods: {
+            async parseApiResponse(response, fallbackMessage) {
+                const contentType = String(response.headers.get('content-type') || '').toLowerCase();
+                const raw = await response.text();
+
+                if (!contentType.includes('application/json')) {
+                    const preview = raw.replace(/\s+/g, ' ').slice(0, 140);
+                    throw new Error(`${fallbackMessage} (HTTP ${response.status}). Server returned non-JSON response: ${preview}`);
+                }
+
+                let data;
+                try {
+                    data = JSON.parse(raw);
+                } catch (err) {
+                    throw new Error(`${fallbackMessage} (HTTP ${response.status}). Server returned invalid JSON.`);
+                }
+
+                if (!response.ok) {
+                    const details = data?.error || data?.message || fallbackMessage;
+                    throw new Error(`${details} (HTTP ${response.status})`);
+                }
+
+                return data;
+            },
             updateOverlay() {
                 const overlay = document.getElementById('analyzeOverlay');
                 if (overlay) {
@@ -464,6 +487,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
                             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
                         },
                         body: JSON.stringify({
@@ -473,7 +498,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         }),
                     });
 
-                    const data = await response.json();
+                    const data = await this.parseApiResponse(response, 'Analysis failed');
                     if (!data.success) {
                         throw new Error(data.error || 'Analysis failed');
                     }
@@ -512,6 +537,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
                             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
                         },
                         body: JSON.stringify({
@@ -522,7 +549,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         }),
                     });
 
-                    const data = await response.json();
+                    const data = await this.parseApiResponse(response, 'Blueprint generation failed');
                     if (!data.success) {
                         throw new Error(data.error || 'Blueprint generation failed');
                     }
@@ -550,6 +577,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
                             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
                         },
                         body: JSON.stringify({
@@ -562,7 +591,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         }),
                     });
 
-                    const data = await response.json();
+                    const data = await this.parseApiResponse(response, 'Build failed');
                     if (!data.success) {
                         throw new Error(data.error || 'Build failed');
                     }

@@ -14,9 +14,20 @@ class AiAgentSettingsController extends Controller
     {
         $provider = (string) (Setting::get('ai.provider', '') ?? '');
         $provider = $provider !== '' ? $provider : 'openai';
+        $aiImagesEnabled = $this->toBool(Setting::get('ai.images.enabled', '0'));
+        $cloneDesignMode = (string) (Setting::get('ai.clone.design_mode', 'premium') ?? 'premium');
+        if (!in_array($cloneDesignMode, ['safe', 'premium', 'strict_reference'], true)) {
+            $cloneDesignMode = 'premium';
+        }
+        $cloneBrandPrimaryColor = (string) (Setting::get('ai.clone.brand_primary_color', '') ?? '');
+        $cloneBrandSecondaryColor = (string) (Setting::get('ai.clone.brand_secondary_color', '') ?? '');
+        $cloneBrandAccentColor = (string) (Setting::get('ai.clone.brand_accent_color', '') ?? '');
+        $cloneGlobalFont = (string) (Setting::get('ai.clone.global_font', '') ?? '');
+        $cloneEnforceBrandTokens = $this->toBool(Setting::get('ai.clone.enforce_brand_tokens', '0'));
 
         // ---- Model options (curated) ----
         $openAiModelOptions = [
+            ['id' => 'gpt-5.4-thinking', 'label' => 'gpt-5.4-thinking (GPT-5.4 Thinking)'],
             ['id' => 'gpt-4o', 'label' => 'gpt-4o (latest, recommended)'],
             ['id' => 'gpt-4-turbo', 'label' => 'gpt-4-turbo (strong, fast)'],
             ['id' => 'gpt-4', 'label' => 'gpt-4 (powerful, older)'],
@@ -81,6 +92,13 @@ class AiAgentSettingsController extends Controller
 
         return view('admin.settings.ai-agent', [
             'provider' => $provider,
+            'aiImagesEnabled' => $aiImagesEnabled,
+            'cloneDesignMode' => $cloneDesignMode,
+            'cloneBrandPrimaryColor' => $cloneBrandPrimaryColor,
+            'cloneBrandSecondaryColor' => $cloneBrandSecondaryColor,
+            'cloneBrandAccentColor' => $cloneBrandAccentColor,
+            'cloneGlobalFont' => $cloneGlobalFont,
+            'cloneEnforceBrandTokens' => $cloneEnforceBrandTokens,
 
             'openAiModelOptions' => $openAiModelOptions,
             'openAiModel' => $openAiModel,
@@ -110,6 +128,13 @@ class AiAgentSettingsController extends Controller
     {
         $data = $request->validate([
             'provider' => ['required', Rule::in(['openai', 'anthropic', 'gemini', 'disabled'])],
+            'ai_images_enabled' => ['nullable', 'boolean'],
+            'clone_design_mode' => ['nullable', Rule::in(['safe', 'premium', 'strict_reference'])],
+            'clone_brand_primary_color' => ['nullable', 'string', 'max:16'],
+            'clone_brand_secondary_color' => ['nullable', 'string', 'max:16'],
+            'clone_brand_accent_color' => ['nullable', 'string', 'max:16'],
+            'clone_global_font' => ['nullable', 'string', 'max:180'],
+            'clone_enforce_brand_tokens' => ['nullable', 'boolean'],
 
             // OpenAI
             'openai_api_key' => ['nullable', 'string', 'max:500'],
@@ -130,6 +155,19 @@ class AiAgentSettingsController extends Controller
         ]);
 
         Setting::set('ai.provider', (string) $data['provider']);
+        Setting::set('ai.images.enabled', ((bool) ($data['ai_images_enabled'] ?? false)) ? '1' : '0');
+        Setting::set('ai.clone.design_mode', (string) ($data['clone_design_mode'] ?? 'premium'));
+
+        $primary = trim((string) ($data['clone_brand_primary_color'] ?? ''));
+        $secondary = trim((string) ($data['clone_brand_secondary_color'] ?? ''));
+        $accent = trim((string) ($data['clone_brand_accent_color'] ?? ''));
+        $font = trim((string) ($data['clone_global_font'] ?? ''));
+
+        Setting::set('ai.clone.brand_primary_color', $this->normalizeOptionalHex($primary));
+        Setting::set('ai.clone.brand_secondary_color', $this->normalizeOptionalHex($secondary));
+        Setting::set('ai.clone.brand_accent_color', $this->normalizeOptionalHex($accent));
+        Setting::set('ai.clone.global_font', $font);
+        Setting::set('ai.clone.enforce_brand_tokens', ((bool) ($data['clone_enforce_brand_tokens'] ?? false)) ? '1' : '0');
 
         // OpenAI settings (stored even if provider not active)
         // Only update key if explicitly cleared or if a new value is provided
@@ -194,6 +232,30 @@ class AiAgentSettingsController extends Controller
         return back()->with('status', 'AI Agent settings saved ✅');
     }
 
+    private function toBool(mixed $value): bool
+    {
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        $str = strtolower(trim((string) $value));
+        return in_array($str, ['1', 'true', 'yes', 'on'], true);
+    }
+
+    private function normalizeOptionalHex(string $value): string
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return '';
+        }
+
+        if (preg_match('/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/', $value) === 1) {
+            return strtolower($value);
+        }
+
+        return '';
+    }
+
     /**
      * @param array<int,array{id:string,label:string}> $options
      * @return array{0:string,1:string} [selectValue, customValue]
@@ -215,18 +277,23 @@ class AiAgentSettingsController extends Controller
     }
 
     /**
-     * Normalize invalid/outdated OpenAI model names to valid ones.
-     * Converts fake models like "gpt-5.4", "gpt-5.2", etc. to "gpt-4o".
+     * Normalize OpenAI model names and accept supported aliases.
      */
     private function normalizeOpenAiModel(string $model): string
     {
-        $model = trim($model);
+        $model = strtolower(trim($model));
         if ($model === '') {
             return 'gpt-4o';
         }
 
+        // Accept friendly/legacy variants for GPT-5.4 Thinking.
+        if (in_array($model, ['gpt-5.4', 'gpt-5.4 thinking', 'gpt54-thinking'], true)) {
+            return 'gpt-5.4-thinking';
+        }
+
         // Valid OpenAI models
         $validModels = [
+            'gpt-5.4-thinking',
             'gpt-4o',
             'gpt-4-turbo',
             'gpt-4',
@@ -235,11 +302,6 @@ class AiAgentSettingsController extends Controller
 
         if (in_array($model, $validModels, true)) {
             return $model;
-        }
-
-        // If model contains "5" or is unknown, suggest gpt-4o
-        if (str_contains($model, '5') || !str_starts_with($model, 'gpt')) {
-            return 'gpt-4o';
         }
 
         // Default fallback

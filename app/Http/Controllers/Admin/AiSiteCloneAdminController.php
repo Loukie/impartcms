@@ -3,23 +3,29 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Setting;
+use App\Models\Page;
 use App\Support\Ai\LlmClientInterface;
 use App\Support\Ai\SiteCloneAnalyzer;
 use App\Support\Ai\DesignSystemGenerator;
 use App\Support\Ai\AiSiteBlueprintGenerator;
 use App\Support\Ai\AiSiteBuilder;
 use App\Support\Ai\AiPageGenerator;
+use App\Support\Ai\AiImageClientInterface;
+use App\Support\Ai\FallbackImageGenerator;
 use App\Support\Ai\LinkRewriter;
 use App\Support\Ai\HtmlSanitiser;
 use App\Support\MediaImporter;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
 
 class AiSiteCloneAdminController extends Controller
 {
     public function __construct(
         private readonly LlmClientInterface $llm,
+        private readonly AiImageClientInterface $imageClient,
     ) {}
 
     /**
@@ -158,6 +164,7 @@ class AiSiteCloneAdminController extends Controller
             $modification = trim((string) ($request->input('modification') ?? ''));
             $maxPages = (int) ($request->input('max_pages') ?? 8);
             $selectedPages = (array) ($request->input('selected_pages') ?? []);
+            $modificationWithContract = $this->buildCloneDesignDirective($modification);
 
             // Normalize URL
             if (!str_starts_with($url, 'http://') && !str_starts_with($url, 'https://')) {
@@ -190,7 +197,8 @@ class AiSiteCloneAdminController extends Controller
 
             // Generate design system
             $designGenerator = new DesignSystemGenerator($this->llm);
-            $design = $designGenerator->generate($analysis, $modification);
+            $design = $designGenerator->generate($analysis, $modificationWithContract);
+            $design = $this->applyDesignOverrides($design);
 
             Log::info('Design system generated', [
                 'primary_color' => $design['primary_color'] ?? 'N/A',
@@ -201,7 +209,7 @@ class AiSiteCloneAdminController extends Controller
             $blueprintResult = $blueprintGen->generateForClone(
                 $analysis,
                 $design,
-                $modification
+                $modificationWithContract
             );
 
             Log::info('Blueprint generated successfully', [
@@ -260,22 +268,31 @@ class AiSiteCloneAdminController extends Controller
      */
     public function build(Request $request)
     {
-        $request->validate([
-            'source_url' => 'required|url',
-            'blueprint_json' => 'required|json',
-            'design_system' => 'required|json',
-            'analysis' => 'nullable|json',
-            'publish' => 'boolean',
-            'set_homepage' => 'boolean',
-        ]);
-
         try {
+            $validator = Validator::make($request->all(), [
+                'source_url' => 'required|url',
+                'blueprint_json' => 'required|json',
+                'design_system' => 'required|json',
+                'analysis' => 'nullable|json',
+                'publish' => 'boolean',
+                'set_homepage' => 'boolean',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Invalid build payload.',
+                    'validation_errors' => $validator->errors(),
+                ], 422);
+            }
+
             $sourceUrl = trim((string) $request->input('source_url'));
             $blueprintJson = (string) $request->input('blueprint_json');
             $designSystem = json_decode((string) $request->input('design_system'), true);
             $analysis = json_decode((string) ($request->input('analysis') ?? '{}'), true);
             $publish = (bool) $request->input('publish', false);
             $setHomepage = (bool) $request->input('set_homepage', false);
+            $aiImageGenerationEnabled = $this->isAiImageGenerationEnabled();
 
             if (!is_array($designSystem)) {
                 throw new \InvalidArgumentException('Invalid design system.');
@@ -283,6 +300,7 @@ class AiSiteCloneAdminController extends Controller
 
             // Download images/videos and create URL mapping
             $mediaMapping = [];
+            $fallbackImageUrl = null;
             if (!empty($analysis['images']) || !empty($analysis['videos'])) {
                 Log::info('Downloading media assets for clone');
                 $mediaImporter = new MediaImporter($request->user()->id);
@@ -323,6 +341,21 @@ class AiSiteCloneAdminController extends Controller
                 Log::info('Media import complete', ['total' => count($mediaMapping)]);
             }
 
+            // Create one real fallback image file in Media Library for this clone run.
+            $fallbackGenerator = new FallbackImageGenerator(
+                imageClient: $this->imageClient,
+                userId: $request->user()?->id,
+            );
+            $fallbackMedia = $fallbackGenerator->create([
+                'design_system' => $designSystem,
+                'source_url' => $sourceUrl,
+                'require_ai' => false,
+                'disable_ai' => !$aiImageGenerationEnabled,
+                'page_title' => (string) ($analysis['title'] ?? ''),
+                'page_body' => (string) json_encode($analysis['navigation'] ?? []),
+            ]);
+            $fallbackImageUrl = $fallbackMedia->url;
+
             // Build pages from blueprint
             $sanitiser = app(HtmlSanitiser::class);
             $pageGen = new AiPageGenerator($this->llm, $sanitiser);
@@ -337,7 +370,23 @@ class AiSiteCloneAdminController extends Controller
                 'design_system' => $designSystem,
                 'source_url' => $sourceUrl,
                 'media_mapping' => $mediaMapping,
+                'fallback_image_url' => $fallbackImageUrl,
             ]);
+
+            // Enforce media normalization for cloned pages:
+            // - keep original image if we can import it
+            // - otherwise generate AI image, save to Media, and re-link src
+            $normalization = $this->materializeCloneImagesToMedia(
+                pagesReport: (array) ($result['pages'] ?? []),
+                sourceUrl: $sourceUrl,
+                designSystem: $designSystem,
+                userId: $request->user()?->id,
+                analysis: $analysis,
+                aiImageGenerationEnabled: $aiImageGenerationEnabled,
+            );
+            if (!empty($normalization['warnings'])) {
+                $result['warnings'] = array_merge((array) ($result['warnings'] ?? []), $normalization['warnings']);
+            }
 
             return response()->json([
                 'success' => true,
@@ -353,5 +402,386 @@ class AiSiteCloneAdminController extends Controller
                 'error' => $e->getMessage(),
             ], 400);
         }
+    }
+
+    /**
+     * Ensure every image in cloned pages points to a Media Library URL.
+     *
+     * Rules:
+     * - If original source is reachable, import and re-link to local media URL.
+    * - If source is missing/broken/unreachable, prefer contextual replacement from Media Library.
+    * - If no contextual replacement is found, use a non-AI generated fallback media asset.
+     *
+     * @param array<int,array<string,mixed>> $pagesReport
+     * @param array<string,mixed> $designSystem
+     * @return array{warnings:array<int,string>}
+     */
+    private function materializeCloneImagesToMedia(array $pagesReport, string $sourceUrl, array $designSystem, ?int $userId, array $analysis = [], bool $aiImageGenerationEnabled = false): array
+    {
+        $warnings = [];
+        $mediaImporter = new MediaImporter($userId);
+        $fallbackGenerator = new FallbackImageGenerator(
+            imageClient: $this->imageClient,
+            userId: $userId,
+        );
+
+        /** @var array<string,string> $resolvedCache */
+        $resolvedCache = [];
+
+        foreach ($pagesReport as $row) {
+            $pageId = isset($row['id']) ? (int) $row['id'] : 0;
+            if ($pageId <= 0) {
+                continue;
+            }
+
+            $page = Page::query()->find($pageId);
+            if (!$page) {
+                continue;
+            }
+
+            $html = (string) ($page->body ?? '');
+            $hasImages = (stripos($html, '<img') !== false) || (stripos($html, 'background-image') !== false) || (stripos($html, 'background:') !== false);
+            if (!$hasImages) {
+                continue;
+            }
+
+            $updated = $html;
+
+            // Process <img> tags
+            $updated = preg_replace_callback('/<img\b[^>]*>/i', function (array $matches) use (&$resolvedCache, $mediaImporter, $fallbackGenerator, $sourceUrl, $designSystem, $analysis, $page, &$warnings, $aiImageGenerationEnabled) {
+                $tag = $matches[0];
+                $src = $this->extractAttributeValue($tag, 'src');
+                $src = is_string($src) ? trim($src) : '';
+
+                // Existing local media URL/path can remain unchanged.
+                if ($src !== '' && $this->isLocalMediaSource($src)) {
+                    return $tag;
+                }
+
+                $resolved = $this->resolveImageSource($src, $resolvedCache, $mediaImporter, $fallbackGenerator, $sourceUrl, $designSystem, $analysis, $page, $warnings, $aiImageGenerationEnabled);
+
+                if ($resolved === '') {
+                    return $tag;
+                }
+
+                $tag = $this->setOrReplaceAttribute($tag, 'src', $resolved);
+                if ($this->extractAttributeValue($tag, 'alt') === null) {
+                    $tag = $this->setOrReplaceAttribute($tag, 'alt', 'Image');
+                }
+
+                // Keep resilience on runtime failures as well.
+                $onErrorJs = "this.onerror=null;this.src='" . $resolved . "';";
+                $tag = $this->setOrReplaceAttribute($tag, 'onerror', $onErrorJs);
+
+                return $tag;
+            }, $updated) ?? $updated;
+
+            // Process inline style background-image and background properties
+            $updated = preg_replace_callback('/\bstyle\s*=\s*(["\'])([^\1]*?)\1/i', function (array $matches) use (&$resolvedCache, $mediaImporter, $fallbackGenerator, $sourceUrl, $designSystem, $analysis, $page, &$warnings, $aiImageGenerationEnabled) {
+                $quote = $matches[1];
+                $styleContent = $matches[2];
+                
+                // Process background-image: url(...) and background: url(...)
+                $updatedStyle = preg_replace_callback('/\b(background-image|background)\s*:\s*([^;]*url\([\'"]?)([^\'"\)]+)([\'"]?\)[^;]*)/i', function (array $urlMatches) use (&$resolvedCache, $mediaImporter, $fallbackGenerator, $sourceUrl, $designSystem, $analysis, $page, &$warnings, $aiImageGenerationEnabled) {
+                    $property = $urlMatches[1];
+                    $beforeUrl = $urlMatches[2];
+                    $url = $urlMatches[3];
+                    $afterUrl = $urlMatches[4];
+
+                    $url = trim($url);
+                    
+                    // Skip data URIs and local media
+                    if ($url === '' || str_starts_with(strtolower($url), 'data:') || $this->isLocalMediaSource($url)) {
+                        return $urlMatches[0];
+                    }
+
+                    $resolved = $this->resolveImageSource($url, $resolvedCache, $mediaImporter, $fallbackGenerator, $sourceUrl, $designSystem, $analysis, $page, $warnings, $aiImageGenerationEnabled);
+
+                    if ($resolved === '') {
+                        return $urlMatches[0];
+                    }
+
+                    return $property . ': ' . $beforeUrl . $resolved . $afterUrl;
+                }, $styleContent) ?? $styleContent;
+
+                return 'style=' . $quote . $updatedStyle . $quote;
+            }, $updated) ?? $updated;
+
+            if ($updated !== $html) {
+                $page->body = $updated;
+                $page->save();
+            }
+        }
+
+        return [
+            'warnings' => $warnings,
+        ];
+    }
+
+    /**
+    * Resolve a single image source - try import, contextual replacement, then non-AI fallback.
+     *
+     * @param array<string,string> &$resolvedCache
+     */
+    private function resolveImageSource(
+        string $src,
+        array &$resolvedCache,
+        MediaImporter $mediaImporter,
+        FallbackImageGenerator $fallbackGenerator,
+        string $sourceUrl,
+        array $designSystem,
+        array $analysis,
+        Page $page,
+        array &$warnings,
+        bool $aiImageGenerationEnabled
+    ): string {
+        if ($src === '') {
+            return '';
+        }
+
+        // Check cache first
+        if (isset($resolvedCache[$src])) {
+            return $resolvedCache[$src];
+        }
+
+        $resolved = '';
+        $candidate = $this->normaliseImageSourceUrl($src, $sourceUrl);
+
+        // Try importing original
+        if ($candidate !== '') {
+            $imported = $mediaImporter->importFromUrl($candidate);
+            if ($imported) {
+                $resolved = (string) $imported->url;
+            }
+        }
+
+        // Context-aware replacement fallback from existing Media Library.
+        if ($resolved === '') {
+            $existing = $fallbackGenerator->findContextualReplacementUrl([
+                'design_system' => $designSystem,
+                'source_url' => $sourceUrl,
+                'page_title' => (string) ($page->title ?? ''),
+                'page_body' => (string) ($page->body ?? ''),
+                'original_src' => $src,
+                'analysis_title' => (string) ($analysis['title'] ?? ''),
+            ]);
+
+            if (is_string($existing) && trim($existing) !== '') {
+                $resolved = trim($existing);
+                $warnings[] = 'Image source unavailable on page "' . (string) ($page->title ?? 'Untitled') . '", replaced with contextual Media Library image.';
+            }
+        }
+
+        // Final fallback as generated non-AI media asset.
+        if ($resolved === '') {
+            $fallback = $fallbackGenerator->create([
+                'design_system' => $designSystem,
+                'source_url' => $sourceUrl,
+                'require_ai' => false,
+                'disable_ai' => !$aiImageGenerationEnabled,
+                'page_title' => (string) ($page->title ?? ''),
+                'page_body' => (string) ($page->body ?? ''),
+                'original_src' => $src,
+            ]);
+            $resolved = (string) $fallback->url;
+
+            $warnings[] = $aiImageGenerationEnabled
+                ? 'Image source unavailable on page "' . (string) ($page->title ?? 'Untitled') . '", replaced with generated media fallback asset.'
+                : 'Image source unavailable on page "' . (string) ($page->title ?? 'Untitled') . '", replaced with generated non-AI fallback media asset.';
+        }
+
+        $resolvedCache[$src] = $resolved;
+        return $resolved;
+    }
+
+    private function normaliseImageSourceUrl(string $src, string $sourceUrl): string
+    {
+        $src = trim($src);
+        if ($src === '' || str_starts_with(strtolower($src), 'data:')) {
+            return '';
+        }
+
+        if (preg_match('#^https?://#i', $src) === 1) {
+            return $src;
+        }
+
+        $base = parse_url($sourceUrl);
+        $scheme = (string) ($base['scheme'] ?? 'https');
+        $host = (string) ($base['host'] ?? '');
+        if ($host === '') {
+            return '';
+        }
+        $origin = $scheme . '://' . $host;
+
+        if (str_starts_with($src, '//')) {
+            return $scheme . ':' . $src;
+        }
+
+        if (str_starts_with($src, '/')) {
+            return $origin . $src;
+        }
+
+        $basePath = (string) ($base['path'] ?? '/');
+        $baseDir = rtrim(str_replace('\\', '/', dirname($basePath)), '/');
+        if ($baseDir === '' || $baseDir === '.') {
+            return $origin . '/' . ltrim($src, '/');
+        }
+
+        return $origin . $baseDir . '/' . ltrim($src, '/');
+    }
+
+    private function isLocalMediaSource(string $src): bool
+    {
+        $src = trim($src);
+        if ($src === '') {
+            return false;
+        }
+
+        if (str_starts_with($src, '/storage/media/') || str_starts_with($src, 'storage/media/')) {
+            return true;
+        }
+
+        $appHost = parse_url((string) config('app.url'), PHP_URL_HOST);
+        $srcHost = parse_url($src, PHP_URL_HOST);
+        $srcPath = (string) (parse_url($src, PHP_URL_PATH) ?? '');
+
+        return is_string($appHost)
+            && $appHost !== ''
+            && is_string($srcHost)
+            && strcasecmp($appHost, $srcHost) === 0
+            && str_starts_with($srcPath, '/storage/media/');
+    }
+
+    private function extractAttributeValue(string $tag, string $attribute): ?string
+    {
+        $pattern = "/\\b" . preg_quote($attribute, '/') . "\\s*=\\s*(\"([^\"]*)\"|'([^']*)'|([^\\s>]+))/i";
+        if (!preg_match($pattern, $tag, $m)) {
+            return null;
+        }
+
+        return (string) ($m[2] ?? $m[3] ?? $m[4] ?? '');
+    }
+
+    private function setOrReplaceAttribute(string $tag, string $attribute, string $value): string
+    {
+        $escaped = htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+        $replacement = $attribute . '="' . $escaped . '"';
+        $pattern = "/\\b" . preg_quote($attribute, '/') . "\\s*=\\s*(\"[^\"]*\"|'[^']*'|[^\\s>]+)/i";
+
+        if (preg_match($pattern, $tag) === 1) {
+            return preg_replace($pattern, $replacement, $tag, 1) ?? $tag;
+        }
+
+        return preg_replace('/\/>$/', ' ' . $replacement . ' />', $tag, 1)
+            ?? preg_replace('/>$/', ' ' . $replacement . '>', $tag, 1)
+            ?? $tag;
+    }
+
+    private function isAiImageGenerationEnabled(): bool
+    {
+        try {
+            $raw = (string) (Setting::get('ai.images.enabled', '0') ?? '0');
+            $v = strtolower(trim($raw));
+            return in_array($v, ['1', 'true', 'yes', 'on'], true);
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
+    private function buildCloneDesignDirective(string $userModification): string
+    {
+        $mode = strtolower(trim((string) (Setting::get('ai.clone.design_mode', 'premium') ?? 'premium')));
+        if (!in_array($mode, ['safe', 'premium', 'strict_reference'], true)) {
+            $mode = 'premium';
+        }
+
+        $primary = trim((string) (Setting::get('ai.clone.brand_primary_color', '') ?? ''));
+        $secondary = trim((string) (Setting::get('ai.clone.brand_secondary_color', '') ?? ''));
+        $accent = trim((string) (Setting::get('ai.clone.brand_accent_color', '') ?? ''));
+        $globalFont = trim((string) (Setting::get('ai.clone.global_font', '') ?? ''));
+        $enforceBrandTokens = $this->toBoolSetting((string) (Setting::get('ai.clone.enforce_brand_tokens', '0') ?? '0'));
+
+        $lines = [];
+        if ($userModification !== '') {
+            $lines[] = $userModification;
+            $lines[] = '';
+        }
+
+        $lines[] = 'System design contract (always apply):';
+        $lines[] = '- Create premium, modern, professional pages that feel intentional and brand-specific.';
+        $lines[] = '- Do not produce generic templates or boilerplate layouts.';
+        $lines[] = '- Preserve reference structure/content intent while modernizing hierarchy, spacing, and readability.';
+        $lines[] = '- Header behavior: homepage top transparent overlay; homepage on hover/scroll solid light; inner pages solid light.';
+        $lines[] = '- Build responsive output for desktop and mobile (320px+), with no broken sections.';
+
+        if ($mode === 'premium' || $mode === 'strict_reference') {
+            $lines[] = '- Avoid default/generic nav bars, hero blocks, and repetitive card grids unless context explicitly requires them.';
+            $lines[] = '- Define a distinct visual concept and consistent mood across all pages.';
+            $lines[] = '- Match reference cues for spacing rhythm, typography tone, contrast, and button treatment.';
+        }
+
+        if ($mode === 'strict_reference') {
+            $lines[] = '- Prioritize reference-lock: do not drift into unrelated visual direction.';
+            $lines[] = '- Keep information density and section sequencing close to source intent.';
+        }
+
+        if ($this->isHexColor($primary) && $this->isHexColor($secondary) && $this->isHexColor($accent)) {
+            $lines[] = $enforceBrandTokens
+                ? '- Brand colors are locked: primary ' . strtolower($primary) . ', secondary ' . strtolower($secondary) . ', accent ' . strtolower($accent) . '.'
+                : '- Preferred color direction: primary ' . strtolower($primary) . ', secondary ' . strtolower($secondary) . ', accent ' . strtolower($accent) . ' (adapt per client/reference when needed).';
+        }
+
+        if ($globalFont !== '') {
+            $lines[] = $enforceBrandTokens
+                ? '- Global font is locked: ' . $globalFont . ' (headings and body unless readability would break).'
+                : '- Preferred typography direction: ' . $globalFont . ' (adapt per client/reference when needed).';
+        }
+
+        return implode("\n", $lines);
+    }
+
+    /**
+     * @param array<string,mixed> $design
+     * @return array<string,mixed>
+     */
+    private function applyDesignOverrides(array $design): array
+    {
+        $primary = trim((string) (Setting::get('ai.clone.brand_primary_color', '') ?? ''));
+        $secondary = trim((string) (Setting::get('ai.clone.brand_secondary_color', '') ?? ''));
+        $accent = trim((string) (Setting::get('ai.clone.brand_accent_color', '') ?? ''));
+        $globalFont = trim((string) (Setting::get('ai.clone.global_font', '') ?? ''));
+        $enforceBrandTokens = $this->toBoolSetting((string) (Setting::get('ai.clone.enforce_brand_tokens', '0') ?? '0'));
+
+        if (!$enforceBrandTokens) {
+            return $design;
+        }
+
+        if ($this->isHexColor($primary)) {
+            $design['primary_color'] = strtolower($primary);
+        }
+        if ($this->isHexColor($secondary)) {
+            $design['secondary_color'] = strtolower($secondary);
+        }
+        if ($this->isHexColor($accent)) {
+            $design['accent_color'] = strtolower($accent);
+        }
+        if ($globalFont !== '') {
+            $design['heading_font'] = $globalFont;
+            $design['body_font'] = $globalFont;
+        }
+
+        return $design;
+    }
+
+    private function isHexColor(string $color): bool
+    {
+        $value = trim($color);
+        return (bool) preg_match('/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/', $value);
+    }
+
+    private function toBoolSetting(string $value): bool
+    {
+        $v = strtolower(trim($value));
+        return in_array($v, ['1', 'true', 'yes', 'on'], true);
     }
 }

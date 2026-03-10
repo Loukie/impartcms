@@ -22,6 +22,7 @@ class AiSiteBuilder
      * - action: draft|publish (default draft)
      * - publish_homepage: bool (if true, homepage will be published even if action=draft)
      * - set_homepage: bool (if true, homepage selection is stored in settings; requires published homepage)
+    * - fallback_image_url: string (optional, stored media URL used when images are missing/broken)
      *
      * @return array{
      *   created:int,
@@ -136,6 +137,18 @@ class AiSiteBuilder
                     ]);
 
                     $body = (string) ($gen['clean_html'] ?? '');
+
+                    // Ensure imported media URLs are used in final HTML where possible.
+                    if (!empty($options['media_mapping']) && is_array($options['media_mapping'])) {
+                        $body = $this->replaceMediaUrls($body, $options['media_mapping']);
+                    }
+
+                    // Guarantee image resilience: missing/broken images fall back to a generated placeholder.
+                    $body = $this->applyImageFallbacks($body, [
+                        'design_system' => (array) ($options['design_system'] ?? []),
+                        'source_url' => (string) ($options['source_url'] ?? ''),
+                        'fallback_image_url' => (string) ($options['fallback_image_url'] ?? ''),
+                    ]);
                     
                     // Warn if HTML is empty or very short
                     if (strlen($body) < 50) {
@@ -283,15 +296,13 @@ class AiSiteBuilder
             return '';
         }
 
-        $primaryColor = trim((string) ($designSystem['primary_color'] ?? '#2563eb'));
-        if ($primaryColor === '') {
-            $primaryColor = '#2563eb';
-        }
-
-        $textColor = trim((string) ($designSystem['text_color'] ?? '#1f2937'));
-        if ($textColor === '') {
-            $textColor = '#1f2937';
-        }
+        $primaryColor = $this->safeHexColor((string) ($designSystem['primary_color'] ?? '#2563eb'), '#2563eb');
+        $textColor = $this->safeHexColor((string) ($designSystem['text_color'] ?? '#1f2937'), '#1f2937');
+        $secondaryColor = $this->safeHexColor((string) ($designSystem['secondary_color'] ?? '#111827'), '#111827');
+        $headingFont = $this->safeFontStack((string) ($designSystem['heading_font'] ?? 'Georgia, serif'));
+        $bodyFont = $this->safeFontStack((string) ($designSystem['body_font'] ?? 'system-ui, sans-serif'));
+        $navStyleRaw = strtolower(trim((string) ($designSystem['nav_style'] ?? 'top-bar')));
+        $layoutRaw = strtolower(trim((string) ($designSystem['layout_pattern'] ?? 'modern')));
 
         $navItems = [];
         foreach ($pages as $page) {
@@ -319,17 +330,120 @@ class AiSiteBuilder
             return '';
         }
 
+        $homeItem = $navItems[0];
+        foreach ($navItems as $item) {
+            if ($item['href'] === '/') {
+                $homeItem = $item;
+                break;
+            }
+        }
+
+        $brandLabel = trim((string) ($designSystem['brand_name'] ?? ''));
+        if ($brandLabel === '') {
+            $brandLabel = trim((string) $homeItem['title']);
+        }
+        if ($brandLabel === '') {
+            $brandLabel = 'Brand';
+        }
+
+        $ctaText = trim((string) ($designSystem['primary_cta'] ?? 'Get Started'));
+        if ($ctaText === '') {
+            $ctaText = 'Get Started';
+        }
+
+        $styleVariant = 'modern';
+        if (str_contains($navStyleRaw, 'center')) {
+            $styleVariant = 'centered';
+        } elseif (str_contains($navStyleRaw, 'sidebar')) {
+            $styleVariant = 'split';
+        } elseif (str_contains($layoutRaw, 'minimal')) {
+            $styleVariant = 'minimal';
+        }
+
         $links = '';
         foreach ($navItems as $item) {
             $title = e($item['title']);
             $href = e($item['href']);
-            $links .= '<a href="' . $href . '" style="text-decoration:none;color:' . e($textColor) . ';font-weight:600;padding:8px 10px;border-radius:8px;">' . $title . '</a>';
+            $links .= '<a class="ai-nav-link" href="' . $href . '">' . $title . '</a>';
         }
 
-        return '<nav data-ai-shared-nav="1" style="position:sticky;top:0;z-index:40;background:#ffffff;border-bottom:1px solid #e5e7eb;padding:12px 16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">'
-            . '<span style="display:inline-block;width:10px;height:10px;border-radius:999px;background:' . e($primaryColor) . ';"></span>'
-            . $links
-            . '</nav>';
+        $brand = '<a class="ai-nav-brand" href="/">' . e($brandLabel) . '</a>';
+        $cta = '<a class="ai-nav-cta" href="/contact">' . e($ctaText) . '</a>';
+
+        $navInner = '<div class="ai-nav-inner ' . e('variant-' . $styleVariant) . '">';
+        if ($styleVariant === 'centered') {
+            $navInner .= '<div class="ai-nav-center-wrap">' . $brand . '<div class="ai-nav-links">' . $links . '</div>' . $cta . '</div>';
+        } elseif ($styleVariant === 'split') {
+            $half = (int) floor(count($navItems) / 2);
+            $leftLinks = '';
+            $rightLinks = '';
+            foreach ($navItems as $i => $item) {
+                $one = '<a class="ai-nav-link" href="' . e($item['href']) . '">' . e($item['title']) . '</a>';
+                if ($i < $half) {
+                    $leftLinks .= $one;
+                } else {
+                    $rightLinks .= $one;
+                }
+            }
+            $navInner .= '<div class="ai-nav-links ai-nav-left">' . $leftLinks . '</div>' . $brand . '<div class="ai-nav-links ai-nav-right">' . $rightLinks . $cta . '</div>';
+        } else {
+            $navInner .= $brand . '<div class="ai-nav-links">' . $links . '</div>' . $cta;
+        }
+        $navInner .= '</div>';
+
+        $css = '<style>'
+            . ':root{--ai-nav-primary:' . e($primaryColor) . ';--ai-nav-text:' . e($textColor) . ';--ai-nav-ink:' . e($secondaryColor) . ';--ai-nav-head:' . e($headingFont) . ';--ai-nav-body:' . e($bodyFont) . ';}'
+            . '.ai-shared-nav{position:fixed;top:0;left:0;right:0;z-index:1000;transition:background-color .25s ease,border-color .25s ease,box-shadow .25s ease,backdrop-filter .25s ease;}'
+            . '.ai-shared-nav.nav-transparent{background:linear-gradient(to bottom,rgba(17,24,39,.56),rgba(17,24,39,.18));border-bottom:1px solid rgba(255,255,255,.12);backdrop-filter:blur(2px);}'
+            . '.ai-shared-nav.nav-solid{background:#ffffff;border-bottom:1px solid rgba(15,23,42,.12);box-shadow:0 8px 30px rgba(15,23,42,.08);backdrop-filter:blur(8px);}'
+            . '.ai-nav-inner{max-width:1200px;margin:0 auto;padding:14px 20px;display:flex;align-items:center;gap:18px;}'
+            . '.ai-nav-brand{font-family:var(--ai-nav-head);font-size:1.15rem;font-weight:700;color:var(--ai-nav-text);text-decoration:none;letter-spacing:.02em;}'
+            . '.ai-nav-links{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}'
+            . '.ai-nav-link{font-family:var(--ai-nav-body);font-size:.95rem;font-weight:600;text-decoration:none;color:var(--ai-nav-text);padding:8px 11px;border-radius:999px;transition:background-color .2s ease,color .2s ease;}'
+            . '.ai-nav-link:hover{background:rgba(224,153,0,.12);color:var(--ai-nav-ink);}'
+            . '.ai-nav-link.is-active{background:rgba(224,153,0,.16);color:var(--ai-nav-ink);}'
+            . '.ai-nav-cta{margin-left:auto;font-family:var(--ai-nav-body);text-decoration:none;font-size:.88rem;font-weight:700;color:#fff;background:var(--ai-nav-primary);padding:9px 14px;border-radius:999px;transition:transform .2s ease,opacity .2s ease;}'
+            . '.ai-nav-cta:hover{opacity:.92;transform:translateY(-1px);}'
+            . '.ai-nav-inner.variant-centered{justify-content:center;}.ai-nav-center-wrap{display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:center;}'
+            . '.ai-nav-inner.variant-split .ai-nav-left{margin-right:auto;}.ai-nav-inner.variant-split .ai-nav-right{margin-left:auto;}'
+            . '.ai-nav-inner.variant-minimal .ai-nav-link{padding:6px 8px;border-radius:6px;}'
+            . '@media (max-width: 900px){.ai-nav-inner{padding:10px 12px;gap:10px;}.ai-nav-brand{font-size:1rem;}.ai-nav-link{font-size:.86rem;padding:6px 8px;}.ai-nav-cta{display:none;}}'
+            . '@media (max-width: 640px){.ai-nav-links{width:100%;order:3;gap:4px;}.ai-nav-inner{align-items:flex-start;}}'
+            . '</style>';
+
+        $js = '<script>(function(){var nav=document.querySelector(".ai-shared-nav[data-ai-shared-nav=\"1\"]");if(!nav)return;var links=nav.querySelectorAll(".ai-nav-link");var path=(location.pathname||"/").replace(/\/$/,"")||"/";for(var i=0;i<links.length;i++){var href=(links[i].getAttribute("href")||"/").replace(/\/$/,"")||"/";if(href===path){links[i].classList.add("is-active");}}function sync(){var isHome=path==="/";var h=nav.offsetHeight||72;if(!isHome){document.body.style.paddingTop=h+"px";}else{document.body.style.paddingTop="0px";}if(!isHome||window.scrollY>16){nav.classList.add("nav-solid");nav.classList.remove("nav-transparent");}else{nav.classList.add("nav-transparent");nav.classList.remove("nav-solid");}}window.addEventListener("scroll",sync,{passive:true});window.addEventListener("resize",sync,{passive:true});sync();})();</script>';
+
+        return $css
+            . '<nav class="ai-shared-nav nav-transparent" data-ai-shared-nav="1">'
+            . $navInner
+            . '</nav>'
+            . $js;
+    }
+
+    private function safeHexColor(string $value, string $fallback): string
+    {
+        $value = trim($value);
+        if (preg_match('/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/', $value) === 1) {
+            return strtolower($value);
+        }
+
+        return $fallback;
+    }
+
+    private function safeFontStack(string $value): string
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return 'system-ui, sans-serif';
+        }
+
+        // Allow readable font stacks while stripping obvious dangerous characters.
+        $value = preg_replace('/[^a-zA-Z0-9\-\s,\"\'\.]/', '', $value) ?? $value;
+        if (trim($value) === '') {
+            return 'system-ui, sans-serif';
+        }
+
+        return $value;
     }
 
     /**
@@ -524,5 +638,127 @@ CSS;
             $brief = str_replace($external, $internal, $brief);
         }
         return $brief;
+    }
+
+    /**
+     * Add robust fallbacks to all image tags so pages never show broken image placeholders.
+     *
+     * - If src is missing/empty, we set a generated SVG placeholder immediately.
+     * - If src later fails to load, onerror swaps to the same placeholder.
+     */
+    private function applyImageFallbacks(string $html, array $context = []): string
+    {
+        if (stripos($html, '<img') === false) {
+            return $html;
+        }
+
+        $fallbackSrc = trim((string) ($context['fallback_image_url'] ?? ''));
+        if ($fallbackSrc === '') {
+            $fallbackSrc = $this->buildImageFallbackDataUri($context);
+        }
+        $onErrorJs = "this.onerror=null;this.src='" . $fallbackSrc . "';if(!this.alt){this.alt='Image unavailable';}";
+
+        return preg_replace_callback('/<img\b[^>]*>/i', function (array $matches) use ($fallbackSrc, $onErrorJs) {
+            $tag = $matches[0];
+
+            $src = $this->extractAttributeValue($tag, 'src');
+            if ($src === null || trim($src) === '') {
+                $tag = $this->setOrReplaceAttribute($tag, 'src', $fallbackSrc);
+            }
+
+            if ($this->extractAttributeValue($tag, 'alt') === null) {
+                $tag = $this->setOrReplaceAttribute($tag, 'alt', 'Image');
+            }
+
+            $tag = $this->setOrReplaceAttribute($tag, 'onerror', $onErrorJs);
+
+            return $tag;
+        }, $html) ?? $html;
+    }
+
+    /**
+     * Build a theme-aware SVG placeholder encoded as a data URI.
+     */
+    private function buildImageFallbackDataUri(array $context = []): string
+    {
+        $design = (array) ($context['design_system'] ?? []);
+
+        $primary = $this->safeHexColor((string) ($design['primary_color'] ?? '#2563eb'), '#2563eb');
+        $secondary = $this->safeHexColor((string) ($design['secondary_color'] ?? '#0f172a'), '#0f172a');
+
+        $brand = $this->brandFromContext($context);
+        $title = $brand !== '' ? $brand : 'Website';
+
+        $svg = '<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800" role="img" aria-label="Image placeholder">'
+            . '<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">'
+            . '<stop offset="0%" stop-color="' . $primary . '"/>'
+            . '<stop offset="100%" stop-color="' . $secondary . '"/>'
+            . '</linearGradient></defs>'
+            . '<rect width="1200" height="800" fill="url(#g)"/>'
+            . '<rect x="140" y="120" width="920" height="560" rx="24" fill="rgba(255,255,255,0.14)"/>'
+            . '<circle cx="420" cy="360" r="46" fill="rgba(255,255,255,0.85)"/>'
+            . '<path d="M290 540c70-90 130-120 190-90 36 18 66 19 95-6 26-23 56-33 90-31 61 4 111 42 164 127H290z" fill="rgba(255,255,255,0.85)"/>'
+            . '<text x="600" y="670" text-anchor="middle" font-family="Arial, sans-serif" font-size="42" fill="#ffffff">'
+            . e($title)
+            . '</text>'
+            . '<text x="600" y="715" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" fill="rgba(255,255,255,0.92)">Image unavailable - generated placeholder</text>'
+            . '</svg>';
+
+        return 'data:image/svg+xml;charset=UTF-8,' . rawurlencode($svg);
+    }
+
+    private function extractAttributeValue(string $tag, string $attribute): ?string
+    {
+        $pattern = "/\\b" . preg_quote($attribute, '/') . "\\s*=\\s*(\"([^\"]*)\"|'([^']*)'|([^\\s>]+))/i";
+        if (!preg_match($pattern, $tag, $m)) {
+            return null;
+        }
+
+        return (string) ($m[2] ?? $m[3] ?? $m[4] ?? '');
+    }
+
+    private function setOrReplaceAttribute(string $tag, string $attribute, string $value): string
+    {
+        $escaped = htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+        $replacement = $attribute . '="' . $escaped . '"';
+        $pattern = "/\\b" . preg_quote($attribute, '/') . "\\s*=\\s*(\"[^\"]*\"|'[^']*'|[^\\s>]+)/i";
+
+        if (preg_match($pattern, $tag) === 1) {
+            return preg_replace($pattern, $replacement, $tag, 1) ?? $tag;
+        }
+
+        return preg_replace('/\/>$/', ' ' . $replacement . ' />', $tag, 1)
+            ?? preg_replace('/>$/', ' ' . $replacement . '>', $tag, 1)
+            ?? $tag;
+    }
+
+    private function safeHexColor(string $value, string $fallback): string
+    {
+        $value = trim($value);
+        if (preg_match('/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/', $value) === 1) {
+            return strtolower($value);
+        }
+
+        return $fallback;
+    }
+
+    private function brandFromContext(array $context): string
+    {
+        $design = (array) ($context['design_system'] ?? []);
+        $candidate = trim((string) ($design['brand_name'] ?? ''));
+        if ($candidate !== '') {
+            return Str::limit($candidate, 40, '');
+        }
+
+        $sourceUrl = trim((string) ($context['source_url'] ?? ''));
+        if ($sourceUrl !== '') {
+            $host = parse_url($sourceUrl, PHP_URL_HOST);
+            if (is_string($host) && $host !== '') {
+                $host = preg_replace('/^www\./i', '', $host) ?? $host;
+                return Str::limit($host, 40, '');
+            }
+        }
+
+        return '';
     }
 }

@@ -209,10 +209,11 @@ Route::middleware(['auth', 'can:access-admin'])
             ->middleware(['throttle:6,1'])
             ->name('ai.page-assist');
 
-        // Bulk actions for pages
-        Route::post('/pages/bulk', [PageAdminController::class, 'bulk'])->name('pages.bulk');
+        // Bulk actions for pages - accept both POST and DELETE
+        Route::match(['post', 'delete'], '/pages-bulk', [PageAdminController::class, 'bulk'])->name('pages.bulk');
+        Route::get('/pages-bulk', fn() => redirect()->route('admin.pages.index'));
 
-        // Standard pages CRUD (destroy = Move to Trash)
+        // Standard pages CRUD
         Route::resource('pages', PageAdminController::class);
 
         // Users

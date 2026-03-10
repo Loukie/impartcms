@@ -6,6 +6,8 @@ use Illuminate\Support\Facades\Http;
 
 class GeminiGenerateContentClient implements LlmClientInterface
 {
+    private const MAX_ATTEMPTS = 3;
+
     public function __construct(
         private readonly string $apiKey,
         private readonly string $model,
@@ -43,22 +45,44 @@ class GeminiGenerateContentClient implements LlmClientInterface
             ],
         ];
 
-        $req = Http::withToken($this->apiKey);
+        // Gemini REST API key auth should use x-goog-api-key (or ?key=), not Bearer token auth.
+        $req = Http::withHeaders([
+            'x-goog-api-key' => $this->apiKey,
+            'Content-Type'   => 'application/json',
+        ]);
         if ($this->timeoutSeconds > 0) {
             $req = $req->timeout($this->timeoutSeconds);
         }
-        $resp = $req
-            ->withHeaders([
-                'x-goog-api-key' => $this->apiKey,
-                'Content-Type'   => 'application/json',
-            ])
-            ->post($endpoint, $payload);
+        $resp = null;
+        $lastErr = 'Gemini request failed.';
+        for ($attempt = 1; $attempt <= self::MAX_ATTEMPTS; $attempt++) {
+            $resp = $req
+                ->withOptions([
+                    // Keep key in query as a compatibility fallback for environments
+                    // that strip custom headers through proxies.
+                    'query' => ['key' => $this->apiKey],
+                ])
+                ->post($endpoint, $payload);
 
-        if (!$resp->successful()) {
+            if ($resp->successful()) {
+                break;
+            }
+
             $json = $resp->json();
             $msg = is_array($json) ? ($json['error']['message'] ?? null) : null;
             $msg = is_string($msg) && $msg !== '' ? $msg : $resp->body();
-            throw new \RuntimeException("Gemini API error: {$msg}");
+            $lastErr = "Gemini API error: {$msg}";
+
+            if (!$this->isRetryableFailure($resp->status(), (string) $msg) || $attempt === self::MAX_ATTEMPTS) {
+                throw new \RuntimeException($lastErr);
+            }
+
+            // Exponential backoff: 1s, 2s, ... for transient provider load/limit spikes.
+            sleep($attempt);
+        }
+
+        if (!$resp || !$resp->successful()) {
+            throw new \RuntimeException($lastErr);
         }
 
         $json = $resp->json();
@@ -124,5 +148,18 @@ class GeminiGenerateContentClient implements LlmClientInterface
         }
 
         return '';
+    }
+
+    private function isRetryableFailure(int $status, string $message): bool
+    {
+        if (in_array($status, [429, 500, 502, 503, 504], true)) {
+            return true;
+        }
+
+        $m = strtolower($message);
+        return str_contains($m, 'high demand')
+            || str_contains($m, 'overloaded')
+            || str_contains($m, 'temporarily unavailable')
+            || str_contains($m, 'try again');
     }
 }
