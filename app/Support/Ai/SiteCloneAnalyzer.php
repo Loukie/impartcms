@@ -454,27 +454,69 @@ class SiteCloneAnalyzer
         ];
 
         try {
-            // Extract logo (header, footer, common logo classes/IDs)
+            // Smart logo detection — tries multiple strategies in priority order.
+            // Strategy 1: Explicit "logo" in class/id (most reliable when present)
+            // Strategy 2: First image inside a nav element (very common pattern)
+            // Strategy 3: First image inside an <a> that links to "/" or homepage
+            // Strategy 4: Any img/svg whose src/filename contains "logo" or "brand"
+            // Strategy 5: First image in the <header>
             $logoSelectors = [
-                '//header//img[contains(@class, "logo")]',
+                // Explicit logo class/id (any element)
                 '//img[contains(@class, "logo")]',
                 '//img[contains(@id, "logo")]',
                 '//a[contains(@class, "logo")]//img',
+                // Logo/brand in parent container class
+                '//*[contains(@class, "logo")]//img',
+                '//*[contains(@class, "brand")]//img',
+                '//*[contains(@id, "logo")]//img',
+                // First image inside nav (very common: logo is the first img in nav)
+                '//nav//img[1]',
+                // First image inside a link to homepage
+                '//a[@href="/"]//img[1]',
+                // First image in header
                 '//header//img[1]',
+                // SVG inside logo/brand containers
+                '//*[contains(@class, "logo")]//svg',
+                '//nav//svg[1]',
             ];
-            
+
             foreach ($logoSelectors as $selector) {
                 try {
                     $logoNode = $crawler->filterXPath($selector)->first();
                     if ($logoNode->count() > 0) {
-                        $logoSrc = $logoNode->attr('src');
-                        if ($logoSrc) {
-                            $images['logo'] = $this->resolveUrl($logoSrc, $baseUrl);
+                        $tag = strtolower($logoNode->nodeName());
+                        $logoSrc = null;
+
+                        if ($tag === 'img') {
+                            $logoSrc = $logoNode->attr('src') ?: $logoNode->attr('data-src');
+                        }
+                        // Skip SVGs for now — they're inline, not a URL we can reuse
+
+                        if ($logoSrc && trim($logoSrc) !== '') {
+                            $images['logo'] = $this->resolveUrl(trim($logoSrc), $baseUrl);
                             break;
                         }
                     }
                 } catch (\Throwable $e) {
                     continue;
+                }
+            }
+
+            // Strategy 6: If still no logo, scan ALL images for "logo" or "brand" in the URL/filename
+            if ($images['logo'] === null) {
+                try {
+                    $allImgs = $crawler->filterXPath('//img[@src]');
+                    $allImgs->each(function (Crawler $img) use (&$images, $baseUrl) {
+                        if ($images['logo'] !== null) return;
+                        $src = trim((string) ($img->attr('src') ?? ''));
+                        if ($src === '') return;
+                        $lower = strtolower($src);
+                        if (str_contains($lower, 'logo') || str_contains($lower, 'brand')) {
+                            $images['logo'] = $this->resolveUrl($src, $baseUrl);
+                        }
+                    });
+                } catch (\Throwable $e) {
+                    // Ignore
                 }
             }
 
