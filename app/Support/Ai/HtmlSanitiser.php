@@ -192,6 +192,9 @@ class HtmlSanitiser
             return '';
         }
 
+        // Strip markdown code fences that LLMs sometimes wrap around HTML output.
+        $html = $this->stripMarkdownFences($html);
+
         $isFullDoc = (bool) (preg_match('/<!doctype\s+html/i', $html) || preg_match('/<html\b/i', $html));
 
         // Fast pre-scrub: remove script blocks entirely.
@@ -403,5 +406,17 @@ class HtmlSanitiser
         }
 
         return $s;
+    }
+
+    /**
+     * Strip markdown code fences that LLMs sometimes wrap around HTML output.
+     * Handles ```html, ```css, bare ```, and similar variants.
+     */
+    private function stripMarkdownFences(string $text): string
+    {
+        // Remove opening fence: ```html, ```css, ```htm, or bare ```
+        $text = preg_replace('/^```(?:html|css|htm)?\s*$/mi', '', $text) ?? $text;
+
+        return trim($text);
     }
 }
