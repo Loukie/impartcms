@@ -16,6 +16,7 @@
             'folder' => $currentFolder ?? '',
             'q' => $currentQuery ?? '',
             'sort' => $currentSort ?? 'newest',
+            'per_page' => $currentPerPage ?? 30,
         ];
     @endphp
 
@@ -23,8 +24,13 @@
         <div class="max-w-6xl mx-auto sm:px-6 lg:px-8">
 
             @if (session('status'))
-                <div class="mb-4 p-3 rounded bg-green-50 text-green-800 border border-green-200">
-                    {{ session('status') }}
+                <div class="mb-4 p-3 rounded bg-green-50 text-green-800 border border-green-200 flex items-center justify-between gap-3">
+                    <span>{{ session('status') }}</span>
+                    @if (session('show_trash_link'))
+                        <a href="{{ route('admin.media.trash') }}" class="text-sm font-semibold underline whitespace-nowrap">
+                            View Trash
+                        </a>
+                    @endif
                 </div>
             @endif
 
@@ -35,7 +41,7 @@
             @endif
 
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6" x-data="{ showUpload: {{ $errors->any() ? 'true' : 'false' }}, bulkMode: false, selected: [] }">
+                <div class="p-6" x-data="{ showUpload: {{ $errors->any() ? 'true' : 'false' }}, bulkMode: false, selected: [], pageIds: @js($media->pluck('id')->values()->all()), selectAllPage() { this.selected = this.pageIds.map((id) => String(id)); }, clearSelected() { this.selected = []; } }">
                     {{-- Tabs + Filters --}}
                     <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                         <div class="flex items-center gap-2 text-sm font-semibold">
@@ -83,6 +89,15 @@
                                             <option value="oldest" @selected(($currentSort ?? '') === 'oldest')>Oldest</option>
                                             <option value="title_asc" @selected(($currentSort ?? '') === 'title_asc')>Title (A→Z)</option>
                                             <option value="title_desc" @selected(($currentSort ?? '') === 'title_desc')>Title (Z→A)</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="flex items-center gap-2">
+                                        <label class="text-xs font-semibold text-gray-600">Per page</label>
+                                        <select name="per_page" class="border rounded-md text-sm px-3 py-2">
+                                            <option value="30" @selected((int)($currentPerPage ?? 30) === 30)>30</option>
+                                            <option value="50" @selected((int)($currentPerPage ?? 30) === 50)>50</option>
+                                            <option value="100" @selected((int)($currentPerPage ?? 30) === 100)>100</option>
                                         </select>
                                     </div>
 
@@ -136,9 +151,13 @@
                             <form method="POST" action="{{ route('admin.media.bulk') }}">
                                 @csrf
                                 <div class="mb-3" x-show="bulkMode">
-                                    <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-md text-xs uppercase font-semibold hover:bg-red-700" :disabled="selected.length === 0">
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <button type="button" class="px-3 py-2 rounded-md border text-xs font-semibold" @click="selectAllPage()">Select all on this page</button>
+                                        <button type="button" class="px-3 py-2 rounded-md border text-xs font-semibold" @click="clearSelected()">Clear</button>
+                                        <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-md text-xs uppercase font-semibold hover:bg-red-700" :disabled="selected.length === 0">
                                         Trash selected (<span x-text="selected.length"></span>)
-                                    </button>
+                                        </button>
+                                    </div>
                                 </div>
                                 <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
                                     @forelse ($media as $item)

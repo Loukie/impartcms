@@ -20,9 +20,19 @@
             @endif
 
             <div class="bg-white shadow-sm sm:rounded-lg border border-gray-200 overflow-hidden">
+                <form method="POST" action="{{ route('admin.layout-blocks.trash.bulk') }}" id="bulkLayoutTrashForm" onsubmit="return confirm('Permanently delete selected blocks? This cannot be undone.');">
+                    @csrf
+                    <div class="p-4 border-b border-gray-200">
+                        <button type="submit" id="bulkLayoutTrashBtn" disabled class="inline-flex items-center px-3 py-1.5 bg-red-600 text-white rounded-md text-xs font-semibold uppercase tracking-widest hover:bg-red-700 disabled:opacity-50">
+                            Delete Selected
+                        </button>
+                    </div>
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                     <tr>
+                        <th class="px-6 py-3">
+                            <input type="checkbox" id="bulk-layout-select-all" />
+                        </th>
                         <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Name</th>
                         <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Type</th>
                         <th class="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
@@ -31,6 +41,9 @@
                     <tbody class="bg-white divide-y divide-gray-200">
                     @forelse($blocks as $b)
                         <tr>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <input type="checkbox" name="ids[]" value="{{ $b->id }}" class="bulk-layout-checkbox" />
+                            </td>
                             <td class="px-6 py-4">
                                 <div class="font-medium text-gray-900">{{ $b->name }}</div>
                                 <div class="text-xs text-gray-500">Deleted {{ $b->deleted_at?->diffForHumans() }}</div>
@@ -53,7 +66,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td class="px-6 py-8 text-sm text-gray-500" colspan="3">Trash is empty.</td>
+                            <td class="px-6 py-8 text-sm text-gray-500" colspan="4">Trash is empty.</td>
                         </tr>
                     @endforelse
                     </tbody>
@@ -62,8 +75,31 @@
                 <div class="p-4">
                     {{ $blocks->links() }}
                 </div>
+                </form>
             </div>
 
         </div>
     </div>
+
+    <script>
+        (function(){
+            const form = document.getElementById('bulkLayoutTrashForm');
+            if (!form) return;
+            const selectAll = document.getElementById('bulk-layout-select-all');
+            const boxes = Array.from(form.querySelectorAll('.bulk-layout-checkbox'));
+            const btn = document.getElementById('bulkLayoutTrashBtn');
+
+            function sync(){
+                btn.disabled = !boxes.some(cb => cb.checked);
+            }
+
+            selectAll?.addEventListener('change', function(){
+                boxes.forEach(cb => cb.checked = selectAll.checked);
+                sync();
+            });
+
+            boxes.forEach(cb => cb.addEventListener('change', sync));
+            sync();
+        })();
+    </script>
 </x-admin-layout>

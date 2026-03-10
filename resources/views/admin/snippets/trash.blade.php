@@ -28,10 +28,21 @@
 
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6">
+                    <form method="POST" action="{{ route('admin.snippets.trash.bulk') }}" id="bulkSnippetsTrashForm" onsubmit="return confirm('Permanently delete selected snippets? This cannot be undone.');">
+                        @csrf
+                        <div class="mb-3">
+                            <button type="submit" id="bulkSnippetsTrashBtn" disabled
+                                    class="px-4 py-2 bg-red-600 text-white rounded-md text-xs uppercase font-semibold hover:bg-red-700 disabled:opacity-50">
+                                Delete Selected
+                            </button>
+                        </div>
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                                 <tr>
+                                    <th class="px-3 py-2">
+                                        <input type="checkbox" id="bulk-snippets-select-all" />
+                                    </th>
                                     <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                                     <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
                                     <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Deleted</th>
@@ -41,6 +52,9 @@
                             <tbody class="bg-white divide-y divide-gray-200">
                                 @forelse($snippets as $snippet)
                                     <tr>
+                                        <td class="px-3 py-2 whitespace-nowrap">
+                                            <input type="checkbox" name="ids[]" value="{{ $snippet->id }}" class="bulk-snippets-checkbox" />
+                                        </td>
                                         <td class="px-3 py-2 whitespace-nowrap font-medium text-gray-900">{{ $snippet->name }}</td>
                                         <td class="px-3 py-2 whitespace-nowrap text-gray-700">{{ strtoupper($snippet->type) }}</td>
                                         <td class="px-3 py-2 whitespace-nowrap text-gray-700 text-sm">{{ optional($snippet->deleted_at)->format('Y-m-d H:i') }}</td>
@@ -63,7 +77,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="4" class="px-3 py-6 text-center text-gray-500">Trash is empty.</td>
+                                        <td colspan="5" class="px-3 py-6 text-center text-gray-500">Trash is empty.</td>
                                     </tr>
                                 @endforelse
                             </tbody>
@@ -73,8 +87,31 @@
                     @if(method_exists($snippets, 'links'))
                         <div class="mt-6">{{ $snippets->links() }}</div>
                     @endif
+                    </form>
                 </div>
             </div>
         </div>
     </div>
+
+    <script>
+        (function(){
+            const form = document.getElementById('bulkSnippetsTrashForm');
+            if (!form) return;
+            const selectAll = document.getElementById('bulk-snippets-select-all');
+            const boxes = Array.from(form.querySelectorAll('.bulk-snippets-checkbox'));
+            const btn = document.getElementById('bulkSnippetsTrashBtn');
+
+            function sync(){
+                btn.disabled = !boxes.some(cb => cb.checked);
+            }
+
+            selectAll?.addEventListener('change', function(){
+                boxes.forEach(cb => cb.checked = selectAll.checked);
+                sync();
+            });
+
+            boxes.forEach(cb => cb.addEventListener('change', sync));
+            sync();
+        })();
+    </script>
 </x-admin-layout>

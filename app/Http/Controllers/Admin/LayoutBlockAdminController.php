@@ -213,6 +213,28 @@ class LayoutBlockAdminController extends Controller
     }
 
     /**
+     * Bulk permanent delete from trash.
+     */
+    public function bulkForceDestroy(Request $request): RedirectResponse
+    {
+        $ids = array_map('intval', (array) $request->input('ids', []));
+        if (empty($ids)) {
+            return redirect()->route('admin.layout-blocks.trash')->with('status', 'No trashed blocks selected.');
+        }
+
+        $deleted = 0;
+        foreach (LayoutBlock::onlyTrashed()->whereIn('id', $ids)->get() as $block) {
+            $block->pages()->detach();
+            $block->forceDelete();
+            $deleted++;
+        }
+
+        LayoutBlock::flushCache();
+
+        return redirect()->route('admin.layout-blocks.trash')->with('status', 'Deleted permanently: ' . $deleted . ' block(s) ✅');
+    }
+
+    /**
      * Save site-wide toggles.
      */
     public function updateOptions(Request $request): RedirectResponse

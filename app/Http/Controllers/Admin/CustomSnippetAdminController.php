@@ -185,6 +185,27 @@ class CustomSnippetAdminController extends Controller
     }
 
     /**
+     * Bulk permanent delete from trash.
+     */
+    public function bulkForceDestroy(Request $request): RedirectResponse
+    {
+        $ids = array_map('intval', (array) $request->input('ids', []));
+        if (empty($ids)) {
+            return redirect()->route('admin.snippets.trash')->with('status', 'No trashed snippets selected.');
+        }
+
+        $deleted = 0;
+        foreach (CustomSnippet::onlyTrashed()->whereIn('id', $ids)->get() as $snippet) {
+            $snippet->forceDelete();
+            $deleted++;
+        }
+
+        CustomSnippet::flushCache();
+
+        return redirect()->route('admin.snippets.trash')->with('status', 'Deleted permanently: ' . $deleted . ' snippet(s) ✅');
+    }
+
+    /**
      * @return array<string, mixed>
      */
     private function validated(Request $request): array

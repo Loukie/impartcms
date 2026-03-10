@@ -25,6 +25,10 @@ class MediaAdminController extends Controller
         $type = (string) $request->query('type', '');
         $q = trim((string) $request->query('q', ''));
         $sort = (string) $request->query('sort', 'newest');
+        $perPage = (int) $request->query('per_page', 30);
+        if (!in_array($perPage, [30, 50, 100], true)) {
+            $perPage = 30;
+        }
 
         $base = MediaFile::query();
 
@@ -79,7 +83,7 @@ class MediaAdminController extends Controller
         }
 
         return view('admin.media.index', [
-            'media' => $base->paginate(30)->withQueryString(),
+            'media' => $base->paginate($perPage)->withQueryString(),
             'counts' => $counts,
             'folders' => MediaFile::query()
                 ->select('folder')
@@ -92,6 +96,7 @@ class MediaAdminController extends Controller
             'currentType' => $type,
             'currentQuery' => $q,
             'currentSort' => $sort,
+            'currentPerPage' => $perPage,
         ]);
     }
 
@@ -285,7 +290,9 @@ class MediaAdminController extends Controller
             $msg .= ' ' . implode(' ', $errors);
         }
 
-        return redirect()->route('admin.media.index')->with('status', $msg);
+        return redirect()->route('admin.media.index')
+            ->with('status', $msg)
+            ->with('show_trash_link', true);
     }
 
     public function destroy(MediaFile $media): RedirectResponse
@@ -306,7 +313,9 @@ class MediaAdminController extends Controller
         // Soft delete only - file remains on disk
         $media->delete();
 
-        return redirect()->route('admin.media.index')->with('status', 'Media moved to trash.');
+        return redirect()->route('admin.media.index')
+            ->with('status', 'Media moved to trash.')
+            ->with('show_trash_link', true);
     }
 
     /**
@@ -341,6 +350,26 @@ class MediaAdminController extends Controller
         $media->forceDelete();
 
         return redirect()->route('admin.media.trash')->with('status', 'Media permanently deleted.');
+    }
+
+    /**
+     * Permanently delete selected trashed media files.
+     */
+    public function bulkForceDelete(Request $request): RedirectResponse
+    {
+        $ids = array_map('intval', (array) $request->input('ids', []));
+        if (empty($ids)) {
+            return redirect()->route('admin.media.trash')->with('status', 'No trashed media selected.');
+        }
+
+        $deleted = 0;
+        foreach (MediaFile::onlyTrashed()->whereIn('id', $ids)->get() as $media) {
+            Storage::disk($media->disk ?? 'public')->delete($media->path);
+            $media->forceDelete();
+            $deleted++;
+        }
+
+        return redirect()->route('admin.media.trash')->with('status', 'Permanently deleted ' . $deleted . ' media file(s).');
     }
 
     /**

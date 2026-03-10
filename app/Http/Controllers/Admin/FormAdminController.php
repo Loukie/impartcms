@@ -217,6 +217,25 @@ class FormAdminController extends Controller
             ->with('status', 'Form deleted permanently ✅');
     }
 
+    /**
+     * Bulk permanent delete from trash.
+     */
+    public function bulkForceDestroy(Request $request): RedirectResponse
+    {
+        $ids = array_map('intval', (array) $request->input('ids', []));
+        if (empty($ids)) {
+            return redirect()->route('admin.forms.trash')->with('status', 'No trashed forms selected.');
+        }
+
+        $deleted = 0;
+        foreach (Form::onlyTrashed()->whereIn('id', $ids)->get() as $form) {
+            $form->forceDelete();
+            $deleted++;
+        }
+
+        return redirect()->route('admin.forms.trash')->with('status', 'Deleted permanently: ' . $deleted . ' form(s) ✅');
+    }
+
     private function decodeJson(string $raw): mixed
     {
         $raw = trim($raw);

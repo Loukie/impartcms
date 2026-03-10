@@ -144,10 +144,12 @@ Route::middleware(['auth', 'can:access-admin'])
         Route::get('/forms-trash', [FormAdminController::class, 'trash'])->name('forms.trash');
         Route::post('/forms-trash/{formTrash}/restore', [FormAdminController::class, 'restore'])->name('forms.restore');
         Route::delete('/forms-trash/{formTrash}/force', [FormAdminController::class, 'forceDestroy'])->name('forms.forceDestroy');
+        Route::post('/forms-trash/bulk', [FormAdminController::class, 'bulkForceDestroy'])->name('forms.trash.bulk');
 
         Route::get('/users-trash', [UserAdminController::class, 'trash'])->name('users.trash');
         Route::post('/users-trash/{userTrash}/restore', [UserAdminController::class, 'restore'])->name('users.restore');
         Route::delete('/users-trash/{userTrash}/force', [UserAdminController::class, 'forceDestroy'])->name('users.forceDestroy');
+        Route::post('/users-trash/bulk', [UserAdminController::class, 'bulkForceDestroy'])->name('users.trash.bulk');
 
         // Header & Footer
         Route::post('/layout-blocks/options', [LayoutBlockAdminController::class, 'updateOptions'])->name('layout-blocks.options');
@@ -155,6 +157,7 @@ Route::middleware(['auth', 'can:access-admin'])
         Route::get('/layout-blocks-trash', [LayoutBlockAdminController::class, 'trash'])->name('layout-blocks.trash');
         Route::post('/layout-blocks-trash/{layoutBlockTrash}/restore', [LayoutBlockAdminController::class, 'restore'])->name('layout-blocks.restore');
         Route::delete('/layout-blocks-trash/{layoutBlockTrash}/force', [LayoutBlockAdminController::class, 'forceDestroy'])->name('layout-blocks.force-destroy');
+        Route::post('/layout-blocks-trash/bulk', [LayoutBlockAdminController::class, 'bulkForceDestroy'])->name('layout-blocks.trash.bulk');
 
         Route::post('/layout-blocks/bulk', [LayoutBlockAdminController::class, 'bulk'])->name('layout-blocks.bulk');
         Route::resource('layout-blocks', LayoutBlockAdminController::class)->parameters([
@@ -165,6 +168,7 @@ Route::middleware(['auth', 'can:access-admin'])
         Route::get('/snippets-trash', [CustomSnippetAdminController::class, 'trash'])->name('snippets.trash');
         Route::post('/snippets-trash/{snippetTrash}/restore', [CustomSnippetAdminController::class, 'restore'])->name('snippets.restore');
         Route::delete('/snippets-trash/{snippetTrash}/force', [CustomSnippetAdminController::class, 'forceDestroy'])->name('snippets.forceDestroy');
+        Route::post('/snippets-trash/bulk', [CustomSnippetAdminController::class, 'bulkForceDestroy'])->name('snippets.trash.bulk');
 
         Route::post('/snippets/bulk', [CustomSnippetAdminController::class, 'bulk'])->name('snippets.bulk');
         Route::resource('snippets', CustomSnippetAdminController::class);
@@ -236,6 +240,7 @@ Route::middleware(['auth', 'can:access-admin'])
         Route::get('/media/trash', [MediaAdminController::class, 'trash'])->name('media.trash');
         Route::post('/media/trash/{id}/restore', [MediaAdminController::class, 'restore'])->whereNumber('id')->name('media.restore');
         Route::delete('/media/trash/{id}/force', [MediaAdminController::class, 'forceDelete'])->whereNumber('id')->name('media.forceDelete');
+        Route::post('/media/trash/bulk', [MediaAdminController::class, 'bulkForceDelete'])->name('media.trash.bulk');
 
         /**
          * ✅ Media picker (WordPress-style modal)

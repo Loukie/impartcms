@@ -30,10 +30,21 @@
 
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6">
+                    <form method="POST" action="{{ route('admin.users.trash.bulk') }}" id="bulkUsersTrashForm" onsubmit="return confirm('Permanently delete selected users? This cannot be undone.');">
+                        @csrf
+                        <div class="mb-3">
+                            <button type="submit" id="bulkUsersTrashBtn" disabled
+                                    class="px-4 py-2 bg-red-600 text-white rounded-md text-xs uppercase font-semibold hover:bg-red-700 disabled:opacity-50">
+                                Delete Selected
+                            </button>
+                        </div>
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                                 <tr>
+                                    <th class="px-3 py-2">
+                                        <input type="checkbox" id="bulk-users-select-all" />
+                                    </th>
                                     <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                                     <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
                                     <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
@@ -46,6 +57,9 @@
                             <tbody class="bg-white divide-y divide-gray-200">
                                 @forelse($users as $user)
                                     <tr>
+                                        <td class="px-3 py-2 whitespace-nowrap">
+                                            <input type="checkbox" name="ids[]" value="{{ $user->id }}" class="bulk-users-checkbox" />
+                                        </td>
                                         <td class="px-3 py-2 whitespace-nowrap font-medium text-gray-900">
                                             {{ $user->name }}
                                         </td>
@@ -97,7 +111,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="6" class="px-3 py-6 text-center text-gray-500">
+                                        <td colspan="7" class="px-3 py-6 text-center text-gray-500">
                                             Trash is empty.
                                         </td>
                                     </tr>
@@ -111,8 +125,33 @@
                             {{ $users->links() }}
                         </div>
                     @endif
+                    </form>
                 </div>
             </div>
         </div>
     </div>
+
+    <script>
+        (function(){
+            const form = document.getElementById('bulkUsersTrashForm');
+            if (!form) return;
+            const selectAll = document.getElementById('bulk-users-select-all');
+            const boxes = Array.from(form.querySelectorAll('.bulk-users-checkbox'));
+            const btn = document.getElementById('bulkUsersTrashBtn');
+
+            function sync(){
+                btn.disabled = !boxes.some(cb => cb.checked);
+            }
+
+            if (selectAll) {
+                selectAll.addEventListener('change', function(){
+                    boxes.forEach(cb => cb.checked = selectAll.checked);
+                    sync();
+                });
+            }
+
+            boxes.forEach(cb => cb.addEventListener('change', sync));
+            sync();
+        })();
+    </script>
 </x-admin-layout>

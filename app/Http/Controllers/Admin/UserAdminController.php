@@ -276,6 +276,42 @@ class UserAdminController extends Controller
             ->with('status', 'User deleted permanently ✅');
     }
 
+    /**
+     * Bulk permanent delete from trash.
+     */
+    public function bulkForceDestroy(Request $request): RedirectResponse
+    {
+        $ids = array_map('intval', (array) $request->input('ids', []));
+        if (empty($ids)) {
+            return redirect()->route('admin.users.trash')->with('status', 'No trashed users selected.');
+        }
+
+        $errors = [];
+        $deleted = 0;
+
+        foreach (User::onlyTrashed()->whereIn('id', $ids)->get() as $userTrash) {
+            if ($userTrash->id === (int) $request->user()->id) {
+                $errors[] = 'Skipped your own account.';
+                continue;
+            }
+
+            if ($userTrash->is_admin && $this->adminCount() <= 0) {
+                $errors[] = 'Skipped admin ' . $userTrash->email . ' (last active admin guard).';
+                continue;
+            }
+
+            $userTrash->forceDelete();
+            $deleted++;
+        }
+
+        $msg = 'Deleted permanently: ' . $deleted . ' user(s) ✅';
+        if (!empty($errors)) {
+            $msg .= ' ' . implode(' ', $errors);
+        }
+
+        return redirect()->route('admin.users.trash')->with('status', $msg);
+    }
+
     private function adminCount(): int
     {
         return (int) User::query()->where('is_admin', true)->count();

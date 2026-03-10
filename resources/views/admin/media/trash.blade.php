@@ -30,10 +30,20 @@
                             <p class="text-sm mt-2">Deleted files will appear here and can be restored or permanently removed.</p>
                         </div>
                     @else
+                        <form method="POST" action="{{ route('admin.media.trash.bulk') }}" id="bulkMediaTrashForm" onsubmit="return confirm('Permanently delete selected media? This cannot be undone.');">
+                            @csrf
+                            <div class="mb-4 flex items-center gap-2">
+                                <button type="button" id="bulk-media-select-all" class="px-3 py-2 rounded-md border text-xs font-semibold">Select all on this page</button>
+                                <button type="button" id="bulk-media-clear" class="px-3 py-2 rounded-md border text-xs font-semibold">Clear</button>
+                                <button type="submit" id="bulkMediaTrashBtn" disabled class="px-3 py-2 rounded-md bg-red-600 text-white text-xs font-semibold hover:bg-red-700 disabled:opacity-50">
+                                    Delete Selected
+                                </button>
+                            </div>
                         <div class="space-y-3">
                             @foreach($trashed as $media)
                                 <div class="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
                                     <div class="flex items-center gap-4">
+                                        <input type="checkbox" name="ids[]" value="{{ $media->id }}" class="bulk-media-checkbox w-4 h-4 text-red-600">
                                         @if($media->is_image)
                                             <img src="{{ $media->url }}" alt="" class="w-16 h-16 object-cover rounded">
                                         @else
@@ -73,9 +83,39 @@
                         <div class="mt-6">
                             {{ $trashed->links() }}
                         </div>
+                        </form>
                     @endif
                 </div>
             </div>
         </div>
     </div>
+
+    <script>
+        (function(){
+            const form = document.getElementById('bulkMediaTrashForm');
+            if (!form) return;
+
+            const boxes = Array.from(form.querySelectorAll('.bulk-media-checkbox'));
+            const btn = document.getElementById('bulkMediaTrashBtn');
+            const selectAllBtn = document.getElementById('bulk-media-select-all');
+            const clearBtn = document.getElementById('bulk-media-clear');
+
+            function sync() {
+                btn.disabled = !boxes.some(cb => cb.checked);
+            }
+
+            selectAllBtn?.addEventListener('click', function() {
+                boxes.forEach(cb => cb.checked = true);
+                sync();
+            });
+
+            clearBtn?.addEventListener('click', function() {
+                boxes.forEach(cb => cb.checked = false);
+                sync();
+            });
+
+            boxes.forEach(cb => cb.addEventListener('change', sync));
+            sync();
+        })();
+    </script>
 </x-admin-layout>
