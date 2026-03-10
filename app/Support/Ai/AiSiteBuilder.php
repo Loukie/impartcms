@@ -54,7 +54,8 @@ class AiSiteBuilder
 
         $canonicalNavHtml = $this->buildCanonicalNavigationHtml(
             $pages,
-            (array) ($options['design_system'] ?? [])
+            (array) ($options['design_system'] ?? []),
+            (string) ($options['nav_logo_url'] ?? '')
         );
 
         // Published homepage ID (only set if the homepage ends up published)
@@ -105,6 +106,19 @@ class AiSiteBuilder
                     $brief = $this->replaceMediaUrls($brief, $options['media_mapping']);
                 }
 
+                if (!empty($options['page_media_hints']) && is_array($options['page_media_hints'])) {
+                    $brief = $this->injectPageMediaHintsIntoBrief(
+                        $brief,
+                        $title,
+                        $slug,
+                        (array) $options['page_media_hints']
+                    );
+                }
+
+                if ($isHomepage) {
+                    $brief = $this->buildHomepageHeroBrief($brief, $title);
+                }
+
                 $status = $action === 'publish' ? 'published' : 'draft';
                 $publishedAt = $status === 'published' ? now() : null;
 
@@ -134,9 +148,45 @@ class AiSiteBuilder
                         'style_mode' => $styleMode,
                         'full_document' => false,
                         'design_system' => $options['design_system'] ?? [],
+                        'business_context' => (string) ($options['business_context'] ?? ''),
                     ]);
 
                     $body = (string) ($gen['clean_html'] ?? '');
+
+                    // Retry once with stronger depth instructions when output is too thin.
+                    if ($this->isThinPageHtml($body)) {
+                        $retryBrief = $this->buildDepthRetryBrief($brief, $title);
+                        $retry = $this->pageGenerator->generateHtml($retryBrief, [
+                            'title' => $title,
+                            'style_mode' => $styleMode,
+                            'full_document' => false,
+                            'design_system' => $options['design_system'] ?? [],
+                            'business_context' => (string) ($options['business_context'] ?? ''),
+                        ]);
+
+                        $retryBody = (string) ($retry['clean_html'] ?? '');
+                        if (strlen($retryBody) > strlen($body)) {
+                            $body = $retryBody;
+                        }
+                    }
+
+                    $quality = $this->assessPageQuality($body);
+                    if ((int) ($quality['score'] ?? 0) < 65) {
+                        $qualityRetryBrief = $this->buildQualityGateRetryBrief($brief, $title, (array) ($quality['issues'] ?? []));
+                        $qualityRetry = $this->pageGenerator->generateHtml($qualityRetryBrief, [
+                            'title' => $title,
+                            'style_mode' => $styleMode,
+                            'full_document' => false,
+                            'design_system' => $options['design_system'] ?? [],
+                            'business_context' => (string) ($options['business_context'] ?? ''),
+                        ]);
+
+                        $qualityRetryBody = (string) ($qualityRetry['clean_html'] ?? '');
+                        $retryQuality = $this->assessPageQuality($qualityRetryBody);
+                        if ((int) ($retryQuality['score'] ?? 0) >= (int) ($quality['score'] ?? 0)) {
+                            $body = $qualityRetryBody;
+                        }
+                    }
 
                     // Ensure imported media URLs are used in final HTML where possible.
                     if (!empty($options['media_mapping']) && is_array($options['media_mapping'])) {
@@ -280,17 +330,116 @@ class AiSiteBuilder
     {
         $slug = $baseSlug;
         $i = 2;
-        while (Page::where('slug', $slug)->exists()) {
+        // Slug has a DB-level unique index, so we must consider trashed rows as well.
+        while (Page::withTrashed()->where('slug', $slug)->exists()) {
             $slug = $baseSlug . '-' . $i;
             $i++;
         }
         return $slug;
     }
 
+    private function isThinPageHtml(string $html): bool
+    {
+        $content = trim($html);
+        if ($content === '' || strlen($content) < 1400) {
+            return true;
+        }
+
+        $sectionCount = preg_match_all('/<section\b/i', $content);
+        $headingCount = preg_match_all('/<h[1-3]\b/i', $content);
+        $paragraphCount = preg_match_all('/<p\b/i', $content);
+
+        return ($sectionCount < 5) || ($headingCount < 4) || ($paragraphCount < 6);
+    }
+
+    private function buildDepthRetryBrief(string $brief, string $title): string
+    {
+        $parts = [];
+        $parts[] = $brief;
+        $parts[] = '';
+        $parts[] = 'Quality retry requirements for this page:';
+        $parts[] = '- Expand this page into a premium long-form layout with 6-8 meaningful sections.';
+        $parts[] = '- Include concrete, domain-specific details and avoid generic statements.';
+        $parts[] = '- Add depth: process steps, service detail, use-case examples, and trust/proof sections.';
+        $parts[] = '- Include robust copy in each section (not one-line blurbs).';
+        $parts[] = '- Keep content and imagery aligned with page title: ' . $title . '.';
+
+        return implode("\n", $parts);
+    }
+
+    private function buildHomepageHeroBrief(string $brief, string $title): string
+    {
+        $parts = [];
+        $parts[] = $brief;
+        $parts[] = '';
+        $parts[] = 'Homepage composition requirements:';
+        $parts[] = '- Start with a full-viewport hero section immediately after navigation (min-height: 90vh on desktop).';
+        $parts[] = '- Use a strong visual background with readable overlay contrast and premium spacing.';
+        $parts[] = '- Include one H1, one supporting paragraph, and 1-2 meaningful CTAs in the hero.';
+        $parts[] = '- Do not start the page with a small plain heading block or thin top section.';
+        $parts[] = '- Keep section content and visuals tightly aligned to page title: ' . $title . '.';
+
+        return implode("\n", $parts);
+    }
+
+    /**
+     * @return array{score:int,issues:array<int,string>}
+     */
+    private function assessPageQuality(string $html): array
+    {
+        $score = 100;
+        $issues = [];
+
+        $len = strlen(trim($html));
+        if ($len < 1800) {
+            $score -= 25;
+            $issues[] = 'content too short';
+        }
+
+        $sections = (int) preg_match_all('/<section\b/i', $html);
+        if ($sections < 5) {
+            $score -= 20;
+            $issues[] = 'insufficient sections';
+        }
+
+        $paragraphs = (int) preg_match_all('/<p\b/i', $html);
+        if ($paragraphs < 8) {
+            $score -= 15;
+            $issues[] = 'not enough explanatory copy';
+        }
+
+        if (preg_match('/\b(innovation|quality|trusted|modern solutions)\b/i', $html) === 1) {
+            $score -= 8;
+            $issues[] = 'generic filler language';
+        }
+
+        return [
+            'score' => max(0, $score),
+            'issues' => $issues,
+        ];
+    }
+
+    /**
+     * @param array<int,string> $issues
+     */
+    private function buildQualityGateRetryBrief(string $brief, string $title, array $issues): string
+    {
+        $parts = [];
+        $parts[] = $brief;
+        $parts[] = '';
+        $parts[] = 'Quality-gate retry for page: ' . $title;
+        $parts[] = '- Improve weaknesses: ' . (empty($issues) ? 'overall depth and specificity' : implode(', ', $issues));
+        $parts[] = '- Expand to 6-8 sections with richer, domain-specific copy.';
+        $parts[] = '- Add concrete examples/use-cases and avoid generic marketing phrasing.';
+        $parts[] = '- Keep visuals and copy tightly aligned to the page purpose.';
+
+        return implode("\n", $parts);
+    }
+
     /**
      * Build a single shared nav HTML block for all generated pages.
      */
-    private function buildCanonicalNavigationHtml(array $pages, array $designSystem = []): string
+    private function buildCanonicalNavigationHtml(array $pages, array $designSystem = [], string $navLogoUrl = ''): string
     {
         if (count($pages) === 0) {
             return '';
@@ -305,6 +454,7 @@ class AiSiteBuilder
         $layoutRaw = strtolower(trim((string) ($designSystem['layout_pattern'] ?? 'modern')));
 
         $navItems = [];
+        $seen = [];
         foreach ($pages as $page) {
             if (!is_array($page)) {
                 continue;
@@ -320,6 +470,13 @@ class AiSiteBuilder
             $slug = $this->normaliseSlug($slug);
 
             $href = $isHomepage ? '/' : '/' . ltrim($slug, '/');
+
+            $key = strtolower($href);
+            if (isset($seen[$key])) {
+                continue;
+            }
+            $seen[$key] = true;
+
             $navItems[] = [
                 'title' => $title,
                 'href' => $href,
@@ -360,6 +517,11 @@ class AiSiteBuilder
             $styleVariant = 'minimal';
         }
 
+        $navLogoUrl = trim($navLogoUrl);
+        if ($navLogoUrl !== '') {
+            $styleVariant = 'overlay-centered';
+        }
+
         $links = '';
         foreach ($navItems as $item) {
             $title = e($item['title']);
@@ -368,10 +530,21 @@ class AiSiteBuilder
         }
 
         $brand = '<a class="ai-nav-brand" href="/">' . e($brandLabel) . '</a>';
+        $logo = $navLogoUrl !== ''
+            ? '<a class="ai-nav-logo-wrap" href="/"><img class="ai-nav-logo" src="' . e($navLogoUrl) . '" alt="' . e($brandLabel) . ' logo" /></a>'
+            : '';
         $cta = '<a class="ai-nav-cta" href="/contact">' . e($ctaText) . '</a>';
 
         $navInner = '<div class="ai-nav-inner ' . e('variant-' . $styleVariant) . '">';
-        if ($styleVariant === 'centered') {
+        if ($styleVariant === 'overlay-centered') {
+            $navInner .= '<div class="ai-nav-top">'
+                . '<div class="ai-nav-top-left">&nbsp;</div>'
+                . '<div class="ai-nav-top-center">' . ($logo !== '' ? $logo : $brand) . '</div>'
+                . '<div class="ai-nav-top-right">' . $cta . '</div>'
+                . '</div>'
+                . '<div class="ai-nav-divider"></div>'
+                . '<div class="ai-nav-links ai-nav-links-center">' . $links . '</div>';
+        } elseif ($styleVariant === 'centered') {
             $navInner .= '<div class="ai-nav-center-wrap">' . $brand . '<div class="ai-nav-links">' . $links . '</div>' . $cta . '</div>';
         } elseif ($styleVariant === 'split') {
             $half = (int) floor(count($navItems) / 2);
@@ -398,6 +571,8 @@ class AiSiteBuilder
             . '.ai-shared-nav.nav-solid{background:#ffffff;border-bottom:1px solid rgba(15,23,42,.12);box-shadow:0 8px 30px rgba(15,23,42,.08);backdrop-filter:blur(8px);}'
             . '.ai-nav-inner{max-width:1200px;margin:0 auto;padding:14px 20px;display:flex;align-items:center;gap:18px;}'
             . '.ai-nav-brand{font-family:var(--ai-nav-head);font-size:1.15rem;font-weight:700;color:var(--ai-nav-text);text-decoration:none;letter-spacing:.02em;}'
+            . '.ai-nav-logo-wrap{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;}'
+            . '.ai-nav-logo{max-height:78px;max-width:300px;width:auto;height:auto;display:block;}'
             . '.ai-nav-links{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}'
             . '.ai-nav-link{font-family:var(--ai-nav-body);font-size:.95rem;font-weight:600;text-decoration:none;color:var(--ai-nav-text);padding:8px 11px;border-radius:999px;transition:background-color .2s ease,color .2s ease;}'
             . '.ai-nav-link:hover{background:rgba(224,153,0,.12);color:var(--ai-nav-ink);}'
@@ -407,27 +582,27 @@ class AiSiteBuilder
             . '.ai-nav-inner.variant-centered{justify-content:center;}.ai-nav-center-wrap{display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:center;}'
             . '.ai-nav-inner.variant-split .ai-nav-left{margin-right:auto;}.ai-nav-inner.variant-split .ai-nav-right{margin-left:auto;}'
             . '.ai-nav-inner.variant-minimal .ai-nav-link{padding:6px 8px;border-radius:6px;}'
-            . '@media (max-width: 900px){.ai-nav-inner{padding:10px 12px;gap:10px;}.ai-nav-brand{font-size:1rem;}.ai-nav-link{font-size:.86rem;padding:6px 8px;}.ai-nav-cta{display:none;}}'
+            . '.ai-nav-inner.variant-overlay-centered{display:block;padding:14px 20px 12px;}'
+            . '.ai-nav-top{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;}'
+            . '.ai-nav-top-right{justify-self:end;}'
+            . '.ai-nav-divider{height:1px;background:rgba(255,255,255,.32);margin:10px 0 8px;}'
+            . '.ai-nav-links-center{justify-content:center;}'
+            . '.ai-shared-nav.inner-page .ai-nav-inner.variant-overlay-centered{display:flex;align-items:center;gap:14px;padding:10px 20px;}'
+            . '.ai-shared-nav.inner-page .ai-nav-top{display:flex;align-items:center;gap:10px;grid-template-columns:none;}'
+            . '.ai-shared-nav.inner-page .ai-nav-top-left,.ai-shared-nav.inner-page .ai-nav-top-right,.ai-shared-nav.inner-page .ai-nav-divider{display:none;}'
+            . '.ai-shared-nav.inner-page .ai-nav-links-center{margin-left:10px;justify-content:flex-start;}'
+            . '.ai-shared-nav.inner-page .ai-nav-logo{max-height:46px;}'
+            . '@media (max-width: 900px){.ai-nav-inner{padding:10px 12px;gap:10px;}.ai-nav-brand{font-size:1rem;}.ai-nav-link{font-size:.86rem;padding:6px 8px;}.ai-nav-cta{display:none;}.ai-nav-logo{max-height:60px;}}'
             . '@media (max-width: 640px){.ai-nav-links{width:100%;order:3;gap:4px;}.ai-nav-inner{align-items:flex-start;}}'
             . '</style>';
 
-        $js = '<script>(function(){var nav=document.querySelector(".ai-shared-nav[data-ai-shared-nav=\"1\"]");if(!nav)return;var links=nav.querySelectorAll(".ai-nav-link");var path=(location.pathname||"/").replace(/\/$/,"")||"/";for(var i=0;i<links.length;i++){var href=(links[i].getAttribute("href")||"/").replace(/\/$/,"")||"/";if(href===path){links[i].classList.add("is-active");}}function sync(){var isHome=path==="/";var h=nav.offsetHeight||72;if(!isHome){document.body.style.paddingTop=h+"px";}else{document.body.style.paddingTop="0px";}if(!isHome||window.scrollY>16){nav.classList.add("nav-solid");nav.classList.remove("nav-transparent");}else{nav.classList.add("nav-transparent");nav.classList.remove("nav-solid");}}window.addEventListener("scroll",sync,{passive:true});window.addEventListener("resize",sync,{passive:true});sync();})();</script>';
+        $js = '<script>(function(){var nav=document.querySelector(".ai-shared-nav[data-ai-shared-nav=\"1\"]");if(!nav)return;var links=nav.querySelectorAll(".ai-nav-link");var path=(location.pathname||"/").replace(/\/$/,"")||"/";for(var i=0;i<links.length;i++){var href=(links[i].getAttribute("href")||"/").replace(/\/$/,"")||"/";if(href===path){links[i].classList.add("is-active");}}function sync(){var isHome=path==="/";var h=nav.offsetHeight||72;if(!isHome){document.body.style.paddingTop=h+"px";nav.classList.add("inner-page");}else{document.body.style.paddingTop="0px";nav.classList.remove("inner-page");}if(!isHome||window.scrollY>16){nav.classList.add("nav-solid");nav.classList.remove("nav-transparent");}else{nav.classList.add("nav-transparent");nav.classList.remove("nav-solid");}}window.addEventListener("scroll",sync,{passive:true});window.addEventListener("resize",sync,{passive:true});sync();})();</script>';
 
         return $css
             . '<nav class="ai-shared-nav nav-transparent" data-ai-shared-nav="1">'
             . $navInner
             . '</nav>'
             . $js;
-    }
-
-    private function safeHexColor(string $value, string $fallback): string
-    {
-        $value = trim($value);
-        if (preg_match('/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/', $value) === 1) {
-            return strtolower($value);
-        }
-
-        return $fallback;
     }
 
     private function safeFontStack(string $value): string
@@ -637,6 +812,75 @@ CSS;
         foreach ($mapping as $external => $internal) {
             $brief = str_replace($external, $internal, $brief);
         }
+        return $brief;
+    }
+
+    /**
+     * Append page-specific media URLs from analysis into the page brief so the LLM
+     * uses the correct imported images for each page instead of generic references.
+     *
+     * @param array<string,array<int,string>> $pageMediaHints Keyed by slug/title → list of local media URLs
+     */
+    private function injectPageMediaHintsIntoBrief(string $brief, string $title, string $slug, array $pageMediaHints): string
+    {
+        $keys = [];
+        $normSlug = strtolower(trim($slug, '/'));
+        $normTitle = strtolower(trim($title));
+
+        if ($normSlug !== '') {
+            $keys[] = $normSlug;
+            $keys[] = basename($normSlug);
+        }
+        if ($normTitle !== '') {
+            $keys[] = $normTitle;
+        }
+
+        $pool = [];
+        foreach ($keys as $key) {
+            if ($key === '') {
+                continue;
+            }
+            if (isset($pageMediaHints[$key]) && is_array($pageMediaHints[$key])) {
+                $pool = array_values(array_filter($pageMediaHints[$key], fn ($v) => is_string($v) && trim($v) !== ''));
+                if (!empty($pool)) {
+                    break;
+                }
+            }
+        }
+
+        if (empty($pool)) {
+            foreach ($pageMediaHints as $k => $urls) {
+                if (!is_string($k) || !is_array($urls)) {
+                    continue;
+                }
+
+                $kNorm = strtolower(trim($k));
+                if ($kNorm === '') {
+                    continue;
+                }
+
+                if (($normSlug !== '' && (str_contains($normSlug, $kNorm) || str_contains($kNorm, $normSlug)))
+                    || ($normTitle !== '' && (str_contains($normTitle, $kNorm) || str_contains($kNorm, $normTitle)))) {
+                    $pool = array_values(array_filter($urls, fn ($v) => is_string($v) && trim($v) !== ''));
+                    if (!empty($pool)) {
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (empty($pool)) {
+            return $brief;
+        }
+
+        $pool = array_slice(array_values(array_unique($pool)), 0, 6);
+
+        $brief .= "\n\nPage-specific media URLs (use these first for this page):\n";
+        foreach ($pool as $idx => $url) {
+            $brief .= '- Image ' . ($idx + 1) . ': ' . $url . "\n";
+        }
+        $brief .= '- Use at least two of these URLs in this page (hero/background and content sections).';
+
         return $brief;
     }
 

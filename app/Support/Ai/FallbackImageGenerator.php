@@ -71,6 +71,7 @@ class FallbackImageGenerator
     {
         $subjectKeywords = $this->subjectKeywordsFromContext($context);
         $businessKeywords = $this->businessKeywordsFromContext($context);
+        $excluded = $this->buildExclusionMap($context);
 
         $query = MediaFile::query()
             ->where('mime_type', 'like', 'image/%')
@@ -100,6 +101,7 @@ class FallbackImageGenerator
         $bestScore = -1;
 
         foreach ($candidates as $candidate) {
+            $candidateUrl = (string) ($candidate->url ?? '');
             $text = strtolower(trim(implode(' ', [
                 (string) ($candidate->title ?? ''),
                 (string) ($candidate->alt_text ?? ''),
@@ -129,6 +131,11 @@ class FallbackImageGenerator
                 $score += 2;
             }
 
+            // Favor visual diversity by penalizing URLs already used in this clone run.
+            if ($candidateUrl !== '' && isset($excluded[$candidateUrl])) {
+                $score -= 40;
+            }
+
             if ($score > $bestScore) {
                 $bestScore = $score;
                 $best = $candidate;
@@ -149,6 +156,34 @@ class FallbackImageGenerator
         }
 
         return (string) $best->url;
+    }
+
+    /**
+     * Build a map of media URLs to exclude from contextual replacement scoring,
+     * preventing the same fallback image from being reused across multiple sections.
+     *
+     * @return array<string,true>
+     */
+    private function buildExclusionMap(array $context): array
+    {
+        $excluded = [];
+        $list = $context['exclude_urls'] ?? [];
+        if (!is_array($list)) {
+            return $excluded;
+        }
+
+        foreach ($list as $url) {
+            if (!is_string($url)) {
+                continue;
+            }
+            $url = trim($url);
+            if ($url === '') {
+                continue;
+            }
+            $excluded[$url] = true;
+        }
+
+        return $excluded;
     }
 
     /**

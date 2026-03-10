@@ -1,6 +1,6 @@
 # ImpartCMS – Complete Project History
 
-**Last Updated**: 2026-03-02 (Africa/Johannesburg, SAST)
+**Last Updated**: 2026-03-10 (Africa/Johannesburg, SAST)
 
 ---
 
@@ -1002,6 +1002,97 @@ php artisan optimize:clear        # Clear caches
 **Partially resolved** ⚠️
 - Icon extraction still in place (skipped during download, but detected during analysis)
 - Not all page types may get thorough briefs yet
+
+---
+
+## 2026-03-10 – AI Clone: Image Fidelity, Deduplication & Quality Gates
+
+**What was done**
+
+### 1. Comprehensive Image Discovery (SiteCloneAnalyzer)
+- Extended `extractPages()` to call `extractImageUrlsFromCrawler()` per inner page, storing per-page image arrays
+- New method `extractImageUrlsFromCrawler()` supports:
+  - `og:image` / `twitter:image` meta tags
+  - Lazy-load attributes: `data-src`, `data-lazy-src`, `data-bg`, `data-bgset`, `data-background-image`, `data-background`
+  - `srcset` and `data-srcset` (extracts first candidate)
+  - Inline `style="background-image:url(...)"` on any element
+- New method `appendImageUrlsFromCss()` parses `<style>` blocks and fetches external CSS files for `url()` image references
+- Helper methods: `extractFirstFromSrcSet()`, `extractBackgroundImageUrl()`, `looksLikeImageUrl()` for filtering CSS URLs to actual images
+- `extractImages()` now accepts `$pages` parameter and merges inner-page image candidates into hero/content pools
+- Hero image limit increased from 3→20, content images from 10→80
+
+### 2. Per-Page Image Pools in Blueprint Generation (AiSiteBlueprintGenerator)
+- `promptForClone()` now calls `buildPerPageImageContext()` and injects a `📍 PAGE-SPECIFIC IMAGE POOLS (STRICT)` section into the AI prompt
+- New method `buildPerPageImageContext()` maps each analyzed page to its discovered image URLs
+- New method `derivePageKeywords()` extracts meaningful keywords from page title/URL for fallback pool matching when a page has no direct images
+- Brief requirements tightened: 120–220 words, 6–8 sections, explicit image URL references
+- Added rule: service page image URLs MUST come from matching service page pool
+
+### 3. Import Deduplication (MediaImporter)
+- Added `$runtimeSourceCache` array to prevent re-downloading within the same run
+- New method `canonicalizeSourceUrl()` normalizes URLs (lowercase, strip query params, collapse slashes)
+- Source hash (SHA-1) stored in caption field as `[src:<sha1>]`
+- New method `findExistingBySourceHash()` checks database for previously imported identical source before downloading
+
+### 4. Page Media Hints Injection (AiSiteBuilder)
+- `buildFromBlueprintJson()` now accepts `page_media_hints`, `business_context`, `nav_logo_url` options
+- New method `injectPageMediaHintsIntoBrief()` appends page-specific local media URLs to each page brief before AI generation
+- New method `buildHomepageHeroBrief()` enforces full-viewport hero (min-height 90vh) with strong visual background for homepage
+- Quality gates: `isThinPageHtml()` detects thin output (<1400 chars or few sections), triggers `buildDepthRetryBrief()` for richer content
+- `assessPageQuality()` scores HTML (sections, paragraphs, generic language), triggers `buildQualityGateRetryBrief()` when score < 65
+- `buildCanonicalNavigationHtml()` supports `navLogoUrl` with a new `overlay-centered` nav variant (logo centered, links below, CTA top-right)
+- Nav logo sizing: `max-height:78px; max-width:300px` standard, `max-height:46px` on inner pages
+- Nav JS: adds `inner-page` class for non-homepage pages, switches from transparent to solid nav
+
+### 5. Deterministic Page-by-Page Image Assignment (AiSiteCloneAdminController)
+- `build()` method now infers business context via `inferBusinessContext()`, resolves nav logo URL from analysis, passes `page_media_hints` and `business_context` to builder
+- Media import loop now collects page-level image URLs from `$analysis['pages']` and uses canonical URL deduplication via `canonicalMediaKey()`
+- `materializeCloneImagesToMedia()` now accepts `$pageMediaHints`, resolves per-page media pool via `resolvePageMediaPoolForPage()`, uses `takeNextPageMediaUrl()` for deterministic round-robin image assignment
+- `resolveImageSource()` tries page media pool first before import → contextual replacement → fallback cascade
+- Image diversity tracking: `$usedReplacementUrls` array passed through `FallbackImageGenerator` to prevent reuse (scored at -40 penalty)
+- New method `localMediaSourceExists()` verifies local media file actually exists on disk
+- New method `isLikelyLogoMediaUrl()` filters logo/brand assets from body content sections
+- `buildPageMediaHints()` maps analysis pages to their imported internal media URLs, filtering out logo-like assets
+
+### 6. AI Page Generation Improvements (AiPageGenerator)
+- `buildInstructions()` and `buildInput()` now accept `$businessContext` parameter
+- Added rules: no logo as body images, no repeating same hero image, business domain lock
+- Content guidelines expanded: 5+ supporting sections, expand copy with specifics, avoid generic placeholders
+- Section copy must be distinct across sections (no copy-paste repetition)
+
+### 7. Contextual Replacement Diversity (FallbackImageGenerator)
+- `findContextualReplacementUrl()` now accepts `exclude_urls` in context
+- New method `buildExclusionMap()` creates lookup map from excluded URLs
+- Scoring penalizes already-used URLs by -40 points to encourage visual diversity
+
+**Why**
+- Cloned pages were not using source site images: imported but never referenced in generated HTML
+- Only homepage images were discovered — inner pages' lazy-loaded and CSS background images were missed
+- Same image was imported multiple times, creating duplicate MediaFile records
+- Logo images appeared in body content sections instead of only nav/footer
+- Generated pages were too thin and template-like, lacking domain-specific depth
+- Same fallback/replacement image was reused across all sections
+
+**Files modified**
+- `app/Support/Ai/SiteCloneAnalyzer.php` — comprehensive image discovery with lazy-load, CSS, and per-page extraction
+- `app/Support/Ai/AiSiteBlueprintGenerator.php` — per-page image pools in blueprint prompts, keyword fallback matching
+- `app/Support/Ai/AiSiteBuilder.php` — page media hints injection, homepage hero enforcement, quality gates, overlay-centered nav
+- `app/Support/Ai/AiPageGenerator.php` — business context lock, anti-logo and anti-repetition rules
+- `app/Support/Ai/FallbackImageGenerator.php` — exclusion map for replacement diversity
+- `app/Support/MediaImporter.php` — canonical URL hashing, runtime cache, DB dedup via source hash
+- `app/Http/Controllers/Admin/AiSiteCloneAdminController.php` — deterministic page-lock image assignment, logo filtering, business context inference
+
+**Resolved** ✅
+- Source page images are discovered from all crawled pages (including lazy-loaded, CSS backgrounds, OG/Twitter meta)
+- Images are imported without duplicates (canonical URL hashing + runtime cache)
+- Each cloned page receives images from its matching source page pool
+- Logo assets are confined to nav/footer and excluded from body content
+- Generated pages pass quality gates (depth retries, quality score assessment)
+- Image diversity enforced across sections (exclusion scoring)
+- Business context locks AI generation to correct industry domain
+
+**Partially resolved** ⚠️
+- Template structural repetition across inner pages (P2 — section layout patterns may still be similar)
 
 **Known issues**
 - Last 2 pages in clones may generate blank/short content if briefs are vague

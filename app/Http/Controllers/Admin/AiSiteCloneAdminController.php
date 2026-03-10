@@ -19,6 +19,7 @@ use App\Support\MediaImporter;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
 class AiSiteCloneAdminController extends Controller
@@ -293,6 +294,7 @@ class AiSiteCloneAdminController extends Controller
             $publish = (bool) $request->input('publish', false);
             $setHomepage = (bool) $request->input('set_homepage', false);
             $aiImageGenerationEnabled = $this->isAiImageGenerationEnabled();
+            $businessContext = $this->inferBusinessContext($analysis, $sourceUrl);
 
             if (!is_array($designSystem)) {
                 throw new \InvalidArgumentException('Invalid design system.');
@@ -322,6 +324,20 @@ class AiSiteCloneAdminController extends Controller
                         // Skip icons - we'll use FontAwesome shortcodes instead
                     }
                 }
+
+                // Collect page-level image URLs discovered during analysis.
+                if (!empty($analysis['pages']) && is_array($analysis['pages'])) {
+                    foreach ($analysis['pages'] as $p) {
+                        if (!is_array($p) || empty($p['images']) || !is_array($p['images'])) {
+                            continue;
+                        }
+                        foreach ($p['images'] as $imgUrl) {
+                            if (is_string($imgUrl) && trim($imgUrl) !== '') {
+                                $allMediaUrls[] = trim($imgUrl);
+                            }
+                        }
+                    }
+                }
                 
                 // Collect video URLs
                 if (!empty($analysis['videos']) && is_array($analysis['videos'])) {
@@ -329,11 +345,21 @@ class AiSiteCloneAdminController extends Controller
                 }
                 
                 // Download all media and create mapping
-                $allMediaUrls = array_unique($allMediaUrls);
+                $allMediaUrls = array_values(array_filter(array_unique($allMediaUrls), fn ($u) => is_string($u) && trim($u) !== ''));
+                $canonicalMapping = [];
                 foreach ($allMediaUrls as $url) {
+                    $canonical = $this->canonicalMediaKey($url);
+                    if ($canonical !== '' && isset($canonicalMapping[$canonical])) {
+                        $mediaMapping[$url] = $canonicalMapping[$canonical];
+                        continue;
+                    }
+
                     $mediaFile = $mediaImporter->importFromUrl($url);
                     if ($mediaFile) {
                         $mediaMapping[$url] = $mediaFile->url;
+                        if ($canonical !== '') {
+                            $canonicalMapping[$canonical] = $mediaFile->url;
+                        }
                         Log::info('Media imported', ['external' => $url, 'internal' => $mediaFile->url]);
                     }
                 }
@@ -361,6 +387,14 @@ class AiSiteCloneAdminController extends Controller
             $pageGen = new AiPageGenerator($this->llm, $sanitiser);
             $siteBuilder = new AiSiteBuilder($pageGen);
 
+            $navLogoUrl = '';
+            $analysisLogo = trim((string) (($analysis['images']['logo'] ?? '') ?: ''));
+            if ($analysisLogo !== '') {
+                $navLogoUrl = (string) ($mediaMapping[$analysisLogo] ?? $analysisLogo);
+            }
+
+            $pageMediaHints = $this->buildPageMediaHints($analysis, $mediaMapping);
+
             $result = $siteBuilder->buildFromBlueprintJson($blueprintJson, [
                 'style_mode' => 'inline',
                 'template' => 'blank',
@@ -368,8 +402,11 @@ class AiSiteCloneAdminController extends Controller
                 'publish_homepage' => true,
                 'set_homepage' => $setHomepage,
                 'design_system' => $designSystem,
+                'business_context' => $businessContext,
                 'source_url' => $sourceUrl,
+                'nav_logo_url' => $navLogoUrl,
                 'media_mapping' => $mediaMapping,
+                'page_media_hints' => $pageMediaHints,
                 'fallback_image_url' => $fallbackImageUrl,
             ]);
 
@@ -382,6 +419,7 @@ class AiSiteCloneAdminController extends Controller
                 designSystem: $designSystem,
                 userId: $request->user()?->id,
                 analysis: $analysis,
+                pageMediaHints: $pageMediaHints,
                 aiImageGenerationEnabled: $aiImageGenerationEnabled,
             );
             if (!empty($normalization['warnings'])) {
@@ -416,7 +454,7 @@ class AiSiteCloneAdminController extends Controller
      * @param array<string,mixed> $designSystem
      * @return array{warnings:array<int,string>}
      */
-    private function materializeCloneImagesToMedia(array $pagesReport, string $sourceUrl, array $designSystem, ?int $userId, array $analysis = [], bool $aiImageGenerationEnabled = false): array
+    private function materializeCloneImagesToMedia(array $pagesReport, string $sourceUrl, array $designSystem, ?int $userId, array $analysis = [], array $pageMediaHints = [], bool $aiImageGenerationEnabled = false): array
     {
         $warnings = [];
         $mediaImporter = new MediaImporter($userId);
@@ -427,6 +465,8 @@ class AiSiteCloneAdminController extends Controller
 
         /** @var array<string,string> $resolvedCache */
         $resolvedCache = [];
+        /** @var array<int,string> $usedReplacementUrls */
+        $usedReplacementUrls = [];
 
         foreach ($pagesReport as $row) {
             $pageId = isset($row['id']) ? (int) $row['id'] : 0;
@@ -446,19 +486,21 @@ class AiSiteCloneAdminController extends Controller
             }
 
             $updated = $html;
+            $pageMediaPool = $this->resolvePageMediaPoolForPage($page, $pageMediaHints);
+            $pageMediaCursor = 0;
 
             // Process <img> tags
-            $updated = preg_replace_callback('/<img\b[^>]*>/i', function (array $matches) use (&$resolvedCache, $mediaImporter, $fallbackGenerator, $sourceUrl, $designSystem, $analysis, $page, &$warnings, $aiImageGenerationEnabled) {
+            $updated = preg_replace_callback('/<img\b[^>]*>/i', function (array $matches) use (&$resolvedCache, &$usedReplacementUrls, $mediaImporter, $fallbackGenerator, $sourceUrl, $designSystem, $analysis, $page, $pageMediaPool, &$pageMediaCursor, &$warnings, $aiImageGenerationEnabled) {
                 $tag = $matches[0];
                 $src = $this->extractAttributeValue($tag, 'src');
                 $src = is_string($src) ? trim($src) : '';
 
                 // Existing local media URL/path can remain unchanged.
-                if ($src !== '' && $this->isLocalMediaSource($src)) {
+                if ($src !== '' && $this->isLocalMediaSource($src) && $this->localMediaSourceExists($src) && !$this->isLikelyLogoMediaUrl($src)) {
                     return $tag;
                 }
 
-                $resolved = $this->resolveImageSource($src, $resolvedCache, $mediaImporter, $fallbackGenerator, $sourceUrl, $designSystem, $analysis, $page, $warnings, $aiImageGenerationEnabled);
+                $resolved = $this->resolveImageSource($src, $resolvedCache, $usedReplacementUrls, $mediaImporter, $fallbackGenerator, $sourceUrl, $designSystem, $analysis, $page, $pageMediaPool, $pageMediaCursor, $warnings, $aiImageGenerationEnabled);
 
                 if ($resolved === '') {
                     return $tag;
@@ -477,12 +519,12 @@ class AiSiteCloneAdminController extends Controller
             }, $updated) ?? $updated;
 
             // Process inline style background-image and background properties
-            $updated = preg_replace_callback('/\bstyle\s*=\s*(["\'])([^\1]*?)\1/i', function (array $matches) use (&$resolvedCache, $mediaImporter, $fallbackGenerator, $sourceUrl, $designSystem, $analysis, $page, &$warnings, $aiImageGenerationEnabled) {
+            $updated = preg_replace_callback('/\bstyle\s*=\s*(["\'])([^\1]*?)\1/i', function (array $matches) use (&$resolvedCache, &$usedReplacementUrls, $mediaImporter, $fallbackGenerator, $sourceUrl, $designSystem, $analysis, $page, $pageMediaPool, &$pageMediaCursor, &$warnings, $aiImageGenerationEnabled) {
                 $quote = $matches[1];
                 $styleContent = $matches[2];
                 
                 // Process background-image: url(...) and background: url(...)
-                $updatedStyle = preg_replace_callback('/\b(background-image|background)\s*:\s*([^;]*url\([\'"]?)([^\'"\)]+)([\'"]?\)[^;]*)/i', function (array $urlMatches) use (&$resolvedCache, $mediaImporter, $fallbackGenerator, $sourceUrl, $designSystem, $analysis, $page, &$warnings, $aiImageGenerationEnabled) {
+                $updatedStyle = preg_replace_callback('/\b(background-image|background)\s*:\s*([^;]*url\([\'"]?)([^\'"\)]+)([\'"]?\)[^;]*)/i', function (array $urlMatches) use (&$resolvedCache, &$usedReplacementUrls, $mediaImporter, $fallbackGenerator, $sourceUrl, $designSystem, $analysis, $page, $pageMediaPool, &$pageMediaCursor, &$warnings, $aiImageGenerationEnabled) {
                     $property = $urlMatches[1];
                     $beforeUrl = $urlMatches[2];
                     $url = $urlMatches[3];
@@ -491,11 +533,11 @@ class AiSiteCloneAdminController extends Controller
                     $url = trim($url);
                     
                     // Skip data URIs and local media
-                    if ($url === '' || str_starts_with(strtolower($url), 'data:') || $this->isLocalMediaSource($url)) {
+                    if ($url === '' || str_starts_with(strtolower($url), 'data:') || (($this->isLocalMediaSource($url) && $this->localMediaSourceExists($url)) && !$this->isLikelyLogoMediaUrl($url))) {
                         return $urlMatches[0];
                     }
 
-                    $resolved = $this->resolveImageSource($url, $resolvedCache, $mediaImporter, $fallbackGenerator, $sourceUrl, $designSystem, $analysis, $page, $warnings, $aiImageGenerationEnabled);
+                    $resolved = $this->resolveImageSource($url, $resolvedCache, $usedReplacementUrls, $mediaImporter, $fallbackGenerator, $sourceUrl, $designSystem, $analysis, $page, $pageMediaPool, $pageMediaCursor, $warnings, $aiImageGenerationEnabled);
 
                     if ($resolved === '') {
                         return $urlMatches[0];
@@ -526,12 +568,15 @@ class AiSiteCloneAdminController extends Controller
     private function resolveImageSource(
         string $src,
         array &$resolvedCache,
+        array &$usedReplacementUrls,
         MediaImporter $mediaImporter,
         FallbackImageGenerator $fallbackGenerator,
         string $sourceUrl,
         array $designSystem,
         array $analysis,
         Page $page,
+        array $pageMediaPool,
+        int &$pageMediaCursor,
         array &$warnings,
         bool $aiImageGenerationEnabled
     ): string {
@@ -545,13 +590,25 @@ class AiSiteCloneAdminController extends Controller
         }
 
         $resolved = '';
+
+        // Deterministic page lock: use this page's imported media pool first.
+        if (!empty($pageMediaPool)) {
+            $pageLocked = $this->takeNextPageMediaUrl($pageMediaPool, $pageMediaCursor);
+            if ($pageLocked !== '') {
+                return $pageLocked;
+            }
+        }
+
         $candidate = $this->normaliseImageSourceUrl($src, $sourceUrl);
+
+        $resolvedFromImport = false;
 
         // Try importing original
         if ($candidate !== '') {
             $imported = $mediaImporter->importFromUrl($candidate);
             if ($imported) {
                 $resolved = (string) $imported->url;
+                $resolvedFromImport = true;
             }
         }
 
@@ -564,10 +621,12 @@ class AiSiteCloneAdminController extends Controller
                 'page_body' => (string) ($page->body ?? ''),
                 'original_src' => $src,
                 'analysis_title' => (string) ($analysis['title'] ?? ''),
+                'exclude_urls' => $usedReplacementUrls,
             ]);
 
             if (is_string($existing) && trim($existing) !== '') {
                 $resolved = trim($existing);
+                $usedReplacementUrls[] = $resolved;
                 $warnings[] = 'Image source unavailable on page "' . (string) ($page->title ?? 'Untitled') . '", replaced with contextual Media Library image.';
             }
         }
@@ -590,8 +649,85 @@ class AiSiteCloneAdminController extends Controller
                 : 'Image source unavailable on page "' . (string) ($page->title ?? 'Untitled') . '", replaced with generated non-AI fallback media asset.';
         }
 
-        $resolvedCache[$src] = $resolved;
+        // Cache only true source-import resolutions. Fallback/contextual replacements remain uncached
+        // so different pages can receive different suitable media instead of one repeated image.
+        if ($resolvedFromImport) {
+            $resolvedCache[$src] = $resolved;
+        }
         return $resolved;
+    }
+
+    /**
+     * Resolve the best matching media pool for a given Page by matching its slug/title
+     * against the page media hints keys (sourced from analysis page URLs).
+     *
+     * @param array<string,array<int,string>> $pageMediaHints
+     * @return array<int,string>
+     */
+    private function resolvePageMediaPoolForPage(Page $page, array $pageMediaHints): array
+    {
+        if (empty($pageMediaHints)) {
+            return [];
+        }
+
+        $slug = strtolower(trim((string) ($page->slug ?? ''), '/'));
+        $title = strtolower(trim((string) ($page->title ?? '')));
+        $keys = [];
+
+        if ($slug !== '') {
+            $keys[] = $slug;
+            $keys[] = basename($slug);
+        }
+        if ($title !== '') {
+            $keys[] = $title;
+        }
+
+        foreach ($keys as $key) {
+            if ($key !== '' && isset($pageMediaHints[$key]) && is_array($pageMediaHints[$key])) {
+                $pool = array_values(array_filter($pageMediaHints[$key], fn ($v) => is_string($v) && trim($v) !== ''));
+                if (!empty($pool)) {
+                    return array_slice(array_values(array_unique($pool)), 0, 12);
+                }
+            }
+        }
+
+        foreach ($pageMediaHints as $key => $pool) {
+            if (!is_string($key) || !is_array($pool)) {
+                continue;
+            }
+            $k = strtolower(trim($key));
+            if ($k === '') {
+                continue;
+            }
+
+            if (($slug !== '' && (str_contains($slug, $k) || str_contains($k, $slug)))
+                || ($title !== '' && (str_contains($title, $k) || str_contains($k, $title)))) {
+                $values = array_values(array_filter($pool, fn ($v) => is_string($v) && trim($v) !== ''));
+                if (!empty($values)) {
+                    return array_slice(array_values(array_unique($values)), 0, 12);
+                }
+            }
+        }
+
+        return [];
+    }
+
+    /**
+     * Return the next media URL from a page's assigned pool using round-robin.
+     * Ensures deterministic, evenly distributed image assignment across sections.
+     *
+     * @param array<int,string> $pool
+     */
+    private function takeNextPageMediaUrl(array $pool, int &$cursor): string
+    {
+        $pool = array_values(array_filter($pool, fn ($v) => is_string($v) && trim($v) !== ''));
+        if (empty($pool)) {
+            return '';
+        }
+
+        $idx = $cursor % count($pool);
+        $cursor++;
+        return (string) $pool[$idx];
     }
 
     private function normaliseImageSourceUrl(string $src, string $sourceUrl): string
@@ -650,6 +786,32 @@ class AiSiteCloneAdminController extends Controller
             && is_string($srcHost)
             && strcasecmp($appHost, $srcHost) === 0
             && str_starts_with($srcPath, '/storage/media/');
+    }
+
+    /**
+     * Verify that a local media file actually exists on disk (not just a valid-looking URL).
+     */
+    private function localMediaSourceExists(string $src): bool
+    {
+        $src = trim($src);
+        if ($src === '') {
+            return false;
+        }
+
+        $path = (string) (parse_url($src, PHP_URL_PATH) ?? $src);
+        $path = str_replace('\\', '/', $path);
+
+        if (str_starts_with($path, '/storage/')) {
+            $relative = ltrim(substr($path, strlen('/storage/')), '/');
+            return Storage::disk('public')->exists($relative);
+        }
+
+        if (str_starts_with($path, 'storage/')) {
+            $relative = ltrim(substr($path, strlen('storage/')), '/');
+            return Storage::disk('public')->exists($relative);
+        }
+
+        return false;
     }
 
     private function extractAttributeValue(string $tag, string $attribute): ?string
@@ -783,5 +945,155 @@ class AiSiteCloneAdminController extends Controller
     {
         $v = strtolower(trim($value));
         return in_array($v, ['1', 'true', 'yes', 'on'], true);
+    }
+
+    /**
+     * Infer the business domain from analysis content (title, navigation, page samples)
+     * to lock AI page generation to the correct industry context.
+     */
+    private function inferBusinessContext(array $analysis, string $sourceUrl): string
+    {
+        $title = trim((string) ($analysis['title'] ?? ''));
+        $nav = array_slice(array_map('strval', (array) ($analysis['navigation'] ?? [])), 0, 10);
+        $samples = [];
+        foreach (array_slice((array) ($analysis['pages'] ?? []), 0, 4) as $page) {
+            if (!is_array($page)) {
+                continue;
+            }
+            $samples[] = trim((string) ($page['title'] ?? ''));
+            $samples[] = trim((string) ($page['description'] ?? ''));
+            $samples[] = trim((string) ($page['content_sample'] ?? ''));
+        }
+
+        $combined = strtolower(implode(' ', array_filter(array_merge([$title, $sourceUrl], $nav, $samples))));
+
+        if (preg_match('/\bsmart\s*home|automation|cinema\s*room|smart\s*lighting|automated\s*blinds|home\s*security\b/', $combined) === 1) {
+            return 'Luxury smart home automation business. Services include smart lighting, cinema rooms, automated blinds, integrated home security, and premium control systems.';
+        }
+
+        if (preg_match('/\blaw|attorney|legal\b/', $combined) === 1) {
+            return 'Legal services business. Content should focus on legal expertise, practice areas, client trust, and consultation outcomes.';
+        }
+
+        if (preg_match('/\bclinic|medical|health|doctor\b/', $combined) === 1) {
+            return 'Healthcare business. Content should focus on patient outcomes, services, specialist care, and trust signals.';
+        }
+
+        if (preg_match('/\brestaurant|cafe|dining|menu\b/', $combined) === 1) {
+            return 'Hospitality business. Content should focus on dining experience, signature offerings, ambience, and booking/contact paths.';
+        }
+
+        return $title !== ''
+            ? ('Business context inferred from source site: ' . $title . '. Keep messaging domain-specific and avoid generic agency filler.')
+            : 'Business context inferred from source site. Keep messaging domain-specific and avoid generic agency filler.';
+    }
+
+    /**
+     * Normalize a media URL for deduplication: lowercase scheme+host, collapse slashes, strip query.
+     */
+    private function canonicalMediaKey(string $url): string
+    {
+        $url = trim($url);
+        if ($url === '') {
+            return '';
+        }
+
+        $parts = parse_url($url);
+        if (!is_array($parts)) {
+            return strtolower($url);
+        }
+
+        $scheme = strtolower((string) ($parts['scheme'] ?? 'https'));
+        $host = strtolower((string) ($parts['host'] ?? ''));
+        $path = (string) ($parts['path'] ?? '');
+        $path = preg_replace('#/+#', '/', $path) ?? $path;
+
+        if ($host === '' || $path === '') {
+            return strtolower($url);
+        }
+
+        return $scheme . '://' . $host . $path;
+    }
+
+    /**
+     * @param array<string,string> $mediaMapping
+     * @return array<string,array<int,string>>
+     */
+    private function buildPageMediaHints(array $analysis, array $mediaMapping): array
+    {
+        $hints = [];
+        $pages = $analysis['pages'] ?? [];
+        if (!is_array($pages)) {
+            return $hints;
+        }
+
+        foreach ($pages as $page) {
+            if (!is_array($page)) {
+                continue;
+            }
+
+            $title = trim((string) ($page['title'] ?? ''));
+            $url = trim((string) ($page['url'] ?? ''));
+            $slug = trim((string) (parse_url($url, PHP_URL_PATH) ?? ''));
+            $slug = trim($slug, '/');
+
+            $key = $slug !== '' ? strtolower($slug) : strtolower($title);
+            if ($key === '') {
+                continue;
+            }
+
+            $pool = [];
+            foreach ((array) ($page['images'] ?? []) as $imgUrl) {
+                if (!is_string($imgUrl) || trim($imgUrl) === '') {
+                    continue;
+                }
+
+                $imgUrl = trim($imgUrl);
+                $internal = $mediaMapping[$imgUrl] ?? null;
+                if (!is_string($internal) || trim($internal) === '') {
+                    $canonical = $this->canonicalMediaKey($imgUrl);
+                    if ($canonical !== '') {
+                        foreach ($mediaMapping as $external => $mapped) {
+                            if ($this->canonicalMediaKey((string) $external) === $canonical) {
+                                $internal = (string) $mapped;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (is_string($internal) && trim($internal) !== '' && !in_array($internal, $pool, true)) {
+                    $candidate = trim($internal);
+                    if ($this->isLikelyLogoMediaUrl($candidate)) {
+                        continue;
+                    }
+                    $pool[] = $candidate;
+                }
+            }
+
+            if (!empty($pool)) {
+                $hints[$key] = array_slice($pool, 0, 8);
+            }
+        }
+
+        return $hints;
+    }
+
+    /**
+     * Detect whether a media URL is likely a logo/brand asset that should be
+     * excluded from body content sections (logos belong only in nav/footer).
+     */
+    private function isLikelyLogoMediaUrl(string $url): bool
+    {
+        $needle = strtolower(trim($url));
+        if ($needle === '') {
+            return false;
+        }
+
+        return str_contains($needle, 'logo')
+            || str_contains($needle, 'brand')
+            || str_contains($needle, 'smarthomearchitects_footer_logo')
+            || str_contains($needle, '/header-')
+            || str_contains($needle, '/footer-');
     }
 }

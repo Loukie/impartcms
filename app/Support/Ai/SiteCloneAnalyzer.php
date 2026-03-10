@@ -61,7 +61,7 @@ class SiteCloneAnalyzer
         // Extract design elements
         $colors = $this->extractColors($crawler, $url);
         $fonts = $this->extractFonts($crawler);
-        $images = $this->extractImages($crawler, $url);
+        $images = $this->extractImages($crawler, $url, $pages);
         $videos = $this->extractVideos($crawler, $url);
 
         return [
@@ -216,6 +216,7 @@ class SiteCloneAnalyzer
                     $description = $this->extractMetaDescription($pageCrawler);
                     $headings = $this->extractHeadings($pageCrawler);
                     $contentSample = $this->extractContentSample($pageCrawler);
+                    $pageImages = $this->extractImageUrlsFromCrawler($pageCrawler, $absoluteUrl, 16);
 
                     $pages[$absoluteUrl] = [
                         'url' => $absoluteUrl,
@@ -223,6 +224,7 @@ class SiteCloneAnalyzer
                         'description' => $description,
                         'headings' => $headings,
                         'content_sample' => $contentSample,
+                        'images' => $pageImages,
                     ];
                 } catch (\Throwable $e) {
                     // Skip pages that fail to fetch
@@ -442,7 +444,7 @@ class SiteCloneAnalyzer
         return array_slice(array_values($fonts), 0, 3);
     }
 
-    private function extractImages(Crawler $crawler, string $baseUrl): array
+    private function extractImages(Crawler $crawler, string $baseUrl, array $pages = []): array
     {
         $images = [
             'logo' => null,
@@ -476,30 +478,45 @@ class SiteCloneAnalyzer
                 }
             }
 
-            // Extract hero/banner images (large images, backgrounds, first slider images)
-            $heroCount = 0;
-            $crawler->filterXPath('//header//img | //section[1]//img | //*[contains(@class, "hero")]//img | //*[contains(@class, "banner")]//img | //*[contains(@class, "slider")]//img')->each(function (Crawler $node) use (&$images, $baseUrl, &$heroCount) {
-                if ($heroCount >= 10) return;
-                $src = $node->attr('src');
-                if ($src && !in_array($this->resolveUrl($src, $baseUrl), $images['hero'])) {
-                    $images['hero'][] = $this->resolveUrl($src, $baseUrl);
-                    $heroCount++;
+            // Extract homepage hero/content candidates first.
+            $homeCandidates = $this->extractImageUrlsFromCrawler($crawler, $baseUrl, 40);
+            foreach ($homeCandidates as $idx => $url) {
+                if ($idx < 10) {
+                    $images['hero'][] = $url;
+                } else {
+                    $images['content'][] = $url;
                 }
-            });
+            }
 
-            // Extract content images (increased limit for better coverage)
-            $contentCount = 0;
-            $crawler->filterXPath('//main//img | //article//img | //*[@id="content"]//img | //section//img')->each(function (Crawler $node) use (&$images, $baseUrl, &$contentCount) {
-                if ($contentCount >= 30) return;
-                $src = $node->attr('src');
-                if ($src) {
-                    $resolvedUrl = $this->resolveUrl($src, $baseUrl);
-                    if (!in_array($resolvedUrl, $images['content']) && !in_array($resolvedUrl, $images['hero'])) {
-                        $images['content'][] = $resolvedUrl;
-                        $contentCount++;
+            // Merge image candidates discovered from fetched inner pages.
+            foreach ($pages as $page) {
+                if (!is_array($page)) {
+                    continue;
+                }
+
+                $pageImages = $page['images'] ?? [];
+                if (!is_array($pageImages)) {
+                    continue;
+                }
+
+                foreach ($pageImages as $idx => $url) {
+                    if (!is_string($url) || trim($url) === '') {
+                        continue;
+                    }
+
+                    $url = trim($url);
+                    if ($idx < 2) {
+                        if (!in_array($url, $images['hero'], true)) {
+                            $images['hero'][] = $url;
+                        }
+                    } elseif (!in_array($url, $images['content'], true) && !in_array($url, $images['hero'], true)) {
+                        $images['content'][] = $url;
                     }
                 }
-            });
+            }
+
+            $images['hero'] = array_slice(array_values(array_unique($images['hero'])), 0, 20);
+            $images['content'] = array_slice(array_values(array_unique($images['content'])), 0, 80);
 
             // Extract icons (SVG, small images with "icon" in class/src)
             $iconCount = 0;
@@ -525,6 +542,213 @@ class SiteCloneAnalyzer
         }
 
         return $images;
+    }
+
+    /**
+     * Extract image URLs from a DOM crawler, supporting standard <img> tags,
+     * lazy-load attributes (data-src, data-lazy-src, data-bg, data-bgset, data-background-image),
+     * srcset/data-srcset, inline style background-image, OG/Twitter meta images,
+     * inline <style> blocks, and external CSS stylesheet url() references.
+     *
+     * @return array<int,string> Resolved absolute image URLs (deduplicated)
+     */
+    private function extractImageUrlsFromCrawler(Crawler $crawler, string $baseUrl, int $limit = 24): array
+    {
+        $found = [];
+
+        // Prefer canonical social images when present.
+        try {
+            $crawler->filterXPath('//meta[@property="og:image" or @name="og:image" or @name="twitter:image" or @property="twitter:image"]')->each(function (Crawler $node) use (&$found, $baseUrl, $limit) {
+                if (count($found) >= $limit) {
+                    return;
+                }
+
+                $content = trim((string) ($node->attr('content') ?? ''));
+                if ($content === '' || str_starts_with(strtolower($content), 'data:')) {
+                    return;
+                }
+
+                $resolved = $this->resolveUrl($content, $baseUrl);
+                if ($resolved !== '' && !in_array($resolved, $found, true)) {
+                    $found[] = $resolved;
+                }
+            });
+        } catch (\Throwable $e) {
+            // Continue
+        }
+
+        try {
+            $crawler->filterXPath('//img | //*[@data-src] | //*[@data-lazy-src] | //*[@srcset] | //*[@style]')->each(function (Crawler $node) use (&$found, $baseUrl, $limit) {
+                if (count($found) >= $limit) {
+                    return;
+                }
+
+                $candidates = [];
+
+                $candidates[] = (string) ($node->attr('src') ?? '');
+                $candidates[] = (string) ($node->attr('data-src') ?? '');
+                $candidates[] = (string) ($node->attr('data-lazy-src') ?? '');
+                $candidates[] = (string) ($node->attr('data-bg') ?? '');
+                $candidates[] = $this->extractFirstFromSrcSet((string) ($node->attr('data-bgset') ?? ''));
+                $candidates[] = (string) ($node->attr('data-background-image') ?? '');
+                $candidates[] = (string) ($node->attr('data-background') ?? '');
+                $candidates[] = $this->extractFirstFromSrcSet((string) ($node->attr('srcset') ?? ''));
+                $candidates[] = $this->extractFirstFromSrcSet((string) ($node->attr('data-srcset') ?? ''));
+                $candidates[] = $this->extractBackgroundImageUrl((string) ($node->attr('style') ?? ''));
+
+                foreach ($candidates as $candidate) {
+                    $candidate = trim((string) $candidate);
+                    if ($candidate === '' || str_starts_with(strtolower($candidate), 'data:')) {
+                        continue;
+                    }
+
+                    $resolved = $this->resolveUrl($candidate, $baseUrl);
+                    if ($resolved !== '' && !in_array($resolved, $found, true)) {
+                        $found[] = $resolved;
+                    }
+
+                    if (count($found) >= $limit) {
+                        break;
+                    }
+                }
+            });
+        } catch (\Throwable $e) {
+            // Continue
+        }
+
+        // Parse inline <style> blocks for background-image URLs.
+        try {
+            $crawler->filterXPath('//style')->each(function (Crawler $node) use (&$found, $baseUrl, $limit) {
+                if (count($found) >= $limit) {
+                    return;
+                }
+
+                $css = (string) $node->text();
+                $this->appendImageUrlsFromCss($css, $baseUrl, $found, $limit);
+            });
+        } catch (\Throwable $e) {
+            // Continue
+        }
+
+        // Parse external stylesheet files for background-image URLs.
+        try {
+            $crawler->filterXPath('//link[@rel="stylesheet" and @href]')->each(function (Crawler $node) use (&$found, $baseUrl, $limit) {
+                if (count($found) >= $limit) {
+                    return;
+                }
+
+                $href = trim((string) ($node->attr('href') ?? ''));
+                if ($href === '') {
+                    return;
+                }
+
+                $cssUrl = $this->resolveUrl($href, $baseUrl);
+                if ($cssUrl === '') {
+                    return;
+                }
+
+                try {
+                    $response = Http::timeout(12)
+                        ->withoutVerifying()
+                        ->get($cssUrl);
+
+                    if ($response->successful()) {
+                        $css = (string) $response->body();
+                        $this->appendImageUrlsFromCss($css, $cssUrl, $found, $limit);
+                    }
+                } catch (\Throwable $e) {
+                    // Continue
+                }
+            });
+        } catch (\Throwable $e) {
+            // Continue
+        }
+
+        return array_values($found);
+    }
+
+    /**
+     * Parse CSS text for url() references that look like images and append them to the found array.
+     *
+     * @param array<int,string> $found Collected image URLs (modified by reference)
+     */
+    private function appendImageUrlsFromCss(string $css, string $baseUrl, array &$found, int $limit): void
+    {
+        if (trim($css) === '' || count($found) >= $limit) {
+            return;
+        }
+
+        $hitCount = preg_match_all('/url\((?:["\']?)([^"\')]+)(?:["\']?)\)/i', $css, $matches);
+        if ($hitCount === false || $hitCount <= 0 || empty($matches[1])) {
+            return;
+        }
+
+        foreach ((array) ($matches[1] ?? []) as $rawUrl) {
+            if (count($found) >= $limit) {
+                break;
+            }
+
+            $rawUrl = trim((string) $rawUrl);
+            if ($rawUrl === '' || str_starts_with(strtolower($rawUrl), 'data:')) {
+                continue;
+            }
+
+            $resolved = $this->resolveUrl($rawUrl, $baseUrl);
+            if ($resolved === '' || !$this->looksLikeImageUrl($resolved)) {
+                continue;
+            }
+
+            if (!in_array($resolved, $found, true)) {
+                $found[] = $resolved;
+            }
+        }
+    }
+
+    private function looksLikeImageUrl(string $url): bool
+    {
+        $path = strtolower((string) (parse_url($url, PHP_URL_PATH) ?? ''));
+        if ($path === '') {
+            return false;
+        }
+
+        return (bool) preg_match('/\.(jpe?g|png|webp|avif|gif|svg)$/i', $path);
+    }
+
+    private function extractFirstFromSrcSet(string $srcset): string
+    {
+        $srcset = trim($srcset);
+        if ($srcset === '') {
+            return '';
+        }
+
+        $parts = explode(',', $srcset);
+        foreach ($parts as $part) {
+            $segment = trim($part);
+            if ($segment === '') {
+                continue;
+            }
+
+            $tokens = preg_split('/\s+/', $segment);
+            if (is_array($tokens) && !empty($tokens[0])) {
+                return trim((string) $tokens[0]);
+            }
+        }
+
+        return '';
+    }
+
+    private function extractBackgroundImageUrl(string $style): string
+    {
+        $style = trim($style);
+        if ($style === '') {
+            return '';
+        }
+
+        if (preg_match('/url\((?:["\']?)([^"\')]+)(?:["\']?)\)/i', $style, $matches) === 1) {
+            return trim((string) ($matches[1] ?? ''));
+        }
+
+        return '';
     }
 
     private function extractVideos(Crawler $crawler, string $baseUrl): array

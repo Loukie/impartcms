@@ -17,6 +17,7 @@ class AiPageGenerator
      * - style_mode: inline|classes
      * - full_document: bool
      * - design_system: array of design system (optional)
+      * - business_context: inferred business/domain context string (optional)
      */
     public function generateHtml(string $brief, array $options = []): array
     {
@@ -24,9 +25,10 @@ class AiPageGenerator
         $styleMode = (string) ($options['style_mode'] ?? 'inline'); // inline|classes
         $fullDocument = (bool) ($options['full_document'] ?? false);
         $designSystem = (array) ($options['design_system'] ?? []);
+          $businessContext = trim((string) ($options['business_context'] ?? ''));
 
-        $instructions = $this->buildInstructions($styleMode, $fullDocument, $designSystem);
-        $input = $this->buildInput($brief, $title, $styleMode, $fullDocument, $designSystem);
+          $instructions = $this->buildInstructions($styleMode, $fullDocument, $designSystem, $businessContext);
+          $input = $this->buildInput($brief, $title, $styleMode, $fullDocument, $designSystem, $businessContext);
 
         $res = $this->llm->generateText($input, $instructions);
         $raw = (string) ($res['output_text'] ?? ($res['text'] ?? ''));
@@ -40,7 +42,7 @@ class AiPageGenerator
         ];
     }
 
-    private function buildInstructions(string $styleMode, bool $fullDocument, array $designSystem = []): string
+    private function buildInstructions(string $styleMode, bool $fullDocument, array $designSystem = [], string $businessContext = ''): string
     {
         $styleMode = $styleMode === 'classes' ? 'classes' : 'inline';
 
@@ -55,7 +57,17 @@ class AiPageGenerator
             'Avoid generic starter-template patterns and repetitive section clones.',
             'Use an intentional visual concept with clear hierarchy, spacing rhythm, and contrast.',
             'Preserve brand cues from the provided design system across every section.',
+            'Avoid placeholder copy and weak one-line section descriptions.',
+            'Generate substantial content depth with domain-specific details, not generic agency filler.',
+            'Target at least 6 meaningful sections for standard pages, with substantial copy in each section.',
+            'Do not place brand/logo assets as large body images in normal content sections.',
+            'Avoid repeating the same hero/content image throughout the page unless section is explicitly a gallery.',
         ];
+
+        if ($businessContext !== '') {
+            $rules[] = 'Business domain lock: ' . $businessContext;
+            $rules[] = 'Every section and image choice must stay relevant to this business domain.';
+        }
 
         if ($fullDocument) {
             $rules[] = 'Return a FULL HTML document including <!doctype html>, <html>, <head>, and <body>. Use minimal inline CSS in a <style> tag if needed.';
@@ -93,7 +105,7 @@ class AiPageGenerator
         return implode("\n", $rules);
     }
 
-    private function buildInput(string $brief, string $title, string $styleMode, bool $fullDocument, array $designSystem = []): string
+    private function buildInput(string $brief, string $title, string $styleMode, bool $fullDocument, array $designSystem = [], string $businessContext = ''): string
     {
         $brief = trim($brief);
         $title = trim($title);
@@ -112,6 +124,11 @@ class AiPageGenerator
 
         if ($title !== '') {
             $parts[] = 'Page title: ' . $title;
+        }
+
+        if ($businessContext !== '') {
+            $parts[] = 'Business context: ' . $businessContext;
+            $parts[] = 'Critical: keep all content and media references aligned with this domain.';
         }
 
         if (!empty($designSystem)) {
@@ -136,8 +153,11 @@ class AiPageGenerator
         $parts[] = 'Content guidelines:';
         $parts[] = '- Use clear section headings.';
         $parts[] = '- Include a strong above-the-fold section.';
-        $parts[] = '- Include at least 2 supporting sections (features, benefits, FAQ, testimonials, services, etc.) when appropriate.';
+        $parts[] = '- Include at least 5 supporting sections (features, benefits, FAQ, testimonials, services, process, proof) when appropriate.';
         $parts[] = '- Include a CTA section.';
+        $parts[] = '- Expand section copy with specifics: processes, outcomes, differentiators, and practical examples.';
+        $parts[] = '- Avoid generic placeholders such as "innovation", "quality", "trusted" without concrete context.';
+        $parts[] = '- Keep section narratives distinct; avoid copy-paste repetition across sections.';
         $parts[] = '';
         $parts[] = 'LAYOUT PATTERNS - Use generously for visual richness:';
         $parts[] = '- Hero sections: use <section> with centered text, padding 60-80px, large heading with supporting text.';
@@ -156,6 +176,7 @@ class AiPageGenerator
         $parts[] = '- Line height: 1.2 for headings, 1.6 for body text for readability.';
         $parts[] = '- Buttons: use primary color, padding 12px 24px, border-radius: 4px, white text, hover effect (opacity or shadow).';
         $parts[] = '- Images: max-width 100%, height auto, border-radius: 8px, add subtle shadow if overlaid on backgrounds.';
+        $parts[] = '- Ensure image references are context-relevant for the business domain and section purpose.';
 
         if (!$fullDocument) {
             $parts[] = '';

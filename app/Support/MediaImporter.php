@@ -11,6 +11,8 @@ class MediaImporter
 {
     private string $disk = 'public';
     private ?int $userId = null;
+    /** @var array<string,MediaFile> */
+    private array $runtimeSourceCache = [];
 
     public function __construct(?int $userId = null)
     {
@@ -28,6 +30,19 @@ class MediaImporter
     public function importFromUrl(string $url, ?string $originalName = null, ?string $folder = null): ?MediaFile
     {
         try {
+            $canonicalSource = $this->canonicalizeSourceUrl($url);
+            $sourceHash = sha1($canonicalSource);
+
+            if (isset($this->runtimeSourceCache[$sourceHash])) {
+                return $this->runtimeSourceCache[$sourceHash];
+            }
+
+            $existing = $this->findExistingBySourceHash($sourceHash);
+            if ($existing instanceof MediaFile) {
+                $this->runtimeSourceCache[$sourceHash] = $existing;
+                return $existing;
+            }
+
             // Download the media file
             $response = Http::timeout(15)
                 ->withoutVerifying()
@@ -106,9 +121,11 @@ class MediaImporter
                 'height' => $height,
                 'title' => pathinfo($originalName, PATHINFO_FILENAME),
                 'alt_text' => null,
-                'caption' => 'Imported from ' . parse_url($url, PHP_URL_HOST),
+                'caption' => 'Imported from ' . parse_url($url, PHP_URL_HOST) . ' [src:' . $sourceHash . ']',
                 'created_by' => $this->userId,
             ]);
+
+            $this->runtimeSourceCache[$sourceHash] = $media;
 
             \Log::info('MediaImporter: Media imported successfully', [
                 'url' => $url,
@@ -125,6 +142,60 @@ class MediaImporter
             ]);
             return null;
         }
+    }
+
+    /**
+     * Normalize a source URL for deduplication: lowercase, strip query params, collapse slashes.
+     */
+    private function canonicalizeSourceUrl(string $url): string
+    {
+        $url = trim($url);
+        if ($url === '') {
+            return '';
+        }
+
+        $parts = parse_url($url);
+        if (!is_array($parts)) {
+            return strtolower($url);
+        }
+
+        $scheme = strtolower((string) ($parts['scheme'] ?? 'https'));
+        $host = strtolower((string) ($parts['host'] ?? ''));
+        $path = (string) ($parts['path'] ?? '');
+        $path = preg_replace('#/+#', '/', $path) ?? $path;
+
+        if ($host === '' || $path === '') {
+            return strtolower($url);
+        }
+
+        return $scheme . '://' . $host . $path;
+    }
+
+    /**
+     * Check the database for a previously imported media file with the same source hash
+     * (stored in the caption field as [src:<sha1>]).
+     */
+    private function findExistingBySourceHash(string $sourceHash): ?MediaFile
+    {
+        if ($sourceHash === '') {
+            return null;
+        }
+
+        $query = MediaFile::query()
+            ->where('caption', 'like', '%[src:' . $sourceHash . ']%')
+            ->whereNull('deleted_at')
+            ->latest('id');
+
+        if ($this->userId !== null) {
+            $query->where('created_by', $this->userId);
+        }
+
+        $existing = $query->first();
+        if ($existing instanceof MediaFile) {
+            return $existing;
+        }
+
+        return null;
     }
 
     /**

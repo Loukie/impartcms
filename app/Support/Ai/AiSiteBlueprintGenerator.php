@@ -371,6 +371,8 @@ class AiSiteBlueprintGenerator
             $pageExamples .= "\n- " . ($page['title'] ?? 'Page') . ": " . mb_substr((string) ($page['content_sample'] ?? ''), 0, 100);
         }
 
+        $pageImageContext = $this->buildPerPageImageContext($siteAnalysis);
+
         $imageInfo = '';
         if (!empty($siteAnalysis['images'])) {
             $imgs = $siteAnalysis['images'];
@@ -378,7 +380,7 @@ class AiSiteBlueprintGenerator
                 $imageInfo .= "\nLogo: " . $imgs['logo'];
             }
             if (!empty($imgs['hero'])) {
-                $imageInfo .= "\nHero images: " . implode(', ', array_slice($imgs['hero'], 0, 3));
+                $imageInfo .= "\nHero images: " . implode(', ', array_slice($imgs['hero'], 0, 8));
             }
             if (!empty($imgs['content']) && count($imgs['content']) > 0) {
                 $imageInfo .= "\nContent images available: " . count($imgs['content']) . " images";
@@ -427,12 +429,23 @@ class AiSiteBlueprintGenerator
         if ($imageInfo !== '') {
             $lines[] = '';
             $lines[] = '📸 AVAILABLE MEDIA ASSETS:' . $imageInfo;
-            $lines[] = '- USE the logo URL in the navigation/header of ALL pages';
+            $lines[] = '- The shared site navigation is injected by the system. Do NOT place the logo as a large content image in page sections.';
             $lines[] = '- USE hero images for page hero sections (full-width backgrounds)';
+            $lines[] = '- Use varied section-appropriate images; do NOT reuse the same hero image across every page unless explicitly a gallery page.';
             $lines[] = '- REFERENCE these image URLs in page briefs so they are included in generated HTML';
-            $lines[] = '- Each page brief MUST include specific image URLs like: "Use ' . ($siteAnalysis['images']['logo'] ?? 'logo.png') . ' for the header logo"';
+            $lines[] = '- Each page brief must indicate where each image is used and why it matches the section context.';
             $lines[] = '- Include hero image URLs in briefs: "Hero section with background image: [URL]"';
             $lines[] = '- The page generator will only use images that are explicitly referenced in the brief';
+        }
+
+        if ($pageImageContext !== '') {
+            $lines[] = '';
+            $lines[] = '📍 PAGE-SPECIFIC IMAGE POOLS (STRICT):';
+            $lines[] = $pageImageContext;
+            $lines[] = '- For each generated page, pick image URLs from the matching source page pool first.';
+            $lines[] = '- Do NOT use unrelated pools (example: do not use blinds imagery on cinema pages).';
+            $lines[] = '- Each non-policy page brief must include at least 2 explicit image URLs from its matching pool when available.';
+            $lines[] = '- Prefer hero backgrounds from the same source page URL group.';
         }
 
         $lines[] = '';
@@ -460,11 +473,13 @@ class AiSiteBlueprintGenerator
         $lines[] = '- Preserve all page titles and sections from the original.';
         $lines[] = '';
         $lines[] = '🚨 BRIEF REQUIREMENTS (CRITICAL - All pages need detailed briefs):';
-        $lines[] = '- EVERY page brief must be 3-5+ sentences with specific content details';
+        $lines[] = '- EVERY page brief must be detailed (target 120-220 words), with specific content details';
         $lines[] = '- NEVER create short/empty briefs like "Contact page" or "Privacy policy page"';
-        $lines[] = '- Each brief MUST include: content structure (sections), design system usage, AND specific image URLs';
+        $lines[] = '- Each brief MUST include: content structure (6-8 sections), design system usage, domain-specific messaging, AND specific image URLs';
+        $lines[] = '- For service pages (e.g., cinema rooms), image URLs MUST come from the matching service page pool where available.';
         $lines[] = '- Example GOOD brief: "Contact page with hero section using [hero image URL]. Contact form section with fields for name, email, message. Contact details section with phone [icon kind=\'fa\' value=\'fa-solid fa-phone\'], email [icon], address [icon] in a 3-column grid. Map section if possible. Use primary color ' . $primaryColor . ' for form submit button."';
         $lines[] = '- Example BAD brief: "Contact page" or "Privacy policy page" - TOO VAGUE';
+        $lines[] = '- Explicitly avoid generic filler copy; include practical details, process steps, and outcomes relevant to the business domain.';
         $lines[] = '- For Privacy/Terms pages: describe sections like "Data Collection, Cookie Policy, User Rights, Contact Info" with structured content';
         $lines[] = '- Include suggestions for using primary_color, layout, and nav_style in visual hierarchy.';
         $lines[] = '- Briefs should highlight opportunities for visual richness: hero sections with backgrounds, service cards in grids, testimonials with blockquotes, image+text sections.';
@@ -478,5 +493,90 @@ class AiSiteBlueprintGenerator
         $lines[] = 'Return ONLY valid JSON. No markdown. No backticks. Each page MUST include is_homepage field!';
 
         return implode("\n", $lines);
+    }
+
+    /**
+     * Build a text block mapping each analyzed page to its discovered image URLs.
+     * This is injected into the blueprint prompt so the AI assigns correct images per page.
+     * Falls back to keyword-matched global assets when a page has no direct images.
+     */
+    private function buildPerPageImageContext(array $siteAnalysis): string
+    {
+        $pages = $siteAnalysis['pages'] ?? [];
+        if (!is_array($pages) || empty($pages)) {
+            return '';
+        }
+
+        $globalHero = array_values(array_filter((array) (($siteAnalysis['images']['hero'] ?? [])), fn ($v) => is_string($v) && trim($v) !== ''));
+        $globalContent = array_values(array_filter((array) (($siteAnalysis['images']['content'] ?? [])), fn ($v) => is_string($v) && trim($v) !== ''));
+
+        $lines = [];
+        foreach (array_slice($pages, 0, 10) as $page) {
+            if (!is_array($page)) {
+                continue;
+            }
+
+            $title = trim((string) ($page['title'] ?? 'Page'));
+            $url = trim((string) ($page['url'] ?? ''));
+            $pool = array_values(array_filter((array) ($page['images'] ?? []), fn ($v) => is_string($v) && trim($v) !== ''));
+
+            // If page crawler returned no direct images, build a targeted fallback pool from global assets.
+            if (empty($pool)) {
+                $keywords = $this->derivePageKeywords($title, $url);
+                $global = array_slice(array_values(array_unique(array_merge($globalHero, $globalContent))), 0, 120);
+                foreach ($global as $img) {
+                    $hay = strtolower($img);
+                    foreach ($keywords as $kw) {
+                        if ($kw !== '' && str_contains($hay, $kw)) {
+                            $pool[] = $img;
+                            break;
+                        }
+                    }
+                    if (count($pool) >= 6) {
+                        break;
+                    }
+                }
+            }
+
+            if (empty($pool)) {
+                continue;
+            }
+
+            $lines[] = '- ' . ($title !== '' ? $title : 'Page')
+                . ($url !== '' ? (' (' . $url . ')') : '')
+                . ': ' . implode(', ', array_slice($pool, 0, 6));
+        }
+
+        return implode("\n", $lines);
+    }
+
+    /**
+     * Extract meaningful keywords from a page title and URL for image-pool fallback matching.
+     * Filters out common stop words and short tokens.
+     *
+     * @return array<int,string>
+     */
+    private function derivePageKeywords(string $title, string $url): array
+    {
+        $source = strtolower(trim($title . ' ' . $url));
+        $tokens = preg_split('/[^a-z0-9]+/', $source) ?: [];
+
+        $ignore = [
+            'home', 'page', 'www', 'https', 'http', 'com', 'co', 'za', 'smart', 'architects',
+            'the', 'and', 'for', 'with', 'about', 'contact', 'privacy', 'terms', 'service', 'services',
+        ];
+
+        $keywords = [];
+        foreach ($tokens as $t) {
+            $t = trim((string) $t);
+            if ($t === '' || strlen($t) < 4 || in_array($t, $ignore, true)) {
+                continue;
+            }
+            if (!in_array($t, $keywords, true)) {
+                $keywords[] = $t;
+            }
+        }
+
+        return array_slice($keywords, 0, 8);
     }
 }
