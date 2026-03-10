@@ -845,6 +845,8 @@ CSS;
         }
         if ($normTitle !== '') {
             $keys[] = $normTitle;
+            // Normalize: "smart lighting" → "smart-lighting" for matching against URL slugs
+            $keys[] = str_replace(' ', '-', $normTitle);
         }
 
         $pool = [];
@@ -860,19 +862,23 @@ CSS;
             }
         }
 
+        // Fuzzy match: normalize both sides (hyphens ↔ spaces) before substring comparison
         if (empty($pool)) {
             foreach ($pageMediaHints as $k => $urls) {
                 if (!is_string($k) || !is_array($urls)) {
                     continue;
                 }
 
-                $kNorm = strtolower(trim($k));
+                $kNorm = str_replace('-', ' ', strtolower(trim($k)));
                 if ($kNorm === '') {
                     continue;
                 }
 
-                if (($normSlug !== '' && (str_contains($normSlug, $kNorm) || str_contains($kNorm, $normSlug)))
-                    || ($normTitle !== '' && (str_contains($normTitle, $kNorm) || str_contains($kNorm, $normTitle)))) {
+                $slugNorm = $normSlug !== '' ? str_replace('-', ' ', $normSlug) : '';
+                $titleNorm = str_replace('-', ' ', $normTitle);
+
+                if (($slugNorm !== '' && (str_contains($slugNorm, $kNorm) || str_contains($kNorm, $slugNorm)))
+                    || ($titleNorm !== '' && (str_contains($titleNorm, $kNorm) || str_contains($kNorm, $titleNorm)))) {
                     $pool = array_values(array_filter($urls, fn ($v) => is_string($v) && trim($v) !== ''));
                     if (!empty($pool)) {
                         break;
@@ -887,11 +893,12 @@ CSS;
 
         $pool = array_slice(array_values(array_unique($pool)), 0, 6);
 
-        $brief .= "\n\nPage-specific media URLs (use these first for this page):\n";
+        $brief .= "\n\nPage-specific media URLs (use these EXACT URLs as src values for this page):\n";
         foreach ($pool as $idx => $url) {
             $brief .= '- Image ' . ($idx + 1) . ': ' . $url . "\n";
         }
-        $brief .= '- Use at least two of these URLs in this page (hero/background and content sections).';
+        $brief .= "- Use at least two of these URLs in this page's <img> src attributes and background-image URLs.\n";
+        $brief .= '- Do NOT invent custom image URLs — only use the URLs listed above.';
 
         return $brief;
     }

@@ -67,6 +67,7 @@ class AiPageGenerator
             'Do not place brand/logo assets as large body images in normal content sections.',
             'NEVER use the company logo image as an <img> source in body content sections — logos are handled by the navigation/footer system separately.',
             'Avoid repeating the same hero/content image throughout the page unless section is explicitly a gallery.',
+            'IMAGE URL RULE: If the brief provides page-specific media URLs, you MUST use those EXACT URLs in your <img> src attributes and background-image CSS. Do NOT invent, guess, or hallucinate image URLs — only use URLs explicitly provided in the brief.',
         ];
 
         if ($businessContext !== '') {

@@ -598,20 +598,12 @@ class AiSiteCloneAdminController extends Controller
         }
 
         $resolved = '';
-
-        // Deterministic page lock: use this page's imported media pool first.
-        if (!empty($pageMediaPool)) {
-            $pageLocked = $this->takeNextPageMediaUrl($pageMediaPool, $pageMediaCursor);
-            if ($pageLocked !== '' && !$this->isLikelyLogoMediaUrl($pageLocked)) {
-                return $pageLocked;
-            }
-        }
+        $resolvedFromImport = false;
 
         $candidate = $this->normaliseImageSourceUrl($src, $sourceUrl);
 
-        $resolvedFromImport = false;
-
-        // Try importing original (but skip if it's the logo)
+        // 1. Try importing the original URL first — this preserves the AI's contextual
+        //    image choice (e.g. a cinema image for the cinema section).
         if ($candidate !== '' && !$this->isLikelyLogoMediaUrl($candidate)) {
             $imported = $mediaImporter->importFromUrl($candidate);
             if ($imported) {
@@ -620,6 +612,14 @@ class AiSiteCloneAdminController extends Controller
                     $resolved = $importedUrl;
                     $resolvedFromImport = true;
                 }
+            }
+        }
+
+        // 2. Page-specific media pool as fallback (when original URL is not importable).
+        if ($resolved === '' && !empty($pageMediaPool)) {
+            $pageLocked = $this->takeNextPageMediaUrl($pageMediaPool, $pageMediaCursor);
+            if ($pageLocked !== '' && !$this->isLikelyLogoMediaUrl($pageLocked)) {
+                return $pageLocked;
             }
         }
 
@@ -691,6 +691,8 @@ class AiSiteCloneAdminController extends Controller
         }
         if ($title !== '') {
             $keys[] = $title;
+            // Normalize: "smart lighting" → "smart-lighting" for matching against URL slugs
+            $keys[] = str_replace(' ', '-', $title);
         }
 
         foreach ($keys as $key) {
@@ -702,6 +704,7 @@ class AiSiteCloneAdminController extends Controller
             }
         }
 
+        // Fuzzy match: normalize both sides (hyphens ↔ spaces) before substring comparison
         foreach ($pageMediaHints as $key => $pool) {
             if (!is_string($key) || !is_array($pool)) {
                 continue;
@@ -711,8 +714,13 @@ class AiSiteCloneAdminController extends Controller
                 continue;
             }
 
-            if (($slug !== '' && (str_contains($slug, $k) || str_contains($k, $slug)))
-                || ($title !== '' && (str_contains($title, $k) || str_contains($k, $title)))) {
+            // Normalize hyphens to spaces for consistent matching
+            $kNorm = str_replace('-', ' ', $k);
+            $slugNorm = $slug !== '' ? str_replace('-', ' ', $slug) : '';
+            $titleNorm = str_replace('-', ' ', $title);
+
+            if (($slugNorm !== '' && (str_contains($slugNorm, $kNorm) || str_contains($kNorm, $slugNorm)))
+                || ($titleNorm !== '' && (str_contains($titleNorm, $kNorm) || str_contains($kNorm, $titleNorm)))) {
                 $values = array_values(array_filter($pool, fn ($v) => is_string($v) && trim($v) !== ''));
                 if (!empty($values)) {
                     return array_slice(array_values(array_unique($values)), 0, 12);

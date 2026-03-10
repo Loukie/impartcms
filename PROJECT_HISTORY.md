@@ -1412,3 +1412,38 @@ AI site clone output consistently looked like generic Bootstrap/Tailwind starter
 - Logo is now tracked from analysis and excluded at every image assignment point in the pipeline.
 - Page media pools, import resolution, and contextual replacement all respect the logo exclusion.
 - Section layouts now have explicit variety requirements preventing repetitive text/image alternation.
+
+---
+
+## 2026-03-10 — Fix: Images Not Matching Their Source Pages
+
+**Problem**
+Cloned pages rarely showed the correct images from the source page they were based on. Images from unrelated pages appeared in wrong sections, or generic fallbacks were used even when the original images were available.
+
+**Root causes**
+1. **Round-robin overrode AI's contextual choice** — `resolveImageSource()` checked the page media pool FIRST (via round-robin) BEFORE trying to import the original URL. When the AI correctly referenced a cinema image for a cinema section, the round-robin replaced it with whatever was next in the pool regardless of context.
+2. **Pool key matching failed on hyphens vs spaces** — Source page keys like `"smart-lighting"` didn't match generated page titles like `"smart lighting"` because `str_contains()` treats hyphens and spaces as different characters. Pool resolution failed silently, leaving pages with no matched pool.
+3. **AI hallucinated image URLs** — The AI was told to use provided URLs but had no hard constraint. It often invented URLs like `https://images.unsplash.com/photo-xxx` instead of using the exact local URLs from the brief.
+
+**Changes**
+
+### AiSiteCloneAdminController — Image resolution reordering
+- `resolveImageSource()` now tries importing the original URL FIRST (preserving the AI's contextual image choice), and only falls back to the page media pool when import fails.
+- `resolvePageMediaPoolForPage()` now normalizes hyphens to spaces before comparison, and adds `str_replace(' ', '-', $title)` as a key candidate. Both exact and fuzzy matching now handle "smart-lighting" ↔ "smart lighting".
+
+### AiSiteBuilder — Brief media injection fix
+- `injectPageMediaHintsIntoBrief()` now uses the same hyphen/space normalization for matching.
+- Brief wording strengthened: "use these EXACT URLs as src values" and "Do NOT invent custom image URLs."
+
+### AiPageGenerator — Hard URL constraint
+- Added instruction: "If the brief provides page-specific media URLs, you MUST use those EXACT URLs. Do NOT invent, guess, or hallucinate image URLs."
+
+**Files modified**
+- `app/Http/Controllers/Admin/AiSiteCloneAdminController.php`
+- `app/Support/Ai/AiSiteBuilder.php`
+- `app/Support/Ai/AiPageGenerator.php`
+
+**Resolved** ✅
+- Original source images are now imported before pool fallback, preserving contextual relevance.
+- Page-to-pool matching works across hyphen/space variations in slugs and titles.
+- AI is explicitly instructed to use only the provided URLs, reducing hallucinated image references.
