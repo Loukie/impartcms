@@ -1195,3 +1195,49 @@ php artisan optimize:clear        # Clear caches
 - Background images in CSS are now properly handled alongside `<img>` tags.
 
 ---
+
+## 2026-03-10 - Clone Quality Controls + Multi-Client Defaults + Navigation Variation
+
+**What was done**
+- Added an AI image fallback toggle in Admin settings (`AI Agent`):
+  - `ON` = allow AI image generation during clone fallback.
+  - `OFF` = never use AI image generation in clone fallback pipeline.
+- Updated clone fallback pipeline order for missing/broken images:
+  1. Import original source image.
+  2. Try contextual replacement from Media Library (subject/business-aware scoring).
+  3. Use generated non-AI fallback asset when no match is found.
+- Added clone design defaults in Admin settings for reusable quality control:
+  - `Design mode`: `safe`, `premium`, `strict_reference`.
+  - Optional brand defaults: `primary/secondary/accent` and `global font`.
+  - Added `Enforce brand tokens globally` toggle for agency/multi-client behavior.
+- Implemented multi-client behavior:
+  - When enforcement is OFF (recommended), brand colors/font are treated as soft hints.
+  - When enforcement is ON, colors/font are hard-applied to clone design generation.
+- Replaced hardcoded canonical nav style with variant-aware nav generation:
+  - Supports style variants (`modern`, `centered`, `split`, `minimal`) based on design cues.
+  - Added active link state, brand/CTA treatment, improved responsive behavior.
+  - Enforced navigation baseline behavior:
+    - Homepage top: transparent overlay.
+    - Homepage on scroll: solid/light.
+    - Inner pages: solid/light.
+
+**Why**
+- Reduce AI image quota usage and avoid unnecessary generation costs.
+- Improve clone quality consistency without requiring long manual prompts every run.
+- Keep system suitable for multi-client site building (no forced single-brand lock by default).
+- Remove repetitive/generic header output that made clones look template-like.
+
+**Files modified**
+- `app/Http/Controllers/Admin/AiAgentSettingsController.php`
+- `resources/views/admin/settings/ai-agent.blade.php`
+- `app/Http/Controllers/Admin/AiSiteCloneAdminController.php`
+- `app/Support/Ai/FallbackImageGenerator.php`
+- `app/Support/Ai/AiPageGenerator.php`
+- `app/Support/Ai/AiSiteBuilder.php`
+
+**Resolved** ✅
+- Clone fallback can be switched between AI-enabled and non-AI via UI.
+- Missing image fallback now prefers relevant existing media before generating new assets.
+- Clone prompts now include stronger premium design contract by default.
+- Multi-client mode supported via non-enforced brand defaults.
+- Navigation output no longer forced to one generic header style.
