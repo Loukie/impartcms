@@ -171,7 +171,7 @@ class AiSiteBuilder
                     }
 
                     $quality = $this->assessPageQuality($body);
-                    if ((int) ($quality['score'] ?? 0) < 65) {
+                    if ((int) ($quality['score'] ?? 0) < 75) {
                         $qualityRetryBrief = $this->buildQualityGateRetryBrief($brief, $title, (array) ($quality['issues'] ?? []));
                         $qualityRetry = $this->pageGenerator->generateHtml($qualityRetryBrief, [
                             'title' => $title,
@@ -391,36 +391,75 @@ class AiSiteBuilder
         $issues = [];
 
         $len = strlen(trim($html));
-        if ($len < 1800) {
+        if ($len < 2500) {
             $score -= 25;
-            $issues[] = 'content too short';
+            $issues[] = 'content too short (need 2500+ chars)';
+        } elseif ($len < 4000) {
+            $score -= 10;
+            $issues[] = 'content could be deeper (target 4000+ chars)';
         }
 
         $sections = (int) preg_match_all('/<section\b/i', $html);
         if ($sections < 5) {
             $score -= 20;
-            $issues[] = 'insufficient sections';
+            $issues[] = 'insufficient sections (need 5+)';
+        } elseif ($sections < 7) {
+            $score -= 8;
+            $issues[] = 'could use more section variety (target 7+)';
         }
 
         $paragraphs = (int) preg_match_all('/<p\b/i', $html);
         if ($paragraphs < 8) {
             $score -= 15;
-            $issues[] = 'not enough explanatory copy';
+            $issues[] = 'not enough explanatory copy (need 8+ paragraphs)';
         }
 
-        if (preg_match('/\b(innovation|quality|trusted|modern solutions)\b/i', $html) === 1) {
+        if (preg_match('/\b(innovation|quality|trusted|modern solutions|cutting-edge)\b/i', $html) === 1) {
             $score -= 8;
-            $issues[] = 'generic filler language';
+            $issues[] = 'generic filler language detected';
         }
 
         // Detect generic template patterns — these indicate the AI ignored the design system
         if (str_contains($html, '#667eea') || str_contains($html, '#764ba2')) {
-            $score -= 15;
+            $score -= 20;
             $issues[] = 'uses default gradient colors instead of brand palette';
         }
-        if (substr_count(strtolower($html), '#f5f7fa') + substr_count(strtolower($html), '#f9fafb') >= 3) {
+        if (substr_count(strtolower($html), '#f5f7fa') + substr_count(strtolower($html), '#f9fafb') + substr_count(strtolower($html), '#f3f4f6') >= 2) {
+            $score -= 15;
+            $issues[] = 'uses generic gray backgrounds instead of design system colors';
+        }
+
+        // Check for CSS custom properties usage — premium output should define them
+        if (!str_contains($html, '--color-primary') && !str_contains($html, '--color-secondary')) {
             $score -= 10;
-            $issues[] = 'overuses generic gray backgrounds instead of design system colors';
+            $issues[] = 'missing CSS custom properties (design tokens not defined)';
+        }
+
+        // Check for responsive media queries
+        if (!str_contains($html, '@media')) {
+            $score -= 10;
+            $issues[] = 'no responsive media queries';
+        }
+
+        // Check for layout variety — detect repeated two-column splits
+        $twoColCount = (int) preg_match_all('/grid-template-columns\s*:\s*1fr\s+1fr\b/i', $html);
+        if ($twoColCount >= 4) {
+            $score -= 12;
+            $issues[] = 'too many identical two-column splits (' . $twoColCount . 'x) — need layout variety';
+        }
+
+        // Check for section background variety (not all same background)
+        $darkSections = (int) preg_match_all('/background(?:-color)?\s*:\s*(?:#0[0-9a-f]{5}|#1[0-9a-f]{5}|rgb\s*\(\s*[0-2]\d)/i', $html);
+        $hasBgVariety = $darkSections >= 1 && $sections >= 5;
+        if ($sections >= 5 && $darkSections === 0) {
+            $score -= 8;
+            $issues[] = 'no dark background sections — missing visual contrast';
+        }
+
+        // Check for heading font usage
+        if (!str_contains($html, 'font-family') && !str_contains($html, '--font-heading')) {
+            $score -= 5;
+            $issues[] = 'no explicit font-family declarations';
         }
 
         return [
@@ -437,13 +476,22 @@ class AiSiteBuilder
         $parts = [];
         $parts[] = $brief;
         $parts[] = '';
-        $parts[] = 'Quality-gate retry for page: ' . $title;
-        $parts[] = '- Improve weaknesses: ' . (empty($issues) ? 'overall depth and specificity' : implode(', ', $issues));
-        $parts[] = '- Expand to 6-8 sections with richer, domain-specific copy.';
-        $parts[] = '- Add concrete examples/use-cases and avoid generic marketing phrasing.';
-        $parts[] = '- Keep visuals and copy tightly aligned to the page purpose.';
-        $parts[] = '- Use the ACTUAL design system colors and visual character — do not fall back to default gradients or generic grays.';
-        $parts[] = '- Follow the hero_treatment, section_rhythm, and contrast_approach from the design system exactly.';
+        $parts[] = '⚠️ QUALITY GATE RETRY — Previous output was rejected for page: ' . $title;
+        $parts[] = '';
+        $parts[] = 'SPECIFIC FAILURES TO FIX:';
+        foreach ($issues as $issue) {
+            $parts[] = '- ❌ ' . $issue;
+        }
+        $parts[] = '';
+        $parts[] = 'REQUIREMENTS FOR THIS RETRY:';
+        $parts[] = '1. Start output with a <style> tag defining :root CSS custom properties using the design system colors.';
+        $parts[] = '2. Include responsive @media queries in the <style> tag for mobile (768px) and small mobile (480px).';
+        $parts[] = '3. Build 7-10 sections using at least 5 DIFFERENT section layout types.';
+        $parts[] = '4. Use the actual brand colors (var(--color-primary), var(--color-secondary)) — NOT generic grays or defaults.';
+        $parts[] = '5. Include dark-background sections for visual contrast variety.';
+        $parts[] = '6. Each section needs substantial copy — not one-line descriptions.';
+        $parts[] = '7. Use the heading font for all h1/h2/h3 elements.';
+        $parts[] = '8. This output must look like a premium $50k custom website — not a starter template.';
 
         return implode("\n", $parts);
     }
@@ -663,28 +711,23 @@ class AiSiteBuilder
     {
         return <<<'CSS'
 <style>
-    :root {
-        --spacing-xs: 8px;
-        --spacing-sm: 16px;
-        --spacing-md: 24px;
-        --spacing-lg: 32px;
-        --spacing-xl: 48px;
-        --spacing-2xl: 64px;
-        --border-radius: 8px;
-        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
-        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
-        --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05);
-        --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.15);
+    /* Scroll-reveal animation system */
+    .reveal {
+        opacity: 0;
+        transform: translateY(30px);
+        transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
     }
+    .reveal.visible {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    .reveal-delay-1 { transition-delay: 0.1s; }
+    .reveal-delay-2 { transition-delay: 0.2s; }
+    .reveal-delay-3 { transition-delay: 0.3s; }
 
     /* Global section styling */
     section {
         scroll-margin-top: 80px;
-    }
-
-    /* Alternating section backgrounds */
-    section:nth-child(even) {
-        background-color: #f9fafb;
     }
 
     /* Container max-width for readability */
@@ -694,57 +737,25 @@ class AiSiteBuilder
         margin-right: auto;
     }
 
-    /* Responsive grid defaults */
-    [style*="grid-template-columns"] {
-        gap: var(--spacing-lg);
-    }
-
     /* Card hover effects */
     [style*="box-shadow"] {
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
-
     [style*="box-shadow"]:hover {
-        box-shadow: var(--shadow-xl) !important;
+        box-shadow: 0 20px 25px rgba(0, 0, 0, 0.15) !important;
         transform: translateY(-4px);
     }
 
     /* Link/button hover effects */
-    a[style*="padding"][style*="background"],
-    a[style*="padding"][style*="color"] {
+    a[style*="padding"][style*="background"] {
         transition: all 0.3s ease;
     }
-
     a[style*="padding"][style*="background"]:hover {
         opacity: 0.9;
         transform: translateY(-2px);
     }
 
-    /* Typography hierarchy */
-    h1 {
-        line-height: 1.2;
-        letter-spacing: -0.02em;
-        margin-bottom: var(--spacing-md);
-    }
-
-    h2 {
-        line-height: 1.3;
-        letter-spacing: -0.01em;
-        margin-bottom: var(--spacing-md);
-    }
-
-    h3, h4, h5, h6 {
-        line-height: 1.4;
-        margin-bottom: var(--spacing-sm);
-    }
-
-    p {
-        line-height: 1.6;
-        margin-bottom: var(--spacing-md);
-        color: #4b5563;
-    }
-
-    /* Image responsiveness and styling */
+    /* Image responsiveness */
     img {
         max-width: 100% !important;
         height: auto !important;
@@ -753,8 +764,8 @@ class AiSiteBuilder
 
     /* Blockquote styling */
     blockquote {
-        margin: var(--spacing-lg) 0;
-        padding: var(--spacing-md) var(--spacing-lg);
+        margin: 32px 0;
+        padding: 24px 32px;
         border-left: 4px solid currentColor;
         background: rgba(255, 255, 255, 0.5);
         opacity: 0.85;
@@ -762,53 +773,36 @@ class AiSiteBuilder
         border-radius: 4px;
     }
 
-    /* List improvements */
-    ul, ol {
-        margin-bottom: var(--spacing-md);
-        padding-left: var(--spacing-lg);
-        line-height: 1.8;
-    }
-
-    li {
-        margin-bottom: var(--spacing-sm);
-    }
-
     /* Responsive design for mobile */
     @media (max-width: 768px) {
         section {
             padding: 40px 16px;
         }
-
-        h1 {
-            font-size: 32px;
-        }
-
-        h2 {
-            font-size: 24px;
-        }
-
+        h1 { font-size: 32px; }
+        h2 { font-size: 24px; }
         [style*="grid-template-columns"],
         [style*="grid"] {
             grid-template-columns: 1fr !important;
         }
-
-        [style*="display: grid; gap"],
-        [style*="display: flex; gap"] {
-            flex-direction: column;
-        }
-    }
-
-    /* Print styles */
-    @media print {
-        section {
-            page-break-inside: avoid;
-        }
-
-        a {
-            text-decoration: underline;
-        }
     }
 </style>
+<script>
+(function(){
+    var obs = new IntersectionObserver(function(entries){
+        entries.forEach(function(e){
+            if(e.isIntersecting){e.target.classList.add('visible');obs.unobserve(e.target);}
+        });
+    },{threshold:0.12});
+    function init(){document.querySelectorAll('.reveal').forEach(function(el){obs.observe(el);});}
+    if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',init);}else{init();}
+    // Also observe dynamically added .reveal elements
+    new MutationObserver(function(muts){
+        muts.forEach(function(m){m.addedNodes.forEach(function(n){
+            if(n.nodeType===1){if(n.classList&&n.classList.contains('reveal'))obs.observe(n);n.querySelectorAll&&n.querySelectorAll('.reveal').forEach(function(el){obs.observe(el);});}
+        });});
+    }).observe(document.body,{childList:true,subtree:true});
+})();
+</script>
 CSS;
     }
 
