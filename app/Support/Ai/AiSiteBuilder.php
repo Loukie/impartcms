@@ -210,7 +210,29 @@ class AiSiteBuilder
                         ]);
                     }
                     
-                    $page->body = $this->applyCanonicalNavigation($body, $canonicalNavHtml);
+                    // Run audit/fix on generated HTML before saving
+                    $auditContext = [
+                        'nav_logo_url' => $options['nav_logo_url'] ?? '',
+                        'allowed_colors' => array_map('strtolower', array_filter([
+                            $options['design_system']['primary_color'] ?? null,
+                            $options['design_system']['secondary_color'] ?? null,
+                            $options['design_system']['accent_color'] ?? null,
+                            $options['design_system']['background_color'] ?? null,
+                            $options['design_system']['text_color'] ?? null,
+                        ])),
+                    ];
+                    $auditor = new \App\Support\Ai\AiSiteAudit();
+                    $audited = $auditor->auditAndFix(
+                        $this->applyCanonicalNavigation($body, $canonicalNavHtml),
+                        $auditContext
+                    );
+                    $page->body = $audited['html'];
+                    foreach (($audited['issues'] ?? []) as $issue) {
+                        $warnings[] = 'Audit: ' . $issue;
+                    }
+                    foreach (($audited['fixes'] ?? []) as $fix) {
+                        $warnings[] = 'Auto-fix: ' . $fix;
+                    }
                 } catch (\Throwable $e) {
                     // We still create the page, but leave it blank so nothing breaks.
                     $page->body = '';
