@@ -153,6 +153,11 @@ If this file is incomplete or you want examples added (module.json sample, blade
 
 <!-- NOTE: Premium clone agent standards are now enforced automatically for all site generations and frontend tasks. No manual prompt additions required. -->
 
+// Strict color usage rule
+When cloning or generating a site, only use theme and site colors, gradients, and tokens that are visibly used in the reference site's UI.
+Ignore unused CSS presets or variables unless they appear in the actual design.
+Never invent or add new colors outside the reference palette.
+
 ## Reference-Lock & Quality Mandate
 - Always replicate the reference site's design language, structure, and content intent.
 - Never default to generic templates or boilerplate layouts.
