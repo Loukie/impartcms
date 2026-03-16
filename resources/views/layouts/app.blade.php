@@ -49,6 +49,11 @@
                                         {{ $header }}
                                     </div>
                                 </header>
+                            {{--
+                                This layout is managed by ImpartCMS.
+                                All navigation, logo, color, and layout rules are enforced automatically by the premium clone agent and audit system.
+                                Do not manually override nav/logo/brand structure here—see copilot-instructions.md for enforcement details.
+                            --}}
                             @endisset
 
                             <main class="mt-6">
