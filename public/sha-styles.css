@@ -104,11 +104,16 @@ ul, ol { list-style: none; }
 }
 
 /* ── Layout ── */
+/*
+    NOTE: The .container class is now forced to full width for all sites and clones.
+    This ensures every page, including Home and Smart Home, is always full width by default.
+    Do not override this unless a specific exception is required.
+*/
 .container {
-    width: 100%;
-    max-width: 1280px;
-    margin: 0 auto;
-    padding: 0 clamp(1.25rem, 4vw, 3rem);
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
 }
 
 /* ═══════════════════════════════════════

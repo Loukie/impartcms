@@ -25,7 +25,7 @@
         border-color: #2563eb;
     }
 </style>
-<div class="container mx-auto px-4 py-8">
+<div class="w-full px-4 py-8">
     <div class="max-w-4xl mx-auto">
         <h1 class="text-3xl font-bold mb-2">Clone a Website</h1>
         <p class="text-gray-600 mb-8">Fetch an existing website, analyze it, and create an improved version in your CMS with consistent styling and navigation.</p>
