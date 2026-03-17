@@ -491,22 +491,24 @@ class AiSiteCloneAdminController extends Controller
         $label = parse_url($sourceUrl, PHP_URL_HOST) ?: $sourceUrl;
 
         if (trim($navHtml) !== '') {
-            // Home nav — only shown on the homepage (full branded / overlay-centered style).
-            $homeNavIds = $homepageId !== null ? [$homepageId] : $allPageIds;
-            $homeHeader = LayoutBlock::create([
-                'type'        => 'header',
-                'name'        => 'Clone: ' . $label . ' — Home Nav',
-                'is_enabled'  => true,
-                'target_mode' => 'only',
-                'priority'    => 20,
-                'content'     => $navHtml,
-            ]);
-            $homeHeader->pages()->sync($homeNavIds);
+            $navsAreDifferent = $homepageId !== null
+                && !empty($innerPageIds)
+                && trim($innerNavHtml) !== ''
+                && $innerNavHtml !== $navHtml;
 
-            // Site nav — compact modern top-bar for all inner pages.
-            // Only create it if the inner-page variant differs from the home nav
-            // (i.e. when we actually have a homepage to distinguish from).
-            if ($homepageId !== null && !empty($innerPageIds) && trim($innerNavHtml) !== '') {
+            if ($navsAreDifferent) {
+                // Home nav — full branded style (overlay-centered etc.), homepage only.
+                $homeHeader = LayoutBlock::create([
+                    'type'        => 'header',
+                    'name'        => 'Clone: ' . $label . ' — Home Nav',
+                    'is_enabled'  => true,
+                    'target_mode' => 'only',
+                    'priority'    => 20,
+                    'content'     => $navHtml,
+                ]);
+                $homeHeader->pages()->sync([$homepageId]);
+
+                // Site nav — compact modern top-bar for all inner pages.
                 $siteHeader = LayoutBlock::create([
                     'type'        => 'header',
                     'name'        => 'Clone: ' . $label . ' — Site Nav',
@@ -516,6 +518,17 @@ class AiSiteCloneAdminController extends Controller
                     'content'     => $innerNavHtml,
                 ]);
                 $siteHeader->pages()->sync($innerPageIds);
+            } else {
+                // Nav is the same for all pages — one block covers everything.
+                $header = LayoutBlock::create([
+                    'type'        => 'header',
+                    'name'        => 'Clone: ' . $label,
+                    'is_enabled'  => true,
+                    'target_mode' => 'only',
+                    'priority'    => 10,
+                    'content'     => $navHtml,
+                ]);
+                $header->pages()->sync($allPageIds);
             }
 
             Setting::set('layout_header_enabled', '1');
