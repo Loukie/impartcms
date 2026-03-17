@@ -144,7 +144,7 @@ class AiSiteBlueprintGenerator
         $lines[] = '';
         $lines[] = 'Rules:';
         $lines[] = '⚠️  CRITICAL: EVERY page MUST have is_homepage field (true or false).';
-        $lines[] = '- Exactly one page must have is_homepage=true.';
+        $lines[] = '- The FIRST page in the "pages" array MUST be the Home / Landing page with is_homepage=true.';
         $lines[] = '- All other pages must have is_homepage=false.';
         $lines[] = '- Provide a concise tagline.';
         $lines[] = '- Each brief must include an outline of sections (Hero, Benefits, Social proof, FAQ if relevant, CTA).';
@@ -196,7 +196,7 @@ class AiSiteBlueprintGenerator
         return $decoded;
     }
 
-    private function validateBlueprint(array $bp, string $preset): void
+    private function validateBlueprint(array &$bp, string $preset): void
     {
         if (!isset($bp['site']) || !is_array($bp['site'])) {
             throw new \RuntimeException('Blueprint is missing "site".');
@@ -213,9 +213,6 @@ class AiSiteBlueprintGenerator
             throw new \RuntimeException('Blueprint has too many pages (max 20).');
         }
 
-        $homepageCount = 0;
-        $homepagePageIndex = 0;
-        
         foreach ($pages as $idx => $p) {
             if (!is_array($p)) {
                 throw new \RuntimeException('Blueprint pages must be objects.');
@@ -226,34 +223,38 @@ class AiSiteBlueprintGenerator
             if (!array_key_exists('brief', $p) || trim((string) ($p['brief'] ?? '')) === '') {
                 throw new \RuntimeException('A page is missing a brief.');
             }
-            
-            // Auto-fix missing is_homepage field
             if (!array_key_exists('is_homepage', $p)) {
-                $pages[$idx]['is_homepage'] = false;  // Default to false, will set first to true below
-            }
-            
-            if ((bool) $pages[$idx]['is_homepage']) {
-                $homepageCount++;
-                $homepagePageIndex = $idx;
+                $pages[$idx]['is_homepage'] = false;
             }
         }
-        
-        // If no homepage was marked, mark the first page as homepage
-        if ($homepageCount === 0) {
+
+        // Find which page the AI marked as homepage (first match wins).
+        $homepageIdx = null;
+        foreach ($pages as $idx => $p) {
+            if ((bool) ($p['is_homepage'] ?? false)) {
+                $homepageIdx = $idx;
+                break;
+            }
+        }
+
+        // If the homepage is not the first page, move it to position 0.
+        // The landing/home page must always be first in the blueprint.
+        if ($homepageIdx === null) {
+            // No page was marked — default the first page.
             $pages[0]['is_homepage'] = true;
-        } elseif ($homepageCount > 1) {
-            // If multiple marked as homepage, only keep first one
-            $found = false;
-            foreach ($pages as $idx => $p) {
-                if ((bool) $p['is_homepage']) {
-                    if (!$found) {
-                        $found = true;
-                    } else {
-                        $pages[$idx]['is_homepage'] = false;
-                    }
-                }
-            }
+        } elseif ($homepageIdx !== 0) {
+            // Homepage is buried — pull it to the front.
+            $homePage = $pages[$homepageIdx];
+            unset($pages[$homepageIdx]);
+            array_unshift($pages, $homePage);
         }
+
+        // Enforce: exactly the first page is the homepage, all others are not.
+        foreach ($pages as $idx => $p) {
+            $pages[$idx]['is_homepage'] = ($idx === 0);
+        }
+
+        $bp['pages'] = array_values($pages);
     }
 
     private function normaliseSlug(string $slug): string
@@ -467,7 +468,7 @@ class AiSiteBlueprintGenerator
         $lines[] = '';
         $lines[] = 'Rules:';
         $lines[] = '⚠️  CRITICAL: EVERY page MUST have is_homepage field (true or false).';
-        $lines[] = '- Exactly one page must have is_homepage=true (usually the Home page).';
+        $lines[] = '- The FIRST page in the "pages" array MUST be the Home / Landing page with is_homepage=true.';
         $lines[] = '- All other pages must have is_homepage=false.';
         $lines[] = '- Maintain the original site structure and navigation.';
         $lines[] = '- Preserve all page titles and sections from the original.';

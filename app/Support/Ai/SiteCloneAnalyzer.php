@@ -58,6 +58,28 @@ class SiteCloneAnalyzer
         // Extract page list (from links)
         $pages = $this->extractPages($crawler, $url, array_slice($navLinks, 0, $maxPages));
 
+        // Always ensure the homepage is included as the first page.
+        // WordPress and many other sites rely on the logo (not a text nav link) to return home,
+        // so the homepage URL never appears as a crawlable link and gets skipped.
+        $normalizedBase = rtrim($url, '/');
+        $homepageIncluded = false;
+        foreach ($pages as $page) {
+            if (rtrim($page['url'] ?? '', '/') === $normalizedBase) {
+                $homepageIncluded = true;
+                break;
+            }
+        }
+        if (!$homepageIncluded) {
+            array_unshift($pages, [
+                'url'            => $url,
+                'title'          => $siteTitle ?: 'Home',
+                'description'    => $this->extractMetaDescription($crawler),
+                'headings'       => $this->extractHeadings($crawler),
+                'content_sample' => $this->extractContentSample($crawler),
+                'images'         => $this->extractImageUrlsFromCrawler($crawler, $url, 16),
+            ]);
+        }
+
         // Extract design elements
         $colors = $this->extractColors($crawler, $url);
         $fonts = $this->extractFonts($crawler);
