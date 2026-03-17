@@ -98,8 +98,11 @@ function initEditor(textarea) {
     wrapper.appendChild(toolbar);
     textarea.parentNode.insertBefore(wrapper, textarea);
     textarea.style.display = 'none';
+    // Expose the view so external scripts can push content in (e.g. mode-switch seeding).
+    // Usage: textarea._cmView.dispatch({ changes: { from:0, to: doc.length, insert: text } })
+    let view;
 
-    const view = new EditorView({
+    view = new EditorView({
         state: EditorState.create({
             doc: textarea.value,
             extensions: [
@@ -118,6 +121,8 @@ function initEditor(textarea) {
         }),
         parent: wrapper,
     });
+
+    textarea._cmView = view;
 
     // Track the active mode so the format button uses the right formatter
     // (important for snippets where the language can change at runtime).

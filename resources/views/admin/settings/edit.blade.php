@@ -384,9 +384,16 @@
                     const existing = htmlArea.value.trim();
                     if (plain !== '' && existing === '') {
                         const seeded = '<p>' + plain + '</p>';
-                        htmlArea.value = seeded;
-                        // Notify CodeMirror of the new value so the editor reflects it.
-                        htmlArea.dispatchEvent(new Event('input', { bubbles: true }));
+                        // Push into CodeMirror editor if it has been initialised,
+                        // otherwise fall back to updating the raw textarea value.
+                        const cmView = htmlArea._cmView;
+                        if (cmView) {
+                            cmView.dispatch({
+                                changes: { from: 0, to: cmView.state.doc.length, insert: seeded },
+                            });
+                        } else {
+                            htmlArea.value = seeded;
+                        }
                     }
                 }
             }
