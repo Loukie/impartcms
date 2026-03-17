@@ -10,10 +10,12 @@
 #cms-admin-bar a:hover,#cms-admin-bar a:focus{color:#fff;background:rgba(255,255,255,.08);outline:none;}
 #cms-admin-bar .ab-brand{font-weight:600;color:#fff;border-right:1px solid rgba(255,255,255,.12);margin-right:2px;}
 #cms-admin-bar .ab-sep{display:inline-block;width:1px;height:14px;background:rgba(255,255,255,.15);margin:0 2px;align-self:center;}
+/* Expose admin bar height as a CSS variable so stacking bars can reference it */
+:root{--admin-bar-h:32px;}
 /* Shift page content down — same pattern WordPress uses */
 html{margin-top:32px !important;}
-/* Push notice bar below the admin bar when both are present */
-#site-notice-bar{top:32px !important;}
+/* Push AI-generated fixed nav and notice bar below the admin bar */
+.ai-shared-nav{top:calc(var(--admin-bar-h,0px) + var(--notice-bar-h,0px)) !important;}
 </style>
 
 <div id="cms-admin-bar" role="navigation" aria-label="CMS Admin Bar">

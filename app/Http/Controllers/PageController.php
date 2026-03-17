@@ -136,8 +136,9 @@ class PageController extends Controller
         $editUrl  = e(route('admin.pages.edit', $page->id));
 
         $style = '<style>'
+            . ':root{--admin-bar-h:32px;}'
             . 'html{margin-top:32px !important;}'
-            . '#site-notice-bar{top:32px !important;}'
+            . '.ai-shared-nav{top:calc(var(--admin-bar-h,0px) + var(--notice-bar-h,0px)) !important;}'
             . '#cms-admin-bar{position:fixed;top:0;left:0;right:0;z-index:9999999;background:#1d2327;color:#c3c4c7;height:32px;display:flex;align-items:center;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:13px;line-height:1;box-shadow:0 1px 3px rgba(0,0,0,.5);}'
             . '#cms-admin-bar a{color:#c3c4c7;text-decoration:none;display:inline-flex;align-items:center;gap:5px;height:32px;padding:0 10px;transition:color .1s,background .1s;white-space:nowrap;}'
             . '#cms-admin-bar a:hover{color:#fff;background:rgba(255,255,255,.08);}'
@@ -227,7 +228,7 @@ class PageController extends Controller
             }
             $noticeTextColour = $this->pickReadableTextColour($noticeBgColour);
 
-            $noticeHeadCss = "\n<style>\n:root{--notice-bar-h:" . $noticeHeight . "px;}\nbody{padding-top:var(--notice-bar-h);}\n#site-notice-bar{position:fixed;top:0;left:0;right:0;z-index:999999;background:" . $noticeBgColour . ";color:" . $noticeTextColour . ";min-height:" . $noticeHeight . "px;padding:10px 14px;font-size:14px;line-height:1.2;display:flex;align-items:center;justify-content:center;transition:opacity .25s ease,transform .25s ease;}\n#site-notice-bar a{color:inherit;}\n#site-notice-bar.notice-hidden{opacity:0;transform:translateY(-100%);pointer-events:none;}\n</style>\n";
+            $noticeHeadCss = "\n<style>\n:root{--notice-bar-h:" . $noticeHeight . "px;}\nbody{padding-top:var(--notice-bar-h);}\n#site-notice-bar{position:fixed;top:calc(var(--admin-bar-h,0px));left:0;right:0;z-index:999999;background:" . $noticeBgColour . ";color:" . $noticeTextColour . ";min-height:" . $noticeHeight . "px;padding:10px 14px;font-size:14px;line-height:1.2;display:flex;align-items:center;justify-content:center;transition:opacity .25s ease,transform .25s ease;}\n#site-notice-bar a{color:inherit;}\n#site-notice-bar.notice-hidden{opacity:0;transform:translateY(-100%);pointer-events:none;}\n.ai-shared-nav{top:calc(var(--admin-bar-h,0px) + var(--notice-bar-h,0px)) !important;}\n</style>\n";
 
             $noticeMarkup = "\n<div id=\"site-notice-bar\"><div style=\"max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;\">" . $noticeContent . "</div></div>\n";
 

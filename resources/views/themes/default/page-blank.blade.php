@@ -153,8 +153,10 @@
                 --notice-bar-fg: {{ $noticeTextColour }};
             }
             body{padding-top:var(--notice-bar-h);}
+            /* Push AI-generated fixed nav below the notice bar */
+            .ai-shared-nav{top:calc(var(--admin-bar-h,0px) + var(--notice-bar-h,0px)) !important;}
             #site-notice-bar{
-                position:fixed;top:0;left:0;right:0;z-index:999999;
+                position:fixed;top:calc(var(--admin-bar-h,0px));left:0;right:0;z-index:999999;
                 background:var(--notice-bar-bg);
                 color:var(--notice-bar-fg);
                 min-height:var(--notice-bar-min-h);
