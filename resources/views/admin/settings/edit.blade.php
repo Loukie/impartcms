@@ -276,6 +276,7 @@
                         <div class="mt-4" id="notice_html_wrap">
                             <label class="block text-sm font-medium text-gray-700">Notification HTML</label>
                             <textarea name="notice_html" rows="6"
+                                      data-codemirror="html"
                                       class="mt-1 block w-full rounded-md border-gray-300 font-mono text-sm"
                                       placeholder="Paste banner HTML here (links, spans, etc)…">{{ old('notice_html', $noticeHtml ?? '') }}</textarea>
                             @error('notice_html') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
