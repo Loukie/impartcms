@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Setting;
 use App\Models\Page;
+use App\Models\LayoutBlock;
+use App\Models\CustomSnippet;
 use App\Support\Ai\LlmClientInterface;
 use App\Support\Ai\SiteCloneAnalyzer;
 use App\Support\Ai\DesignSystemGenerator;
@@ -416,7 +418,12 @@ class AiSiteCloneAdminController extends Controller
                 'media_mapping' => $mediaMapping,
                 'page_media_hints' => $pageMediaHints,
                 'fallback_image_url' => $fallbackImageUrl,
+                'extract_layout_assets' => true,
             ]);
+
+            // Extract canonical nav, footer, and reveal CSS/JS into shared Layout Blocks and
+            // Custom Snippets so they are managed in one place (edit once, applies everywhere).
+            $this->createCloneLayoutAssets($result, $sourceUrl);
 
             // Enforce media normalization for cloned pages:
             // - keep original image if we can import it
@@ -448,6 +455,90 @@ class AiSiteCloneAdminController extends Controller
                 'error' => $e->getMessage(),
             ], 400);
         }
+    }
+
+    /**
+     * Create LayoutBlock (header/footer) and CustomSnippet (CSS/JS) records for the clone,
+     * scoped to only the cloned pages via target_mode=only.
+     * Also enables layout_header_enabled and layout_footer_enabled settings so the blocks render.
+     *
+     * @param array<string,mixed> $result buildFromBlueprintJson result with extract_layout_assets keys
+     */
+    private function createCloneLayoutAssets(array $result, string $sourceUrl): void
+    {
+        $navHtml    = (string) ($result['canonical_nav_html'] ?? '');
+        $footerHtml = (string) ($result['canonical_footer_html'] ?? '');
+        $revealCss  = (string) ($result['reveal_css'] ?? '');
+        $revealJs   = (string) ($result['reveal_js'] ?? '');
+
+        // Collect IDs of all successfully created pages.
+        $pageIds = array_values(array_filter(
+            array_column((array) ($result['pages'] ?? []), 'id'),
+            fn ($id) => is_int($id) && $id > 0,
+        ));
+
+        if (empty($pageIds)) {
+            return;
+        }
+
+        $label = parse_url($sourceUrl, PHP_URL_HOST) ?: $sourceUrl;
+
+        if (trim($navHtml) !== '') {
+            $header = LayoutBlock::create([
+                'type'        => 'header',
+                'name'        => 'Clone: ' . $label,
+                'is_enabled'  => true,
+                'target_mode' => 'only',
+                'priority'    => 10,
+                'content'     => $navHtml,
+            ]);
+            $header->pages()->sync($pageIds);
+            Setting::set('layout_header_enabled', '1');
+        }
+
+        if (trim($footerHtml) !== '') {
+            $footer = LayoutBlock::create([
+                'type'        => 'footer',
+                'name'        => 'Clone: ' . $label,
+                'is_enabled'  => true,
+                'target_mode' => 'only',
+                'priority'    => 10,
+                'content'     => $footerHtml,
+            ]);
+            $footer->pages()->sync($pageIds);
+            Setting::set('layout_footer_enabled', '1');
+        }
+
+        if (trim($revealCss) !== '') {
+            $cssSnippet = CustomSnippet::create([
+                'type'        => 'css',
+                'name'        => 'Clone: ' . $label . ' — Reveal Animations',
+                'position'    => 'head',
+                'is_enabled'  => true,
+                'target_mode' => 'only',
+                'content'     => $revealCss,
+            ]);
+            $cssSnippet->pages()->sync($pageIds);
+        }
+
+        if (trim($revealJs) !== '') {
+            $jsSnippet = CustomSnippet::create([
+                'type'        => 'script',
+                'name'        => 'Clone: ' . $label . ' — Scroll Observer',
+                'position'    => 'footer',
+                'is_enabled'  => true,
+                'target_mode' => 'only',
+                'content'     => $revealJs,
+            ]);
+            $jsSnippet->pages()->sync($pageIds);
+        }
+
+        Log::info('Clone layout assets created', [
+            'source' => $sourceUrl,
+            'page_count' => count($pageIds),
+            'has_nav' => trim($navHtml) !== '',
+            'has_footer' => trim($footerHtml) !== '',
+        ]);
     }
 
     /**

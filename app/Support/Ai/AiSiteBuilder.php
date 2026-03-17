@@ -52,11 +52,17 @@ class AiSiteBuilder
         $reportRows = [];
         $warnings = [];
 
+        $extractAssets = (bool) ($options['extract_layout_assets'] ?? false);
+
         $canonicalNavHtml = $this->buildCanonicalNavigationHtml(
             $pages,
             (array) ($options['design_system'] ?? []),
             (string) ($options['nav_logo_url'] ?? '')
         );
+
+        $canonicalFooterHtml = $extractAssets
+            ? $this->buildCanonicalFooterHtml($pages, (array) ($options['design_system'] ?? []))
+            : '';
 
         // Published homepage ID (only set if the homepage ends up published)
         $homepageId = null;
@@ -207,10 +213,12 @@ class AiSiteBuilder
                         ])),
                     ];
                     $auditor = new \App\Support\Ai\AiSiteAudit();
-                    $audited = $auditor->auditAndFix(
-                        $this->applyCanonicalNavigation($body, $canonicalNavHtml),
-                        $auditContext
-                    );
+                    // In extract mode: strip nav/footer from body (they go into LayoutBlocks).
+                    // In embed mode: inject canonical nav + global styling directly into page body.
+                    $processedBody = $extractAssets
+                        ? $this->stripNavigationAndFooter($body)
+                        : $this->applyCanonicalNavigation($body, $canonicalNavHtml);
+                    $audited = $auditor->auditAndFix($processedBody, $auditContext);
                     $page->body = $audited['html'];
                     foreach (($audited['issues'] ?? []) as $issue) {
                         $warnings[] = 'Audit: ' . $issue;
@@ -294,12 +302,21 @@ class AiSiteBuilder
             throw $e;
         }
 
-        return [
+        $result = [
             'created' => count($reportRows),
             'pages' => $reportRows,
             'homepage_id' => $homepageId,
             'warnings' => $warnings,
         ];
+
+        if ($extractAssets) {
+            $result['canonical_nav_html'] = $canonicalNavHtml;
+            $result['canonical_footer_html'] = $canonicalFooterHtml;
+            $result['reveal_css'] = $this->buildRevealCss();
+            $result['reveal_js'] = $this->buildRevealJs();
+        }
+
+        return $result;
     }
 
     private function decodeBlueprint(string $blueprintJson): array
@@ -695,7 +712,8 @@ class AiSiteBuilder
     }
 
     /**
-     * Ensure each page uses exactly one canonical nav at the top.
+     * Ensure each page uses exactly one canonical nav at the top (embed mode).
+     * In extract mode use stripNavigationAndFooter() instead.
      */
     private function applyCanonicalNavigation(string $bodyHtml, string $canonicalNavHtml): string
     {
@@ -711,19 +729,82 @@ class AiSiteBuilder
         // Remove the first existing nav block if present to avoid duplicate menu bars.
         $body = preg_replace('/<nav\\b[^>]*>.*?<\\/nav>/is', '', $body, 1) ?? $body;
 
-        // Inject global CSS for professional polish
-        $css = $this->buildGlobalStyling();
+        $css = '<style>' . "\n" . $this->buildRevealCss() . "\n" . '</style>';
+        $js  = '<script>' . "\n" . $this->buildRevealJs() . "\n" . '</script>';
 
-        return $canonicalNavHtml . "\n" . $css . "\n" . ltrim($body);
+        return $canonicalNavHtml . "\n" . $css . "\n" . $js . "\n" . ltrim($body);
     }
 
     /**
-     * Generate global CSS for professional visual polish across all cloned pages.
+     * Strip nav and footer from a page body without injecting anything.
+     * Used in extract_layout_assets mode so those elements go into LayoutBlocks instead.
      */
-    private function buildGlobalStyling(): string
+    private function stripNavigationAndFooter(string $bodyHtml): string
+    {
+        $body = trim($bodyHtml);
+        $body = preg_replace('/<nav\b[^>]*>.*?<\/nav>/is', '', $body, 1) ?? $body;
+        $body = preg_replace('/<footer\b[^>]*>.*?<\/footer>/is', '', $body, 1) ?? $body;
+        return ltrim($body);
+    }
+
+    /**
+     * Build a canonical footer block for all cloned pages.
+     */
+    private function buildCanonicalFooterHtml(array $pages, array $designSystem = []): string
+    {
+        $secondaryColor = $this->safeHexColor((string) ($designSystem['secondary_color'] ?? '#111827'), '#111827');
+        $primaryColor   = $this->safeHexColor((string) ($designSystem['primary_color'] ?? '#2563eb'), '#2563eb');
+        $mutedColor     = '#9ca3af';
+        $bodyFont       = $this->safeFontStack((string) ($designSystem['body_font'] ?? 'system-ui, sans-serif'));
+        $brandName      = trim((string) ($designSystem['brand_name'] ?? ''));
+
+        if ($brandName === '') {
+            foreach ($pages as $page) {
+                if (!is_array($page)) continue;
+                if ($page['is_homepage'] ?? false) {
+                    $brandName = trim((string) ($page['title'] ?? ''));
+                    break;
+                }
+            }
+        }
+        if ($brandName === '') $brandName = 'Brand';
+
+        $links = '';
+        $seen  = [];
+        foreach ($pages as $page) {
+            if (!is_array($page)) continue;
+            $title = trim((string) ($page['title'] ?? ''));
+            if ($title === '') continue;
+            $isHomepage = (bool) ($page['is_homepage'] ?? false);
+            $slug       = $this->normaliseSlug((string) ($page['slug'] ?? Str::slug($title)));
+            $href       = $isHomepage ? '/' : '/' . ltrim($slug, '/');
+            if (isset($seen[$href])) continue;
+            $seen[$href] = true;
+            $links .= '<a href="' . e($href) . '" style="color:' . e($mutedColor) . ';text-decoration:none;font-size:.85rem;white-space:nowrap;transition:color .2s;" onmouseover="this.style.color=\'' . e($primaryColor) . '\'" onmouseout="this.style.color=\'' . e($mutedColor) . '\'">' . e($title) . '</a>';
+        }
+
+        $year = date('Y');
+
+        return '<footer style="background:' . e($secondaryColor) . ';padding:48px 24px 32px;font-family:' . e($bodyFont) . ';">'
+            . '<div style="max-width:1200px;margin:0 auto;">'
+            . '<div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:24px;margin-bottom:32px;">'
+            . '<div style="font-size:1.1rem;font-weight:700;color:#fff;">' . e($brandName) . '</div>'
+            . '<nav style="display:flex;flex-wrap:wrap;gap:20px;align-items:center;">' . $links . '</nav>'
+            . '</div>'
+            . '<div style="border-top:1px solid rgba(255,255,255,.12);padding-top:24px;">'
+            . '<p style="color:' . e($mutedColor) . ';font-size:.8rem;margin:0;">&copy; ' . $year . ' ' . e($brandName) . '. All rights reserved.</p>'
+            . '</div>'
+            . '</div>'
+            . '</footer>';
+    }
+
+    /**
+     * CSS for scroll-reveal animations — used both in embed mode (via applyCanonicalNavigation)
+     * and returned separately in extract_layout_assets mode for a CustomSnippet.
+     */
+    private function buildRevealCss(): string
     {
         return <<<'CSS'
-<style>
     /* Scroll-reveal animation system */
     .reveal {
         opacity: 0;
@@ -798,8 +879,16 @@ class AiSiteBuilder
             grid-template-columns: 1fr !important;
         }
     }
-</style>
-<script>
+CSS;
+    }
+
+    /**
+     * JS for IntersectionObserver scroll-reveal — used both in embed mode and as a CustomSnippet
+     * in extract_layout_assets mode.
+     */
+    private function buildRevealJs(): string
+    {
+        return <<<'JS'
 (function(){
     var obs = new IntersectionObserver(function(entries){
         entries.forEach(function(e){
@@ -815,8 +904,7 @@ class AiSiteBuilder
         });});
     }).observe(document.body,{childList:true,subtree:true});
 })();
-</script>
-CSS;
+JS;
     }
 
     /**
