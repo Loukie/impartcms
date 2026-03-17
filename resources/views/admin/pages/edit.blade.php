@@ -92,6 +92,7 @@
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700">Body</label>
                                     <textarea name="body" rows="14"
+                                              data-codemirror="html"
                                               class="mt-1 block w-full rounded-md border-gray-300 focus:border-gray-500 focus:ring-gray-500">{{ old('body', $page->body) }}</textarea>
                                     <p class="mt-1 text-xs text-gray-500">
                                         Tip: embed forms with <code class="px-1 py-0.5 bg-gray-100 rounded">[form slug="contact"]</code>

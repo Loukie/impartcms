@@ -41,3 +41,14 @@ import './admin/forms-builder';
 // Admin AI helper popup (no-op unless the popup exists)
 import './admin/ai-popup';
 
+// CodeMirror — lazy-loaded only on pages that have a code editor textarea.
+function maybeLoadCodeMirror() {
+    if (!document.querySelector('textarea[data-codemirror]')) return;
+    import('./admin/codemirror-editor').then(({ initCodeMirrorEditors }) => initCodeMirrorEditors());
+}
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', maybeLoadCodeMirror);
+} else {
+    maybeLoadCodeMirror();
+}
+

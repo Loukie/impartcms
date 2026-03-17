@@ -104,8 +104,10 @@
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Code</label>
                         <textarea name="content" rows="16"
+                                  data-codemirror="{{ old('type', $snippet->type ?? 'script') }}"
+                                  data-codemirror-type-select="snippet_type"
                                   class="mt-1 block w-full rounded-md border-gray-300 font-mono text-sm"
-                                  placeholder="Paste your code here… (You can paste full <script> tags or raw JS)">{{ old('content', $snippet->content) }}</textarea>
+                                  placeholder="Paste your code here… (You can paste full &lt;script&gt; tags or raw JS)">{{ old('content', $snippet->content) }}</textarea>
                         <p class="mt-1 text-xs text-gray-500">This applies to the public site (front end). Admin pages are not affected.</p>
                     </div>
 

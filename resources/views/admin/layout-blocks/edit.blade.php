@@ -44,7 +44,7 @@
                         <div class="lg:col-span-2 space-y-6">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Content (HTML)</label>
-                                <textarea name="content" rows="16" class="mt-1 w-full rounded-md border-gray-300 font-mono text-sm" placeholder="Paste HTML here… supports shortcodes like [icon …] and [form …]">{{ old('content', $block->content) }}</textarea>
+                                <textarea name="content" rows="16" data-codemirror="html" class="mt-1 w-full rounded-md border-gray-300 font-mono text-sm" placeholder="Paste HTML here… supports shortcodes like [icon …] and [form …]">{{ old('content', $block->content) }}</textarea>
                                 <p class="mt-1 text-xs text-gray-500">Rendered on the public site. Shortcodes are supported.</p>
                             </div>
                         </div>
