@@ -192,6 +192,10 @@ class HtmlSanitiser
             return '';
         }
 
+        // Decode literal escape sequences that LLMs sometimes emit as two characters
+        // (e.g. backslash-n instead of a real newline) so they don't render as "\n" on the page.
+        $html = str_replace(['\\n', '\\r', '\\t'], ["\n", "\r", "\t"], $html);
+
         // Strip markdown code fences that LLMs sometimes wrap around HTML output.
         $html = $this->stripMarkdownFences($html);
 
