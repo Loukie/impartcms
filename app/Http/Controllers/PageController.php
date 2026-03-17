@@ -52,7 +52,7 @@ class PageController extends Controller
         // This supports “paste a full HTML file” use-cases without nesting inside a theme.
         $body = is_string($page->body ?? null) ? (string) $page->body : '';
         if ($this->isFullHtmlDocument($body)) {
-            return response($this->injectFullDocumentExtras($body, $page))
+            return response($this->injectFullDocumentExtras($body, $page, showAdminBar: true))
                 ->header('Content-Type', 'text/html; charset=UTF-8');
         }
 
@@ -74,7 +74,7 @@ class PageController extends Controller
 
         $body = is_string($pagePreview->body ?? null) ? (string) $pagePreview->body : '';
         if ($this->isFullHtmlDocument($body)) {
-            return response($this->injectFullDocumentExtras($body, $pagePreview))
+            return response($this->injectFullDocumentExtras($body, $pagePreview, showAdminBar: true))
                 ->header('Content-Type', 'text/html; charset=UTF-8')
                 ->header('X-Robots-Tag', 'noindex, nofollow');
         }
@@ -121,7 +121,45 @@ class PageController extends Controller
         return false;
     }
 
-    private function injectFullDocumentExtras(string $html, Page $page): string
+    private function buildAdminBarHtml(Page $page): string
+    {
+        if (!auth()->check()) {
+            return '';
+        }
+        /** @var \App\Models\User|null $user */
+        $user = auth()->user();
+        if (!$user || !$user->can('access-admin')) {
+            return '';
+        }
+
+        $dashUrl  = e(route('dashboard'));
+        $editUrl  = e(route('admin.pages.edit', $page->id));
+
+        $style = '<style>'
+            . 'html{margin-top:32px !important;}'
+            . '#site-notice-bar{top:32px !important;}'
+            . '#cms-admin-bar{position:fixed;top:0;left:0;right:0;z-index:9999999;background:#1d2327;color:#c3c4c7;height:32px;display:flex;align-items:center;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:13px;line-height:1;box-shadow:0 1px 3px rgba(0,0,0,.5);}'
+            . '#cms-admin-bar a{color:#c3c4c7;text-decoration:none;display:inline-flex;align-items:center;gap:5px;height:32px;padding:0 10px;transition:color .1s,background .1s;white-space:nowrap;}'
+            . '#cms-admin-bar a:hover{color:#fff;background:rgba(255,255,255,.08);}'
+            . '#cms-admin-bar .ab-brand{font-weight:600;color:#fff;border-right:1px solid rgba(255,255,255,.12);margin-right:2px;}'
+            . '#cms-admin-bar .ab-sep{display:inline-block;width:1px;height:14px;background:rgba(255,255,255,.15);margin:0 2px;align-self:center;}'
+            . '</style>';
+
+        $gridIcon  = '<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>';
+        $homeIcon  = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>';
+        $editIcon  = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
+
+        $bar = '<div id="cms-admin-bar" role="navigation" aria-label="CMS Admin Bar">'
+            . '<a href="' . $dashUrl . '" class="ab-brand">' . $gridIcon . ' ImpartCMS</a>'
+            . '<a href="' . $dashUrl . '">' . $homeIcon . ' Dashboard</a>'
+            . '<span class="ab-sep" aria-hidden="true"></span>'
+            . '<a href="' . $editUrl . '">' . $editIcon . ' Edit Page</a>'
+            . '</div>';
+
+        return $style . "\n" . $bar . "\n";
+    }
+
+    private function injectFullDocumentExtras(string $html, Page $page, bool $showAdminBar = false): string
     {
         $cms = app(Cms::class);
 
@@ -226,7 +264,8 @@ class PageController extends Controller
         }
 
         // Inject into body (right after opening <body ...>)
-        $bodyInsert = $bodyScripts . $noticeMarkup . $headerMarkup;
+        $adminBarHtml = $showAdminBar ? $this->buildAdminBarHtml($page) : '';
+        $bodyInsert = $adminBarHtml . $bodyScripts . $noticeMarkup . $headerMarkup;
         if ($bodyInsert !== '') {
             if (preg_match('/<body\b[^>]*>/i', $html, $m, PREG_OFFSET_CAPTURE)) {
                 $tag = $m[0][0];

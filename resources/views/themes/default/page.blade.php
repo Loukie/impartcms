@@ -174,6 +174,8 @@
 </head>
 
 <body style="margin:0;padding:0;font-family:system-ui;">
+    <x-frontend-admin-bar :page="$page" />
+
     {!! \App\Support\CustomSnippetRenderer::renderScripts('body', $page) !!}
 
     @if($noticeEnabled)
