@@ -368,11 +368,27 @@
             const htmlWrap = document.getElementById('notice_html_wrap');
             const linkFields = document.getElementById('notice_link_fields');
 
-            function refresh() {
+            const textArea = document.querySelector('textarea[name="notice_text"]');
+            const htmlArea = document.querySelector('textarea[name="notice_html"]');
+
+            function refresh(isUserAction) {
                 const mode = (modeEl?.value || 'text');
                 if (textWrap) textWrap.style.display = (mode === 'text') ? '' : 'none';
                 if (htmlWrap) htmlWrap.style.display = (mode === 'html') ? '' : 'none';
                 if (linkFields) linkFields.style.opacity = (mode === 'text') ? '1' : '0.5';
+
+                // When the user switches to HTML mode, seed the HTML field from
+                // the plain text field if the HTML field is still empty.
+                if (isUserAction && mode === 'html' && textArea && htmlArea) {
+                    const plain = textArea.value.trim();
+                    const existing = htmlArea.value.trim();
+                    if (plain !== '' && existing === '') {
+                        const seeded = '<p>' + plain + '</p>';
+                        htmlArea.value = seeded;
+                        // Notify CodeMirror of the new value so the editor reflects it.
+                        htmlArea.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                }
             }
 
             // Notice bar colour picker sync (picker <-> hex input)
@@ -406,8 +422,8 @@
             pickerInput?.addEventListener('input', syncFromPicker);
             syncFromText();
 
-            modeEl?.addEventListener('change', refresh);
-            refresh();
+            modeEl?.addEventListener('change', () => refresh(true));
+            refresh(false);
         })();
     </script>
 </x-admin-layout>
