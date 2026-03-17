@@ -466,33 +466,58 @@ class AiSiteCloneAdminController extends Controller
      */
     private function createCloneLayoutAssets(array $result, string $sourceUrl): void
     {
-        $navHtml    = (string) ($result['canonical_nav_html'] ?? '');
-        $footerHtml = (string) ($result['canonical_footer_html'] ?? '');
-        $revealCss  = (string) ($result['reveal_css'] ?? '');
-        $revealJs   = (string) ($result['reveal_js'] ?? '');
+        $navHtml      = (string) ($result['canonical_nav_html'] ?? '');
+        $innerNavHtml = (string) ($result['inner_nav_html'] ?? '');
+        $footerHtml   = (string) ($result['canonical_footer_html'] ?? '');
+        $revealCss    = (string) ($result['reveal_css'] ?? '');
+        $revealJs     = (string) ($result['reveal_js'] ?? '');
 
         // Collect IDs of all successfully created pages.
-        $pageIds = array_values(array_filter(
+        $allPageIds = array_values(array_filter(
             array_column((array) ($result['pages'] ?? []), 'id'),
             fn ($id) => is_int($id) && $id > 0,
         ));
 
-        if (empty($pageIds)) {
+        if (empty($allPageIds)) {
             return;
         }
+
+        // Separate homepage ID from inner-page IDs.
+        $homepageId = is_int($result['homepage_id'] ?? null) ? (int) $result['homepage_id'] : null;
+        $innerPageIds = $homepageId !== null
+            ? array_values(array_filter($allPageIds, fn ($id) => $id !== $homepageId))
+            : $allPageIds;
 
         $label = parse_url($sourceUrl, PHP_URL_HOST) ?: $sourceUrl;
 
         if (trim($navHtml) !== '') {
-            $header = LayoutBlock::create([
+            // Home nav — only shown on the homepage (full branded / overlay-centered style).
+            $homeNavIds = $homepageId !== null ? [$homepageId] : $allPageIds;
+            $homeHeader = LayoutBlock::create([
                 'type'        => 'header',
-                'name'        => 'Clone: ' . $label,
+                'name'        => 'Clone: ' . $label . ' — Home Nav',
                 'is_enabled'  => true,
                 'target_mode' => 'only',
-                'priority'    => 10,
+                'priority'    => 20,
                 'content'     => $navHtml,
             ]);
-            $header->pages()->sync($pageIds);
+            $homeHeader->pages()->sync($homeNavIds);
+
+            // Site nav — compact modern top-bar for all inner pages.
+            // Only create it if the inner-page variant differs from the home nav
+            // (i.e. when we actually have a homepage to distinguish from).
+            if ($homepageId !== null && !empty($innerPageIds) && trim($innerNavHtml) !== '') {
+                $siteHeader = LayoutBlock::create([
+                    'type'        => 'header',
+                    'name'        => 'Clone: ' . $label . ' — Site Nav',
+                    'is_enabled'  => true,
+                    'target_mode' => 'only',
+                    'priority'    => 10,
+                    'content'     => $innerNavHtml,
+                ]);
+                $siteHeader->pages()->sync($innerPageIds);
+            }
+
             Setting::set('layout_header_enabled', '1');
         }
 
@@ -505,7 +530,7 @@ class AiSiteCloneAdminController extends Controller
                 'priority'    => 10,
                 'content'     => $footerHtml,
             ]);
-            $footer->pages()->sync($pageIds);
+            $footer->pages()->sync($allPageIds);
             Setting::set('layout_footer_enabled', '1');
         }
 
@@ -518,7 +543,7 @@ class AiSiteCloneAdminController extends Controller
                 'target_mode' => 'only',
                 'content'     => $revealCss,
             ]);
-            $cssSnippet->pages()->sync($pageIds);
+            $cssSnippet->pages()->sync($allPageIds);
         }
 
         if (trim($revealJs) !== '') {
@@ -530,12 +555,12 @@ class AiSiteCloneAdminController extends Controller
                 'target_mode' => 'only',
                 'content'     => $revealJs,
             ]);
-            $jsSnippet->pages()->sync($pageIds);
+            $jsSnippet->pages()->sync($allPageIds);
         }
 
         Log::info('Clone layout assets created', [
             'source' => $sourceUrl,
-            'page_count' => count($pageIds),
+            'page_count' => count($allPageIds),
             'has_nav' => trim($navHtml) !== '',
             'has_footer' => trim($footerHtml) !== '',
         ]);

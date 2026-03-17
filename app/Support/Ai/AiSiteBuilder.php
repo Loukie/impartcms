@@ -57,8 +57,18 @@ class AiSiteBuilder
         $canonicalNavHtml = $this->buildCanonicalNavigationHtml(
             $pages,
             (array) ($options['design_system'] ?? []),
-            (string) ($options['nav_logo_url'] ?? '')
+            (string) ($options['nav_logo_url'] ?? ''),
+            true
         );
+
+        $innerNavHtml = $extractAssets
+            ? $this->buildCanonicalNavigationHtml(
+                $pages,
+                (array) ($options['design_system'] ?? []),
+                (string) ($options['nav_logo_url'] ?? ''),
+                false
+            )
+            : '';
 
         $canonicalFooterHtml = $extractAssets
             ? $this->buildCanonicalFooterHtml($pages, (array) ($options['design_system'] ?? []))
@@ -311,6 +321,7 @@ class AiSiteBuilder
 
         if ($extractAssets) {
             $result['canonical_nav_html'] = $canonicalNavHtml;
+            $result['inner_nav_html']     = $innerNavHtml;
             $result['canonical_footer_html'] = $canonicalFooterHtml;
             $result['reveal_css'] = $this->buildRevealCss();
             $result['reveal_js'] = $this->buildRevealJs();
@@ -521,9 +532,12 @@ class AiSiteBuilder
     }
 
     /**
-     * Build a single shared nav HTML block for all generated pages.
+     * Build a shared nav HTML block.
+     *
+     * @param bool $forHomepage  true → use design-system style (overlay-centered etc.)
+     *                           false → force compact modern top-bar for inner pages
      */
-    private function buildCanonicalNavigationHtml(array $pages, array $designSystem = [], string $navLogoUrl = ''): string
+    private function buildCanonicalNavigationHtml(array $pages, array $designSystem = [], string $navLogoUrl = '', bool $forHomepage = true): string
     {
         if (count($pages) === 0) {
             return '';
@@ -592,18 +606,24 @@ class AiSiteBuilder
             $ctaText = 'Get Started';
         }
 
-        $styleVariant = 'modern';
-        if (str_contains($navStyleRaw, 'center')) {
-            $styleVariant = 'centered';
-        } elseif (str_contains($navStyleRaw, 'sidebar')) {
-            $styleVariant = 'split';
-        } elseif (str_contains($layoutRaw, 'minimal')) {
-            $styleVariant = 'minimal';
-        }
-
         $navLogoUrl = trim($navLogoUrl);
-        if ($navLogoUrl !== '') {
-            $styleVariant = 'overlay-centered';
+
+        if (!$forHomepage) {
+            // Inner-page nav: always a clean compact top-bar regardless of design system style.
+            $styleVariant = 'modern';
+        } else {
+            $styleVariant = 'modern';
+            if (str_contains($navStyleRaw, 'center')) {
+                $styleVariant = 'centered';
+            } elseif (str_contains($navStyleRaw, 'sidebar')) {
+                $styleVariant = 'split';
+            } elseif (str_contains($layoutRaw, 'minimal')) {
+                $styleVariant = 'minimal';
+            }
+
+            if ($navLogoUrl !== '') {
+                $styleVariant = 'overlay-centered';
+            }
         }
 
         $links = '';
