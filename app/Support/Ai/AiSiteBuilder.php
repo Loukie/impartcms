@@ -664,7 +664,8 @@ class AiSiteBuilder
             }
             $navInner .= '<div class="ai-nav-links ai-nav-left">' . $leftLinks . '</div>' . $brand . '<div class="ai-nav-links ai-nav-right">' . $rightLinks . $cta . '</div>';
         } else {
-            $navInner .= $brand . '<div class="ai-nav-links">' . $links . '</div>' . $cta;
+            $brandOrLogo = $logo !== '' ? $logo : $brand;
+            $navInner .= $brandOrLogo . '<div class="ai-nav-links">' . $links . '</div>' . $cta;
         }
         $navInner .= '</div>';
 
@@ -703,7 +704,7 @@ class AiSiteBuilder
             . '.ai-shared-nav.inner-page .ai-nav-top{display:flex;align-items:center;gap:10px;grid-template-columns:none;}'
             . '.ai-shared-nav.inner-page .ai-nav-top-left,.ai-shared-nav.inner-page .ai-nav-top-right,.ai-shared-nav.inner-page .ai-nav-divider{display:none;}'
             . '.ai-shared-nav.inner-page .ai-nav-links-center{margin-left:10px;justify-content:flex-start;}'
-            . '.ai-shared-nav.inner-page .ai-nav-logo{max-height:46px;}'
+            . '.ai-shared-nav.inner-page .ai-nav-logo{max-height:60px;}'
             . '@media (max-width: 900px){.ai-nav-inner{padding:10px 12px;gap:10px;}.ai-nav-brand{font-size:1rem;}.ai-nav-link{font-size:.86rem;padding:6px 8px;}.ai-nav-cta{display:none;}.ai-nav-logo{max-height:60px;}}'
             . '@media (max-width: 640px){.ai-nav-links{width:100%;order:3;gap:4px;}.ai-nav-inner{align-items:flex-start;}}'
             . '</style>';
