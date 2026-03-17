@@ -314,9 +314,9 @@ class SiteCloneAnalyzer
     {
         $headings = [];
         try {
-            $crawler->filterXPath('//h1 | //h2')->slice(0, 3)->each(function (Crawler $node) use (&$headings) {
+            $crawler->filterXPath('//h1 | //h2 | //h3')->slice(0, 8)->each(function (Crawler $node) use (&$headings) {
                 $text = trim($node->text());
-                if ($text !== '' && strlen($text) < 100) {
+                if ($text !== '' && strlen($text) < 120) {
                     $headings[] = $text;
                 }
             });
@@ -336,8 +336,9 @@ class SiteCloneAnalyzer
             }
 
             $text = trim($main->text());
-            // Extract first 300 chars
-            return mb_substr($text, 0, 300) . (mb_strlen($text) > 300 ? '...' : '');
+            // Collapse excessive whitespace so we capture more meaningful content
+            $text = preg_replace('/\s{3,}/', '  ', $text) ?? $text;
+            return mb_substr($text, 0, 1500) . (mb_strlen($text) > 1500 ? '...' : '');
         } catch (\Throwable $e) {
             return '';
         }
@@ -447,14 +448,45 @@ class SiteCloneAnalyzer
     {
         $fonts = [];
 
+        // Google Fonts from <link> tags
         try {
-            // Look for Google Fonts or font-family declarations
             $crawler->filterXPath('//link[@href]')->each(function (Crawler $node) use (&$fonts) {
                 $href = (string) $node->attr('href');
                 if (str_contains($href, 'fonts.googleapis.com')) {
                     if (preg_match('/family=([^&]+)/', $href, $matches)) {
                         $fontName = urldecode($matches[1]);
-                        $fonts[] = $fontName;
+                        // Strip weight/style suffixes: "Playfair+Display:wght@400;700" → "Playfair Display"
+                        $fontName = preg_replace('/[:\|].*$/', '', $fontName) ?? $fontName;
+                        $fontName = str_replace('+', ' ', $fontName);
+                        $fontName = trim($fontName);
+                        if ($fontName !== '') {
+                            $fonts[] = $fontName;
+                        }
+                    }
+                }
+            });
+        } catch (\Throwable $e) {
+            // Continue
+        }
+
+        // font-family from inline <style> blocks
+        $genericFamilies = ['inherit', 'initial', 'unset', 'sans-serif', 'serif', 'monospace',
+            'system-ui', 'cursive', 'fantasy', 'ui-sans-serif', 'ui-serif', '-apple-system',
+            'blinkmacsystemfont', 'helvetica', 'arial', 'georgia', 'times', 'verdana'];
+        try {
+            $crawler->filterXPath('//style')->each(function (Crawler $node) use (&$fonts, $genericFamilies) {
+                $css = (string) $node->text();
+                if (preg_match_all('/font-family\s*:\s*([^;}{]+)/i', $css, $matches)) {
+                    foreach ($matches[1] as $family) {
+                        // Take the first named font from the stack
+                        $first = trim(explode(',', $family)[0]);
+                        $first = trim($first, "\"' ");
+                        $firstLow = strtolower($first);
+                        if ($first !== '' && strlen($first) < 60 &&
+                            !str_starts_with($firstLow, 'var(') &&
+                            !in_array($firstLow, $genericFamilies, true)) {
+                            $fonts[] = $first;
+                        }
                     }
                 }
             });
@@ -463,7 +495,7 @@ class SiteCloneAnalyzer
         }
 
         $fonts = array_unique($fonts);
-        return array_slice(array_values($fonts), 0, 3);
+        return array_slice(array_values($fonts), 0, 5);
     }
 
     private function extractImages(Crawler $crawler, string $baseUrl, array $pages = []): array

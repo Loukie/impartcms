@@ -92,17 +92,19 @@ class DesignSystemGenerator
         $existingFonts = implode(', ', $siteAnalysis['fonts'] ?? []) ?: 'not detected';
         $existingNav = implode(', ', array_slice($siteAnalysis['navigation'] ?? [], 0, 5));
 
-        // Build content context from analyzed pages
+        // Build content context from ALL analyzed pages (not just 4)
         $pageContext = '';
-        foreach (array_slice($siteAnalysis['pages'] ?? [], 0, 4) as $page) {
+        foreach ($siteAnalysis['pages'] ?? [] as $page) {
             if (!is_array($page)) continue;
             $pTitle = trim((string) ($page['title'] ?? ''));
-            $headings = implode(' | ', array_slice((array) ($page['headings'] ?? []), 0, 3));
+            $headings = implode(' | ', array_slice((array) ($page['headings'] ?? []), 0, 4));
             $desc = trim((string) ($page['description'] ?? ''));
+            $sample = trim((string) ($page['content_sample'] ?? ''));
             if ($pTitle !== '') {
                 $pageContext .= "\n  - " . $pTitle;
-                if ($headings !== '') $pageContext .= ' (sections: ' . $headings . ')';
-                if ($desc !== '') $pageContext .= ' — ' . mb_substr($desc, 0, 80);
+                if ($headings !== '') $pageContext .= ' [' . $headings . ']';
+                if ($desc !== '') $pageContext .= ' — ' . mb_substr($desc, 0, 100);
+                if ($sample !== '' && $desc === '') $pageContext .= ' — ' . mb_substr($sample, 0, 100);
             }
         }
 
@@ -110,13 +112,13 @@ class DesignSystemGenerator
             'Analyze this reference website and extract its FULL visual design language as a design system.',
             '',
             'Reference site: ' . $siteTitle,
-            'Colors detected on site: ' . $existingColors,
+            'Colors detected on site (most frequent first): ' . $existingColors,
             'Fonts detected on site: ' . $existingFonts,
             'Navigation items: ' . $existingNav,
         ];
 
         if ($pageContext !== '') {
-            $lines[] = 'Page structure:' . $pageContext;
+            $lines[] = 'All pages found:' . $pageContext;
         }
 
         if (trim($modification) !== '') {

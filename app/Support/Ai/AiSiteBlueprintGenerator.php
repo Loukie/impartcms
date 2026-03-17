@@ -367,9 +367,21 @@ class AiSiteBlueprintGenerator
         $layout = $designSystem['layout_pattern'] ?? 'modern';
         $navStyle = $designSystem['nav_style'] ?? 'top-bar';
 
+        // Include ALL pages with rich context so the LLM understands each page's purpose
         $pageExamples = '';
-        foreach (array_slice($siteAnalysis['pages'] ?? [], 0, 3) as $page) {
-            $pageExamples .= "\n- " . ($page['title'] ?? 'Page') . ": " . mb_substr((string) ($page['content_sample'] ?? ''), 0, 100);
+        foreach ($siteAnalysis['pages'] ?? [] as $page) {
+            if (!is_array($page)) continue;
+            $pTitle = $page['title'] ?? 'Page';
+            $pUrl   = trim((string) ($page['url'] ?? ''));
+            $pDesc  = trim((string) ($page['description'] ?? ''));
+            $pHeadings = implode(' | ', array_slice((array) ($page['headings'] ?? []), 0, 4));
+            $pSample   = mb_substr(trim((string) ($page['content_sample'] ?? '')), 0, 200);
+
+            $pageExamples .= "\n- " . $pTitle;
+            if ($pUrl !== '') $pageExamples .= ' (' . $pUrl . ')';
+            if ($pHeadings !== '') $pageExamples .= "\n    Headings: " . $pHeadings;
+            if ($pDesc !== '') $pageExamples .= "\n    Description: " . $pDesc;
+            if ($pSample !== '' && $pSample !== $pDesc) $pageExamples .= "\n    Content: " . $pSample;
         }
 
         $pageImageContext = $this->buildPerPageImageContext($siteAnalysis);

@@ -399,14 +399,18 @@ class HtmlSanitiser
         if (str_contains($low, '@import')) {
             return '';
         }
-        // Very conservative: remove url(...) usage
+        // Allow url() for safe sources (http/https, relative paths, data:image/).
+        // Only block javascript:/vbscript: inside url() — the rest is needed for
+        // background-image and other legitimate CSS properties.
         if (preg_match('/url\s*\(/i', $s)) {
-            return '';
+            if (preg_match('/url\s*\(\s*["\']?\s*(javascript:|vbscript:)/i', $s)) {
+                return '';
+            }
         }
 
         // Basic length clamp to avoid someone pasting megabytes.
-        if (strlen($s) > 5000) {
-            $s = substr($s, 0, 5000);
+        if (strlen($s) > 20000) {
+            $s = substr($s, 0, 20000);
         }
 
         return $s;
