@@ -153,25 +153,10 @@ class AiSiteBuilder
 
                     $body = (string) ($gen['clean_html'] ?? '');
 
-                    // Retry once with stronger depth instructions when output is too thin.
-                    if ($this->isThinPageHtml($body)) {
-                        $retryBrief = $this->buildDepthRetryBrief($brief, $title);
-                        $retry = $this->pageGenerator->generateHtml($retryBrief, [
-                            'title' => $title,
-                            'style_mode' => $styleMode,
-                            'full_document' => false,
-                            'design_system' => $options['design_system'] ?? [],
-                            'business_context' => (string) ($options['business_context'] ?? ''),
-                        ]);
-
-                        $retryBody = (string) ($retry['clean_html'] ?? '');
-                        if (strlen($retryBody) > strlen($body)) {
-                            $body = $retryBody;
-                        }
-                    }
-
+                    // Single quality gate covers both thin and low-quality output.
+                    // Threshold 55: only retry truly poor pages, avoiding unnecessary extra calls.
                     $quality = $this->assessPageQuality($body);
-                    if ((int) ($quality['score'] ?? 0) < 75) {
+                    if ((int) ($quality['score'] ?? 0) < 55) {
                         $qualityRetryBrief = $this->buildQualityGateRetryBrief($brief, $title, (array) ($quality['issues'] ?? []));
                         $qualityRetry = $this->pageGenerator->generateHtml($qualityRetryBrief, [
                             'title' => $title,
