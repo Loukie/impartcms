@@ -31,6 +31,19 @@ class Page extends Model
         'deleted_at'   => 'datetime',
     ];
 
+    /**
+     * Decode literal escape sequences that AI generators sometimes emit
+     * (e.g. backslash-n instead of a real newline) so they never render
+     * as visible "\n" text on the frontend.
+     */
+    public function getBodyAttribute(?string $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+        return str_replace(['\\n', '\\r', '\\t'], ["\n", "\r", "\t"], $value);
+    }
+
     public function seo(): HasOne
     {
         return $this->hasOne(SeoMeta::class);
