@@ -5,6 +5,12 @@ import grapesjsBlocksBasic from 'grapesjs-blocks-basic';
 document.addEventListener('DOMContentLoaded', () => {
     const cfg = window.__VE__ || {};
 
+    const baseCanvasCSS = `
+        *, *::before, *::after { box-sizing: border-box; }
+        body { margin: 0; }
+        img { max-width: 100%; height: auto; }
+    `;
+
     // ─── GrapesJS init ───────────────────────────────────────────────────────
     const editor = grapesjs.init({
         container: '#ve-editor',
@@ -12,6 +18,10 @@ document.addEventListener('DOMContentLoaded', () => {
         width:     'auto',
         storageManager: false,
         components: cfg.html || '',
+
+        // protectedCss is injected directly into the canvas iframe <style> tag.
+        // This is the correct GrapesJS API for injecting non-editable CSS.
+        protectedCss: baseCanvasCSS + '\n' + (cfg.canvasCSS || ''),
 
         // Preserve inline styles (background-image, etc.) exactly as authored.
         avoidInlineStyle: false,
@@ -93,33 +103,6 @@ document.addEventListener('DOMContentLoaded', () => {
         media: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>`,
     });
 
-    // ─── Inject CSS into canvas iframe after load ────────────────────────────
-    const baseCanvasCSS = `
-        *, *::before, *::after { box-sizing: border-box; }
-        body { margin: 0; }
-        img { max-width: 100%; height: auto; }
-    `;
-
-    function injectCanvasCSS() {
-        try {
-            // GrapesJS 0.22 — use Canvas.getDocument() for the iframe document.
-            const doc = editor.Canvas.getDocument();
-            if (!doc || !doc.head) return;
-
-            const prev = doc.getElementById('ve-injected-css');
-            if (prev) prev.remove();
-
-            const style = doc.createElement('style');
-            style.id = 've-injected-css';
-            style.textContent = baseCanvasCSS + '\n' + (cfg.canvasCSS || '');
-            doc.head.appendChild(style);
-        } catch (e) {
-            console.warn('VE: Could not inject canvas CSS', e);
-        }
-    }
-
-    // Try on load and also after a short delay to ensure iframe is ready.
-    editor.on('load', () => setTimeout(injectCanvasCSS, 50));
 
     // ─── Save ────────────────────────────────────────────────────────────────
     const saveBtn  = document.getElementById('ve-save');
