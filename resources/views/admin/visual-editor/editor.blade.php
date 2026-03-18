@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Visual Editor — {{ $title }}</title>
-    @vite(['resources/js/visual-editor.js'])
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         html, body { height: 100%; overflow: hidden; font-family: system-ui, sans-serif; background: #1a1a2e; }
@@ -91,12 +90,14 @@
 
     <script>
         window.__VE__ = {
-            html:      @json($html),
-            saveUrl:   @json($saveUrl),
-            assetsUrl: @json($assetsUrl),
-            canvasCSS: @json($canvasCSS),
-            csrfToken: document.querySelector('meta[name="csrf-token"]').content,
+            html:         @json($html),
+            extractedCSS: @json($extractedCSS),
+            saveUrl:      @json($saveUrl),
+            assetsUrl:    @json($assetsUrl),
+            canvasCSS:    @json($canvasCSS),
+            csrfToken:    document.querySelector('meta[name="csrf-token"]').content,
         };
     </script>
+    @vite(['resources/js/visual-editor.js'])
 </body>
 </html>
