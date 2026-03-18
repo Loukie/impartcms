@@ -24,9 +24,14 @@ class VisualEditorController extends Controller
         $snippetCSS = $this->resolvePageCss($page);
         $canvasCSS  = trim($inlineCSS . "\n" . $this->sanitiseCanvasCss($snippetCSS));
 
+        // Wrap the editable body with read-only nav/footer for visual context.
+        $navHtml    = LayoutBlockRenderer::headerRaw($page);
+        $footerHtml = LayoutBlockRenderer::footerRaw($page);
+        $wrappedHtml = $this->wrapWithLayout($html, $navHtml, $footerHtml);
+
         return view('admin.visual-editor.editor', [
             'title'        => $page->title,
-            'html'         => $html,
+            'html'         => $wrappedHtml,
             'extractedCSS' => $inlineCSS,
             'saveUrl'      => route('admin.visual-editor.page.save', $page),
             'backUrl'      => route('admin.pages.edit', $page),
@@ -42,13 +47,22 @@ class VisualEditorController extends Controller
      */
     public function savePage(Request $request, Page $page): JsonResponse
     {
-        $page->body = $this->stripBodyWrapper(trim($request->input('html', '')));
+        // extractBodyFromLayout strips the nav/footer markers added by wrapWithLayout,
+        // saving only the editable page body (handles both wrapped and bare HTML).
+        $page->body = $this->extractBodyFromLayout(trim($request->input('html', '')));
         $page->save();
 
         // Migrate any CSS that was extracted from the page body into a snippet.
         $extractedCss = trim((string) $request->input('extracted_css', ''));
         if ($extractedCss !== '') {
             $this->migrateCssToSnippet($extractedCss, $page);
+        }
+
+        // full_css = @imports + full CSS manager contents (original page CSS + Style Manager edits).
+        // Replace the snippet content so the saved CSS reflects exactly what the editor shows.
+        $fullCss = trim((string) $request->input('full_css', ''));
+        if ($fullCss !== '') {
+            $this->replacePageCssSnippet($fullCss, $page);
         }
 
         return response()->json(['ok' => true]);
@@ -101,6 +115,35 @@ class VisualEditorController extends Controller
             ]);
 
         return response()->json(['data' => $files]);
+    }
+
+    /**
+     * Replace the page's CSS snippet content with the full CSS from the editor.
+     * The CSS includes @imports (for fonts) + all CSS manager rules (original
+     * page styles + any Style Manager edits), so the saved snippet is authoritative.
+     */
+    private function replacePageCssSnippet(string $css, Page $page): void
+    {
+        $snippet = CustomSnippet::where('type', 'css')
+            ->where('is_enabled', true)
+            ->where('target_mode', 'only')
+            ->whereHas('pages', fn ($q) => $q->where('pages.id', $page->id))
+            ->first();
+
+        if ($snippet) {
+            $snippet->content = $css;
+            $snippet->save();
+        } else {
+            $snippet = CustomSnippet::create([
+                'type'        => 'css',
+                'name'        => $page->title . ' — Page Styles',
+                'position'    => 'head',
+                'is_enabled'  => true,
+                'target_mode' => 'only',
+                'content'     => $css,
+            ]);
+            $snippet->pages()->sync([$page->id]);
+        }
     }
 
     /**
@@ -233,9 +276,13 @@ class VisualEditorController extends Controller
         }
 
         // Extract @import lines so we can hoist them to the top.
+        // The regex must match the full @import statement without stopping early at
+        // semicolons that appear inside quoted URL strings (e.g. Google Fonts URLs
+        // like "wght@400;500;700"). We handle three common forms:
+        //   @import url('...');   @import url("...");   @import '...';   @import "...";
         $imports = [];
         $css = preg_replace_callback(
-            '/@import\s+[^;]+;/i',
+            '/@import\s+(?:url\([\'"][^\'"]*[\'"]\)|[\'"][^\'"]*[\'"]);/i',
             function (array $m) use (&$imports): string {
                 $imports[] = $m[0];
                 return '';

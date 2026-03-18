@@ -80,7 +80,8 @@ class AiSiteBuilder
         $homepageCandidateTitle = null;
 
         // Collect <style> blocks extracted from each page body in extract mode.
-        $allPageCss = [];
+        // Keyed by page ID so each page gets its own CSS snippet (no cross-page conflicts).
+        $perPageCss = [];
 
         DB::beginTransaction();
         try {
@@ -89,6 +90,7 @@ class AiSiteBuilder
                     $warnings[] = 'Skipped non-object page entry.';
                     continue;
                 }
+                $currentPageCss = '';
 
                 $title = trim((string) ($p['title'] ?? ''));
                 if ($title === '') {
@@ -234,7 +236,7 @@ class AiSiteBuilder
                         $extracted = $this->extractAndStripStyleBlocks($stripped);
                         $processedBody = $extracted['html'];
                         if ($extracted['css'] !== '') {
-                            $allPageCss[] = $extracted['css'];
+                            $currentPageCss = $extracted['css'];
                         }
                     } else {
                         $processedBody = $this->applyCanonicalNavigation($body, $canonicalNavHtml);
@@ -280,6 +282,10 @@ class AiSiteBuilder
                 }
 
                 $page->save();
+
+                if ($currentPageCss !== '') {
+                    $perPageCss[(int) $page->id] = $currentPageCss;
+                }
 
                 $page->seo()->create([
                     'meta_title' => $metaTitle,
@@ -336,7 +342,7 @@ class AiSiteBuilder
             $result['canonical_footer_html'] = $canonicalFooterHtml;
             $result['reveal_css'] = $this->buildRevealCss();
             $result['reveal_js'] = $this->buildRevealJs();
-            $result['page_css']  = $this->deduplicateAndMergeCss($allPageCss);
+            $result['page_css_map'] = $perPageCss; // page_id => css_string, one entry per page
         }
 
         return $result;
@@ -466,15 +472,7 @@ class AiSiteBuilder
             $issues[] = 'generic filler language detected';
         }
 
-        // Detect generic template patterns — these indicate the AI ignored the design system
-        if (str_contains($html, '#667eea') || str_contains($html, '#764ba2')) {
-            $score -= 20;
-            $issues[] = 'uses default gradient colors instead of brand palette';
-        }
-        if (substr_count(strtolower($html), '#f5f7fa') + substr_count(strtolower($html), '#f9fafb') + substr_count(strtolower($html), '#f3f4f6') >= 2) {
-            $score -= 15;
-            $issues[] = 'uses generic gray backgrounds instead of design system colors';
-        }
+
 
         // Check for CSS custom properties usage — premium output should define them
         if (!str_contains($html, '--color-primary') && !str_contains($html, '--color-secondary')) {
@@ -533,6 +531,7 @@ class AiSiteBuilder
         $parts[] = 'REQUIREMENTS FOR THIS RETRY:';
         $parts[] = '1. Start output with a <style> tag defining :root CSS custom properties using the design system colors.';
         $parts[] = '2. Include responsive @media queries in the <style> tag for mobile (768px) and small mobile (480px).';
+        $parts[] = '2b. Every CSS rule must use a single class selector only — NO compound/descendant selectors like .parent .child { }.';
         $parts[] = '3. Build 7-10 sections using at least 5 DIFFERENT section layout types.';
         $parts[] = '4. Use the actual brand colors (var(--color-primary), var(--color-secondary)) — NOT generic grays or defaults.';
         $parts[] = '5. Include dark-background sections for visual contrast variety.';

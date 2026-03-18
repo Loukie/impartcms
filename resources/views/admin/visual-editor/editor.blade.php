@@ -82,7 +82,7 @@
         #ve-editor .gjs-cv-canvas {
             top: 40px !important;
             height: calc(100% - 40px) !important;
-            background: #f0f0f0;
+            background: #f0f0f0 !important;
         }
 
         /* Left panel (blocks/layers) — scrollable */

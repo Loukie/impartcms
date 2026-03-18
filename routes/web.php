@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\AiAgentSettingsController;
 use App\Http\Controllers\Admin\AiVisualAuditAdminController;
 use App\Http\Controllers\Admin\VisualEditorController;
 use App\Http\Controllers\Admin\PageAdminController;
+use App\Http\Controllers\Admin\ResetController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\UserAdminController;
 use App\Http\Controllers\FormSubmissionController;
@@ -123,6 +124,10 @@ Route::middleware(['auth', 'can:access-admin'])
         // Settings
         Route::get('/settings', [SettingsController::class, 'edit'])->name('settings.edit');
         Route::put('/settings', [SettingsController::class, 'update'])->name('settings.update');
+
+        // Data Reset
+        Route::get('/reset', [ResetController::class, 'index'])->name('reset');
+        Route::post('/reset/clear', [ResetController::class, 'clear'])->name('reset.clear');
 
         // AI Agent settings
         Route::get('/ai-agent', [AiAgentSettingsController::class, 'edit'])->name('ai-agent.edit');

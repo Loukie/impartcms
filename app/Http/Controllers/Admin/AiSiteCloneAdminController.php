@@ -471,7 +471,8 @@ class AiSiteCloneAdminController extends Controller
         $footerHtml   = (string) ($result['canonical_footer_html'] ?? '');
         $revealCss    = (string) ($result['reveal_css'] ?? '');
         $revealJs     = (string) ($result['reveal_js'] ?? '');
-        $pageCss      = (string) ($result['page_css'] ?? '');
+        /** @var array<int,string> $pageCssMap page_id => css_string */
+        $pageCssMap   = (array) ($result['page_css_map'] ?? []);
 
         // Collect IDs of all successfully created pages.
         $allPageIds = array_values(array_filter(
@@ -532,16 +533,28 @@ class AiSiteCloneAdminController extends Controller
             Setting::set('layout_footer_enabled', '1');
         }
 
-        // Merge page-specific CSS and scroll-reveal CSS into ONE snippet to avoid
-        // duplicate/conflicting stylesheets accumulating across re-clone runs.
-        // Reveal CSS comes first so page-specific overrides can win.
-        $combinedCss = trim(implode("\n\n", array_filter([trim($revealCss), trim($pageCss)])));
-        if ($combinedCss !== '') {
-            $cssSnippet = CustomSnippet::updateOrCreate(
-                ['type' => 'css', 'name' => 'Clone: ' . $label . ' — Page Styles'],
-                ['position' => 'head', 'is_enabled' => true, 'target_mode' => 'only', 'content' => $combinedCss]
+        // Remove legacy single-merged-CSS snippet if it exists — superseded by per-page snippets.
+        CustomSnippet::where('type', 'css')
+            ->where('name', 'Clone: ' . $label . ' — Page Styles')
+            ->delete();
+
+        // Create one CSS snippet per page — avoids cross-page selector conflicts that
+        // happen when all pages' styles are merged into a single stylesheet.
+        // Reveal CSS is prepended to each page's snippet so it's always available.
+        foreach ($pageCssMap as $pageId => $pageCss) {
+            $pageId = (int) $pageId;
+            if (!in_array($pageId, $allPageIds, true)) {
+                continue;
+            }
+            $combined = trim(implode("\n\n", array_filter([trim($revealCss), trim($pageCss)])));
+            if ($combined === '') {
+                continue;
+            }
+            $snippet = CustomSnippet::updateOrCreate(
+                ['type' => 'css', 'name' => 'Clone: ' . $label . ' — #' . $pageId . ' Styles'],
+                ['position' => 'head', 'is_enabled' => true, 'target_mode' => 'only', 'content' => $combined]
             );
-            $cssSnippet->pages()->sync($allPageIds);
+            $snippet->pages()->sync([$pageId]);
         }
 
         if (trim($revealJs) !== '') {
@@ -553,12 +566,11 @@ class AiSiteCloneAdminController extends Controller
         }
 
         Log::info('Clone layout assets created', [
-            'source'        => $sourceUrl,
-            'page_count'    => count($allPageIds),
-            'has_nav'       => trim($navHtml) !== '',
-            'has_footer'    => trim($footerHtml) !== '',
-            'has_page_css'  => trim($pageCss) !== '',
-            'page_css_bytes' => strlen($pageCss),
+            'source'          => $sourceUrl,
+            'page_count'      => count($allPageIds),
+            'has_nav'         => trim($navHtml) !== '',
+            'has_footer'      => trim($footerHtml) !== '',
+            'per_page_css'    => count($pageCssMap),
         ]);
     }
 

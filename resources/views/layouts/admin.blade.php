@@ -224,14 +224,31 @@ if (empty($faviconUrl) && !empty($faviconIconJson)) {
                 </a>
             @endif
 
-            {{-- Settings --}}
+            {{-- Settings group --}}
             @if(\Illuminate\Support\Facades\Route::has('admin.settings.edit'))
-                <a href="{{ route('admin.settings.edit') }}" class="{{ $linkBase }} {{ $isActive('admin.settings.*') ? $linkActive : $linkInactive }}">
-                    <svg class="h-4 w-4 flex-none {{ $isActive('admin.settings.*') ? $iconActive : $iconInactive }}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                        <path d="M11.983 1.5a1.5 1.5 0 0 1 1.484 1.28l.17 1.14a7.92 7.92 0 0 1 1.82.75l1.05-.5a1.5 1.5 0 0 1 1.86.53l1.5 2.6a1.5 1.5 0 0 1-.38 1.95l-.93.72c.08.6.08 1.22 0 1.82l.93.72a1.5 1.5 0 0 1 .38 1.95l-1.5 2.6a1.5 1.5 0 0 1-1.86.53l-1.05-.5a7.92 7.92 0 0 1-1.82.75l-.17 1.14A1.5 1.5 0 0 1 11.983 22.5h-3a1.5 1.5 0 0 1-1.484-1.28l-.17-1.14a7.92 7.92 0 0 1-1.82-.75l-1.05.5a1.5 1.5 0 0 1-1.86-.53l-1.5-2.6a1.5 1.5 0 0 1 .38-1.95l.93-.72a7.7 7.7 0 0 1 0-1.82l-.93-.72a1.5 1.5 0 0 1-.38-1.95l1.5-2.6a1.5 1.5 0 0 1 1.86-.53l1.05.5c.58-.3 1.18-.56 1.82-.75l.17-1.14A1.5 1.5 0 0 1 8.983 1.5h3Zm-1.5 7.5a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z"/>
-                    </svg>
-                    <span>Settings</span>
-                </a>
+                @php $settingsGroupActive = $isActive('admin.settings.*') || $isActive('admin.reset*'); @endphp
+                <div x-data="{ open: {{ $settingsGroupActive ? 'true' : 'false' }} }">
+                    <button @click="open = !open"
+                            class="{{ $linkBase }} w-full {{ $settingsGroupActive ? $linkActive : $linkInactive }}">
+                        <svg class="h-4 w-4 flex-none {{ $settingsGroupActive ? $iconActive : $iconInactive }}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                            <path d="M11.983 1.5a1.5 1.5 0 0 1 1.484 1.28l.17 1.14a7.92 7.92 0 0 1 1.82.75l1.05-.5a1.5 1.5 0 0 1 1.86.53l1.5 2.6a1.5 1.5 0 0 1-.38 1.95l-.93.72c.08.6.08 1.22 0 1.82l.93.72a1.5 1.5 0 0 1 .38 1.95l-1.5 2.6a1.5 1.5 0 0 1-1.86.53l-1.05-.5a7.92 7.92 0 0 1-1.82.75l-.17 1.14A1.5 1.5 0 0 1 11.983 22.5h-3a1.5 1.5 0 0 1-1.484-1.28l-.17-1.14a7.92 7.92 0 0 1-1.82-.75l-1.05.5a1.5 1.5 0 0 1-1.86-.53l-1.5-2.6a1.5 1.5 0 0 1 .38-1.95l.93-.72a7.7 7.7 0 0 1 0-1.82l-.93-.72a1.5 1.5 0 0 1-.38-1.95l1.5-2.6a1.5 1.5 0 0 1 1.86-.53l1.05.5c.58-.3 1.18-.56 1.82-.75l.17-1.14A1.5 1.5 0 0 1 8.983 1.5h3Zm-1.5 7.5a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z"/>
+                        </svg>
+                        <span class="flex-1 text-left">Settings</span>
+                        <svg class="h-3 w-3 flex-none transition-transform" :class="open ? 'rotate-180' : ''" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M6 9l6 6 6-6"/>
+                        </svg>
+                    </button>
+                    <div x-show="open" class="mt-1 ml-7 space-y-0.5">
+                        <a href="{{ route('admin.settings.edit') }}"
+                           class="{{ $linkBase }} text-xs {{ $isActive('admin.settings.*') ? $linkActive : $linkInactive }}">
+                            Settings
+                        </a>
+                        <a href="{{ route('admin.reset') }}"
+                           class="{{ $linkBase }} text-xs {{ $isActive('admin.reset*') ? $linkActive : $linkInactive }}">
+                            Data Reset
+                        </a>
+                    </div>
+                </div>
             @endif
 
             {{-- AI Agent --}}
