@@ -23,6 +23,11 @@ document.addEventListener('DOMContentLoaded', () => {
         width:     'auto',
         storageManager: false,
         components: cfg.html || '',
+
+        // Preserve inline styles (background-image, etc.) exactly as authored.
+        avoidInlineStyle: false,
+        forceClass:       false,
+
         canvas: {
             styles: canvasStyles,
         },

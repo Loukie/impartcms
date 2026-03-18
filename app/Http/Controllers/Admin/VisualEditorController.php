@@ -7,6 +7,7 @@ use App\Models\CustomSnippet;
 use App\Models\LayoutBlock;
 use App\Models\MediaFile;
 use App\Models\Page;
+use App\Support\LayoutBlockRenderer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -18,17 +19,24 @@ class VisualEditorController extends Controller
      */
     public function editPage(Page $page): View
     {
-        // Strip any embedded <style> blocks from the HTML and move them into
-        // canvasCSS so GrapesJS injects them cleanly into the iframe <head>.
-        // This handles both old pages (styles still in body) and new ones
-        // (styles already extracted to a CustomSnippet).
+        // Strip embedded <style> blocks from body — inject as canvas CSS instead.
         [$html, $inlineCSS] = $this->extractStyleBlocks((string) ($page->body ?? ''));
         $snippetCSS = $this->resolvePageCss($page);
-        $canvasCSS  = trim($inlineCSS . "\n" . $snippetCSS);
+
+        // Resolve nav/footer LayoutBlocks for this page and strip their styles too.
+        $rawNav    = LayoutBlockRenderer::headerHtml($page);
+        $rawFooter = LayoutBlockRenderer::footerHtml($page);
+        [$navHtml,    $navCss]    = $this->extractStyleBlocks($rawNav);
+        [$footerHtml, $footerCss] = $this->extractStyleBlocks($rawFooter);
+
+        $canvasCSS = trim($inlineCSS . "\n" . $snippetCSS . "\n" . $navCss . "\n" . $footerCss);
+
+        // Wrap page body with non-editable nav/footer so the user sees full context.
+        $fullHtml = $this->wrapWithLayout($html, $navHtml, $footerHtml);
 
         return view('admin.visual-editor.editor', [
             'title'        => $page->title,
-            'html'         => $html,
+            'html'         => $fullHtml,
             'extractedCSS' => $inlineCSS,
             'saveUrl'      => route('admin.visual-editor.page.save', $page),
             'backUrl'      => route('admin.pages.edit', $page),
@@ -44,7 +52,8 @@ class VisualEditorController extends Controller
      */
     public function savePage(Request $request, Page $page): JsonResponse
     {
-        $page->body = $request->input('html', '');
+        // Strip the non-editable nav/footer wrappers — save only the body portion.
+        $page->body = $this->extractBodyFromLayout($request->input('html', ''));
         $page->save();
 
         // Migrate any CSS that was extracted from the page body into a snippet.
@@ -136,6 +145,32 @@ class VisualEditorController extends Controller
             'content'     => $css,
         ]);
         $snippet->pages()->sync([$page->id]);
+    }
+
+    /**
+     * Wrap editable page body with read-only nav/footer for visual context.
+     * GrapesJS respects data-gjs-* attributes — editable=false prevents
+     * the user from accidentally editing the layout blocks.
+     */
+    private function wrapWithLayout(string $body, string $navHtml, string $footerHtml): string
+    {
+        $nav    = $navHtml    !== '' ? '<div data-gjs-editable="false" data-gjs-selectable="false" data-gjs-hoverable="false" data-ve-role="nav">'    . $navHtml    . '</div>' : '';
+        $footer = $footerHtml !== '' ? '<div data-gjs-editable="false" data-gjs-selectable="false" data-gjs-hoverable="false" data-ve-role="footer">' . $footerHtml . '</div>' : '';
+
+        return $nav . $body . $footer;
+    }
+
+    /**
+     * When saving, strip the nav/footer wrapper divs and return only the
+     * editable page body that was originally between them.
+     */
+    private function extractBodyFromLayout(string $html): string
+    {
+        // Remove non-editable nav/footer wrapper divs added by wrapWithLayout().
+        $html = preg_replace('/<div[^>]+data-ve-role="nav"[^>]*>.*?<\/div>/is', '', $html);
+        $html = preg_replace('/<div[^>]+data-ve-role="footer"[^>]*>.*?<\/div>/is', '', $html);
+
+        return trim($html ?? '');
     }
 
     /**
