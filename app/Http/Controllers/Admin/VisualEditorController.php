@@ -19,24 +19,14 @@ class VisualEditorController extends Controller
      */
     public function editPage(Page $page): View
     {
-        // Strip embedded <style> blocks from body — inject as canvas CSS instead.
-        [$html, $inlineCSS] = $this->extractStyleBlocks((string) ($page->body ?? ''));
+        // Strip embedded <style> blocks and any stale <body> wrapper from the page body.
+        [$html, $inlineCSS] = $this->extractStyleBlocks($this->stripBodyWrapper((string) ($page->body ?? '')));
         $snippetCSS = $this->resolvePageCss($page);
-
-        // Resolve nav/footer LayoutBlocks for this page and strip their styles too.
-        $rawNav    = LayoutBlockRenderer::headerRaw($page);
-        $rawFooter = LayoutBlockRenderer::footerRaw($page);
-        [$navHtml,    $navCss]    = $this->extractStyleBlocks($rawNav);
-        [$footerHtml, $footerCss] = $this->extractStyleBlocks($rawFooter);
-
-        $canvasCSS = trim($inlineCSS . "\n" . $snippetCSS . "\n" . $navCss . "\n" . $footerCss);
-
-        // Wrap page body with non-editable nav/footer so the user sees full context.
-        $fullHtml = $this->wrapWithLayout($html, $navHtml, $footerHtml);
+        $canvasCSS  = trim($inlineCSS . "\n" . $this->sanitiseCanvasCss($snippetCSS));
 
         return view('admin.visual-editor.editor', [
             'title'        => $page->title,
-            'html'         => $fullHtml,
+            'html'         => $html,
             'extractedCSS' => $inlineCSS,
             'saveUrl'      => route('admin.visual-editor.page.save', $page),
             'backUrl'      => route('admin.pages.edit', $page),
@@ -52,8 +42,7 @@ class VisualEditorController extends Controller
      */
     public function savePage(Request $request, Page $page): JsonResponse
     {
-        // Strip the non-editable nav/footer wrappers — save only the body portion.
-        $page->body = $this->extractBodyFromLayout($request->input('html', ''));
+        $page->body = $this->stripBodyWrapper(trim($request->input('html', '')));
         $page->save();
 
         // Migrate any CSS that was extracted from the page body into a snippet.
@@ -79,7 +68,7 @@ class VisualEditorController extends Controller
             'saveUrl'      => route('admin.visual-editor.block.save', $layoutBlock),
             'backUrl'      => route('admin.layout-blocks.edit', $layoutBlock),
             'assetsUrl'    => route('admin.visual-editor.assets'),
-            'canvasCSS'    => $inlineCSS,
+            'canvasCSS'    => $this->sanitiseCanvasCss($inlineCSS),
             'context'      => 'block',
         ]);
     }
@@ -169,11 +158,23 @@ class VisualEditorController extends Controller
     private function extractBodyFromLayout(string $html): string
     {
         if (preg_match('/<!--\s*ve-body-start\s*-->(.*?)<!--\s*ve-body-end\s*-->/is', $html, $m)) {
-            return trim($m[1]);
+            return $this->stripBodyWrapper(trim($m[1]));
         }
 
         // No markers found — return as-is (e.g. direct save without layout context).
-        return trim($html);
+        return $this->stripBodyWrapper(trim($html));
+    }
+
+    /**
+     * GrapesJS wraps its HTML output in <body>…</body>.
+     * Strip those tags so we only store the inner content.
+     */
+    private function stripBodyWrapper(string $html): string
+    {
+        // Globally remove any <html>, <head>, <body> wrapper tags.
+        // These should never appear inside a page body fragment and can
+        // accumulate if GrapesJS round-trips through the field multiple times.
+        return trim(preg_replace('/<\/?(html|head|body)[^>]*>/i', '', $html) ?? $html);
     }
 
     /**
@@ -217,5 +218,65 @@ class VisualEditorController extends Controller
             ->implode("\n");
 
         return trim($global . "\n" . $pageSpecific);
+    }
+
+    /**
+     * Prepare CSS for the GrapesJS canvas iframe:
+     * 1. Move @import rules to the top (they must precede all other rules).
+     * 2. Remove scroll-reveal opacity:0 rules — elements must be visible in the
+     *    static canvas (no IntersectionObserver fires, so they'd stay hidden).
+     */
+    private function sanitiseCanvasCss(string $css): string
+    {
+        if (trim($css) === '') {
+            return '';
+        }
+
+        // Extract @import lines so we can hoist them to the top.
+        $imports = [];
+        $css = preg_replace_callback(
+            '/@import\s+[^;]+;/i',
+            function (array $m) use (&$imports): string {
+                $imports[] = $m[0];
+                return '';
+            },
+            $css
+        ) ?? $css;
+
+        // Remove scroll-reveal hide rules: any ruleset whose selector contains
+        // ".reveal" (but NOT ".reveal.is-visible" or ".reveal.visible") and whose
+        // block sets opacity to 0.
+        $css = preg_replace_callback(
+            '/([^{}]*\.reveal\b[^{}]*)\{([^}]*)\}/s',
+            function (array $m): string {
+                $selector = $m[1];
+                $block    = $m[2];
+
+                // Keep rules for the "visible" state — they should NOT be stripped.
+                if (preg_match('/\b(is-visible|visible|active)\b/i', $selector)) {
+                    return $m[0];
+                }
+
+                // Strip opacity:0 from the block; keep everything else.
+                $cleaned = preg_replace('/opacity\s*:\s*0[^;]*;?/i', '', $block) ?? $block;
+                $cleaned = preg_replace('/transform\s*:[^;]*translateY[^;]*;?/i', '', $cleaned) ?? $cleaned;
+                $cleaned = trim($cleaned);
+
+                if ($cleaned === '') {
+                    return ''; // Entire rule was only the hidden state — drop it.
+                }
+
+                return $selector . '{' . $cleaned . '}';
+            },
+            $css
+        ) ?? $css;
+
+        // Reassemble: @imports first, then the rest of the CSS.
+        $parts = array_filter([
+            implode("\n", $imports),
+            trim($css),
+        ]);
+
+        return implode("\n\n", $parts);
     }
 }
