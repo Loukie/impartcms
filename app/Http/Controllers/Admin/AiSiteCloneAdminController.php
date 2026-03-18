@@ -471,6 +471,7 @@ class AiSiteCloneAdminController extends Controller
         $footerHtml   = (string) ($result['canonical_footer_html'] ?? '');
         $revealCss    = (string) ($result['reveal_css'] ?? '');
         $revealJs     = (string) ($result['reveal_js'] ?? '');
+        $pageCss      = (string) ($result['page_css'] ?? '');
 
         // Collect IDs of all successfully created pages.
         $allPageIds = array_values(array_filter(
@@ -547,6 +548,18 @@ class AiSiteCloneAdminController extends Controller
             Setting::set('layout_footer_enabled', '1');
         }
 
+        if (trim($pageCss) !== '') {
+            $pageStyleSnippet = CustomSnippet::create([
+                'type'        => 'css',
+                'name'        => 'Clone: ' . $label . ' — Page Styles',
+                'position'    => 'head',
+                'is_enabled'  => true,
+                'target_mode' => 'only',
+                'content'     => $pageCss,
+            ]);
+            $pageStyleSnippet->pages()->sync($allPageIds);
+        }
+
         if (trim($revealCss) !== '') {
             $cssSnippet = CustomSnippet::create([
                 'type'        => 'css',
@@ -572,10 +585,12 @@ class AiSiteCloneAdminController extends Controller
         }
 
         Log::info('Clone layout assets created', [
-            'source' => $sourceUrl,
-            'page_count' => count($allPageIds),
-            'has_nav' => trim($navHtml) !== '',
-            'has_footer' => trim($footerHtml) !== '',
+            'source'        => $sourceUrl,
+            'page_count'    => count($allPageIds),
+            'has_nav'       => trim($navHtml) !== '',
+            'has_footer'    => trim($footerHtml) !== '',
+            'has_page_css'  => trim($pageCss) !== '',
+            'page_css_bytes' => strlen($pageCss),
         ]);
     }
 

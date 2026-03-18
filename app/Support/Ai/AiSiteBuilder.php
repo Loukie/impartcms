@@ -79,6 +79,9 @@ class AiSiteBuilder
         // Track intended homepage (even if draft) for helpful warnings
         $homepageCandidateTitle = null;
 
+        // Collect <style> blocks extracted from each page body in extract mode.
+        $allPageCss = [];
+
         DB::beginTransaction();
         try {
             foreach ($pages as $p) {
@@ -223,11 +226,19 @@ class AiSiteBuilder
                         ])),
                     ];
                     $auditor = new \App\Support\Ai\AiSiteAudit();
-                    // In extract mode: strip nav/footer from body (they go into LayoutBlocks).
+                    // In extract mode: strip nav/footer and pull out <style> blocks from body
+                    // (nav/footer go into LayoutBlocks, CSS into a shared CustomSnippet).
                     // In embed mode: inject canonical nav + global styling directly into page body.
-                    $processedBody = $extractAssets
-                        ? $this->stripNavigationAndFooter($body)
-                        : $this->applyCanonicalNavigation($body, $canonicalNavHtml);
+                    if ($extractAssets) {
+                        $stripped = $this->stripNavigationAndFooter($body);
+                        $extracted = $this->extractAndStripStyleBlocks($stripped);
+                        $processedBody = $extracted['html'];
+                        if ($extracted['css'] !== '') {
+                            $allPageCss[] = $extracted['css'];
+                        }
+                    } else {
+                        $processedBody = $this->applyCanonicalNavigation($body, $canonicalNavHtml);
+                    }
                     $audited = $auditor->auditAndFix($processedBody, $auditContext);
                     $page->body = $audited['html'];
                     foreach (($audited['issues'] ?? []) as $issue) {
@@ -325,6 +336,7 @@ class AiSiteBuilder
             $result['canonical_footer_html'] = $canonicalFooterHtml;
             $result['reveal_css'] = $this->buildRevealCss();
             $result['reveal_js'] = $this->buildRevealJs();
+            $result['page_css']  = $this->deduplicateAndMergeCss($allPageCss);
         }
 
         return $result;
@@ -819,6 +831,42 @@ class AiSiteBuilder
             . '</div>'
             . '</div>'
             . '</footer>';
+    }
+
+    /**
+     * Extract all <style> blocks from an HTML string and return them separately.
+     * Returns ['html' => $htmlWithoutStyles, 'css' => $extractedCss].
+     */
+    private function extractAndStripStyleBlocks(string $html): array
+    {
+        $css = '';
+        $cleaned = preg_replace_callback(
+            '/<style[^>]*>(.*?)<\/style>/is',
+            function (array $m) use (&$css): string {
+                $css .= "\n" . trim($m[1]);
+                return '';
+            },
+            $html
+        );
+
+        return [
+            'html' => $cleaned ?? $html,
+            'css'  => trim($css),
+        ];
+    }
+
+    /**
+     * Merge CSS blocks collected from all pages, removing exact duplicate rule blocks.
+     * Because the AI tends to generate the same base CSS on every page, simple
+     * block-level deduplication eliminates the vast majority of repetition.
+     */
+    private function deduplicateAndMergeCss(array $blocks): string
+    {
+        $unique = array_values(array_unique(
+            array_filter(array_map('trim', $blocks))
+        ));
+
+        return implode("\n\n", $unique);
     }
 
     /**
