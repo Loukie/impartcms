@@ -112,9 +112,20 @@
         .gjs-three-bg{ background: #222 !important; }
         .gjs-four-bg { background: #111 !important; }
         .gjs-pn-panel{ background: #2e2e2e; }
-        .gjs-block    { border-color: #444 !important; color: #ddd !important; }
-        .gjs-block svg{ fill: #ddd !important; }
-        .gjs-block-label { color: #ccc !important; }
+
+        /* Compact block sizing */
+        .gjs-block {
+            width: 45% !important;
+            min-height: 70px !important;
+            padding: 8px 4px !important;
+            border-color: #444 !important;
+            color: #ddd !important;
+        }
+        .gjs-block svg,
+        .gjs-block .gjs-block-svg { width: 28px !important; height: 28px !important; }
+        .gjs-block-label { font-size: 10px !important; color: #ccc !important; margin-top: 4px !important; }
+        .gjs-blocks-c { display: flex; flex-wrap: wrap; gap: 4px; padding: 6px !important; }
+        .gjs-block-category .gjs-title { font-size: 11px !important; padding: 6px 8px !important; }
     </style>
 </head>
 <body>
