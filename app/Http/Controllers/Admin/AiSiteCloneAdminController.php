@@ -521,6 +521,8 @@ class AiSiteCloneAdminController extends Controller
                 $header->pages()->sync($allPageIds);
             }
 
+            // Flush cache after sync — pivot changes don't trigger model events.
+            LayoutBlock::flushCache();
             Setting::set('layout_header_enabled', '1');
         }
 
@@ -530,6 +532,7 @@ class AiSiteCloneAdminController extends Controller
                 ['is_enabled' => true, 'target_mode' => 'only', 'priority' => 10, 'content' => $footerHtml]
             );
             $footer->pages()->sync($allPageIds);
+            LayoutBlock::flushCache();
             Setting::set('layout_footer_enabled', '1');
         }
 

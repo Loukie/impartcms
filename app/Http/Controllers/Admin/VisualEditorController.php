@@ -7,6 +7,7 @@ use App\Models\CustomSnippet;
 use App\Models\LayoutBlock;
 use App\Models\MediaFile;
 use App\Models\Page;
+use App\Models\Setting;
 use App\Support\LayoutBlockRenderer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -25,19 +26,24 @@ class VisualEditorController extends Controller
         $canvasCSS  = trim($inlineCSS . "\n" . $this->sanitiseCanvasCss($snippetCSS));
 
         // Wrap the editable body with read-only nav/footer for visual context.
-        $navHtml    = LayoutBlockRenderer::headerRaw($page);
-        $footerHtml = LayoutBlockRenderer::footerRaw($page);
+        // Extract any <style> blocks from nav/footer HTML so GrapesJS doesn't strip them —
+        // they are injected via canvasCSS instead (which goes into the canvas iframe <head>).
+        [$navHtml, $navCss]       = $this->extractStyleBlocks(LayoutBlockRenderer::headerRaw($page));
+        [$footerHtml, $footerCss] = $this->extractStyleBlocks(LayoutBlockRenderer::footerRaw($page));
         $wrappedHtml = $this->wrapWithLayout($html, $navHtml, $footerHtml);
 
+        $canvasCSS = trim($navCss . "\n" . $footerCss . "\n" . $canvasCSS);
+
         return view('admin.visual-editor.editor', [
-            'title'        => $page->title,
-            'html'         => $wrappedHtml,
-            'extractedCSS' => $inlineCSS,
-            'saveUrl'      => route('admin.visual-editor.page.save', $page),
-            'backUrl'      => route('admin.pages.edit', $page),
-            'assetsUrl'    => route('admin.visual-editor.assets'),
-            'canvasCSS'    => $canvasCSS,
-            'context'      => 'page',
+            'title'          => $page->title,
+            'html'           => $wrappedHtml,
+            'extractedCSS'   => $inlineCSS,
+            'saveUrl'        => route('admin.visual-editor.page.save', $page),
+            'backUrl'        => route('admin.pages.edit', $page),
+            'assetsUrl'      => route('admin.visual-editor.assets'),
+            'typographyUrl'  => route('admin.visual-editor.typography', $page),
+            'canvasCSS'      => $canvasCSS,
+            'context'        => 'page',
         ]);
     }
 
@@ -96,6 +102,44 @@ class VisualEditorController extends Controller
         $layoutBlock->save();
 
         return response()->json(['ok' => true]);
+    }
+
+    /**
+     * Handle custom font upload.
+     * Stores the font file under public/fonts/ and returns the font name + URL.
+     */
+    public function uploadFont(Request $request): JsonResponse
+    {
+        $request->validate([
+            'font' => ['required', 'file', 'mimes:ttf,otf,woff,woff2', 'max:5120'],
+        ]);
+
+        $file     = $request->file('font');
+        $original = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+
+        // Derive a clean font name from the filename (e.g. "my-font" → "My Font").
+        $fontName = ucwords(str_replace(['-', '_'], ' ', $original));
+
+        // Keep the original extension for correct browser interpretation.
+        $ext      = strtolower($file->getClientOriginalExtension());
+        $filename = $original . '.' . $ext;
+
+        $dest = public_path('fonts');
+        if (! is_dir($dest)) {
+            mkdir($dest, 0755, true);
+        }
+
+        $file->move($dest, $filename);
+
+        $url = asset('fonts/' . $filename);
+
+        return response()->json([
+            'ok'         => true,
+            'name'       => $fontName,
+            'url'        => $url,
+            'ext'        => $ext,
+            'fontFamily' => "'{$fontName}', sans-serif",
+        ]);
     }
 
     /**
@@ -261,6 +305,109 @@ class VisualEditorController extends Controller
             ->implode("\n");
 
         return trim($global . "\n" . $pageSpecific);
+    }
+
+    /**
+     * Return current global + page typography settings as JSON.
+     */
+    public function getTypography(Page $page): JsonResponse
+    {
+        $global = json_decode((string) (Setting::get('typography.global', '{}') ?? '{}'), true) ?: [];
+        $pageData = json_decode((string) (Setting::get('typography.page.' . $page->id, '{}') ?? '{}'), true) ?: [];
+
+        return response()->json(['global' => $global, 'page' => $pageData]);
+    }
+
+    /**
+     * Save global and per-page typography settings, then regenerate CSS snippets.
+     */
+    public function saveTypography(Request $request, Page $page): JsonResponse
+    {
+        $tags = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p'];
+
+        $globalData = is_array($request->input('global')) ? $request->input('global') : [];
+        Setting::set('typography.global', json_encode($globalData));
+        $this->saveGlobalTypographySnippet($this->buildTypographyCss($globalData, $tags, false));
+
+        $pageData = is_array($request->input('page')) ? $request->input('page') : [];
+        Setting::set('typography.page.' . $page->id, json_encode($pageData));
+        $overrideTags = array_filter($pageData, fn ($v) => is_array($v) && !empty($v['override']));
+        $this->savePageTypographySnippet($this->buildTypographyCss($overrideTags, array_keys($overrideTags), true), $page);
+
+        return response()->json(['ok' => true]);
+    }
+
+    /**
+     * Generate CSS from typography tag data.
+     * $highSpecificity = true uses "body h1" selectors so page rules beat global rules.
+     */
+    private function buildTypographyCss(array $data, array $tags, bool $highSpecificity): string
+    {
+        $propMap = [
+            'font_family'     => 'font-family',
+            'font_size'       => 'font-size',
+            'font_weight'     => 'font-weight',
+            'font_style'      => 'font-style',
+            'line_height'     => 'line-height',
+            'letter_spacing'  => 'letter-spacing',
+            'color'           => 'color',
+            'text_decoration' => 'text-decoration',
+            'text_transform'  => 'text-transform',
+        ];
+
+        $css = '';
+        foreach ($tags as $tag) {
+            $values = $data[$tag] ?? [];
+            if (!is_array($values)) continue;
+
+            $decls = [];
+            foreach ($propMap as $key => $cssProp) {
+                $val = trim((string) ($values[$key] ?? ''));
+                if ($val !== '' && $val !== 'inherit' && $val !== 'initial') {
+                    $decls[] = "  {$cssProp}: {$val}";
+                }
+            }
+
+            if ($decls) {
+                $selector = $highSpecificity ? "body {$tag}" : $tag;
+                $css .= "{$selector} {\n" . implode(";\n", $decls) . ";\n}\n\n";
+            }
+        }
+
+        return trim($css);
+    }
+
+    private function saveGlobalTypographySnippet(string $css): void
+    {
+        if ($css === '') {
+            CustomSnippet::where('name', 'Global Typography')->where('type', 'css')->delete();
+            return;
+        }
+
+        CustomSnippet::updateOrCreate(
+            ['name' => 'Global Typography', 'type' => 'css'],
+            ['position' => 'head', 'is_enabled' => true, 'target_mode' => 'global', 'content' => $css]
+        );
+    }
+
+    private function savePageTypographySnippet(string $css, Page $page): void
+    {
+        $name = 'Page Typography: ' . $page->title;
+
+        if ($css === '') {
+            $snippet = CustomSnippet::where('name', $name)->where('type', 'css')->first();
+            if ($snippet) {
+                $snippet->pages()->detach();
+                $snippet->forceDelete();
+            }
+            return;
+        }
+
+        $snippet = CustomSnippet::updateOrCreate(
+            ['name' => $name, 'type' => 'css'],
+            ['position' => 'head', 'is_enabled' => true, 'target_mode' => 'only', 'content' => $css]
+        );
+        $snippet->pages()->sync([$page->id]);
     }
 
     /**

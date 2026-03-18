@@ -129,12 +129,17 @@ Route::middleware(['auth', 'can:access-admin'])
         Route::get('/reset', [ResetController::class, 'index'])->name('reset');
         Route::post('/reset/clear', [ResetController::class, 'clear'])->name('reset.clear');
 
+        // Visual Editor — Typography
+        Route::get('/visual-editor/typography/{page}', [VisualEditorController::class, 'getTypography'])->name('visual-editor.typography');
+        Route::post('/visual-editor/typography/{page}', [VisualEditorController::class, 'saveTypography'])->name('visual-editor.typography.save');
+
         // AI Agent settings
         Route::get('/ai-agent', [AiAgentSettingsController::class, 'edit'])->name('ai-agent.edit');
         Route::put('/ai-agent', [AiAgentSettingsController::class, 'update'])->name('ai-agent.update');
 
         // Visual Editor (GrapesJS)
         Route::get('/visual-editor/assets', [VisualEditorController::class, 'assets'])->name('visual-editor.assets');
+        Route::post('/visual-editor/fonts/upload', [VisualEditorController::class, 'uploadFont'])->name('visual-editor.fonts.upload');
         Route::get('/visual-editor/page/{page}', [VisualEditorController::class, 'editPage'])->name('visual-editor.page.edit');
         Route::put('/visual-editor/page/{page}', [VisualEditorController::class, 'savePage'])->name('visual-editor.page.save');
         Route::get('/visual-editor/block/{layoutBlock}', [VisualEditorController::class, 'editBlock'])->name('visual-editor.block.edit');

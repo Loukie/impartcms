@@ -85,7 +85,15 @@ class AiSiteBuilder
 
         DB::beginTransaction();
         try {
+            $pageIndex = 0;
             foreach ($pages as $p) {
+                // Pace requests to stay under free-tier RPM limits (e.g. Gemini: 20 RPM).
+                // 4 seconds between pages = max 15 pages/min, safely under the limit.
+                if ($pageIndex > 0) {
+                    sleep(4);
+                }
+                $pageIndex++;
+
                 if (!is_array($p)) {
                     $warnings[] = 'Skipped non-object page entry.';
                     continue;
