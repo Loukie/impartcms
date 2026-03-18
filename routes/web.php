@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\AiSiteBuilderAdminController;
 use App\Http\Controllers\Admin\AiSiteCloneAdminController;
 use App\Http\Controllers\Admin\AiAgentSettingsController;
 use App\Http\Controllers\Admin\AiVisualAuditAdminController;
+use App\Http\Controllers\Admin\VisualEditorController;
 use App\Http\Controllers\Admin\PageAdminController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\UserAdminController;
@@ -126,6 +127,13 @@ Route::middleware(['auth', 'can:access-admin'])
         // AI Agent settings
         Route::get('/ai-agent', [AiAgentSettingsController::class, 'edit'])->name('ai-agent.edit');
         Route::put('/ai-agent', [AiAgentSettingsController::class, 'update'])->name('ai-agent.update');
+
+        // Visual Editor (GrapesJS)
+        Route::get('/visual-editor/assets', [VisualEditorController::class, 'assets'])->name('visual-editor.assets');
+        Route::get('/visual-editor/page/{page}', [VisualEditorController::class, 'editPage'])->name('visual-editor.page.edit');
+        Route::put('/visual-editor/page/{page}', [VisualEditorController::class, 'savePage'])->name('visual-editor.page.save');
+        Route::get('/visual-editor/block/{layoutBlock}', [VisualEditorController::class, 'editBlock'])->name('visual-editor.block.edit');
+        Route::put('/visual-editor/block/{layoutBlock}', [VisualEditorController::class, 'saveBlock'])->name('visual-editor.block.save');
 
         // AI Visual Audit
         Route::get('/ai-visual-audit', [AiVisualAuditAdminController::class, 'index'])->name('ai.visual-audit');

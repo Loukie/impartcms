@@ -43,7 +43,17 @@
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         <div class="lg:col-span-2 space-y-6">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700">Content (HTML)</label>
+                                <div class="flex items-center justify-between mb-1">
+                                    <label class="block text-sm font-medium text-gray-700">Content (HTML)</label>
+                                    @if(!$isCreate && $block->id)
+                                    <a href="{{ route('admin.visual-editor.block.edit', $block) }}"
+                                       target="_blank"
+                                       class="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 112.828 2.828L11.828 15.828A2 2 0 019 17H7v-2a2 2 0 012-2z"/></svg>
+                                        Visual Editor
+                                    </a>
+                                    @endif
+                                </div>
                                 <textarea name="content" rows="16" data-codemirror="html" class="mt-1 w-full rounded-md border-gray-300 font-mono text-sm" placeholder="Paste HTML here… supports shortcodes like [icon …] and [form …]">{{ old('content', $block->content) }}</textarea>
                                 <p class="mt-1 text-xs text-gray-500">Rendered on the public site. Shortcodes are supported.</p>
                             </div>

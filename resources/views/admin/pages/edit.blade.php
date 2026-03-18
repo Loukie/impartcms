@@ -90,7 +90,17 @@
                                 </div>
 
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700">Body</label>
+                                    <div class="flex items-center justify-between mb-1">
+                                        <label class="block text-sm font-medium text-gray-700">Body</label>
+                                        @if(!$page->wasRecentlyCreated && $page->id)
+                                        <a href="{{ route('admin.visual-editor.page.edit', $page) }}"
+                                           target="_blank"
+                                           class="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 112.828 2.828L11.828 15.828A2 2 0 019 17H7v-2a2 2 0 012-2z"/></svg>
+                                            Visual Editor
+                                        </a>
+                                        @endif
+                                    </div>
                                     <textarea name="body" rows="14"
                                               data-codemirror="html"
                                               class="mt-1 block w-full rounded-md border-gray-300 focus:border-gray-500 focus:ring-gray-500">{{ old('body', $page->body) }}</textarea>
