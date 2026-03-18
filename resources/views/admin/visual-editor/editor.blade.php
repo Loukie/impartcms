@@ -7,7 +7,7 @@
     <title>Visual Editor — {{ $title }}</title>
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        html, body { height: 100%; overflow: hidden; font-family: system-ui, sans-serif; background: #1a1a2e; }
+        html, body { height: 100%; overflow: hidden; font-family: system-ui, sans-serif; background: #1e1e1e; }
 
         /* Toolbar */
         #ve-toolbar {
@@ -16,8 +16,8 @@
             gap: 10px;
             height: 48px;
             padding: 0 16px;
-            background: #0f0f1a;
-            border-bottom: 1px solid rgba(255,255,255,.1);
+            background: #111;
+            border-bottom: 1px solid rgba(255,255,255,.08);
             position: fixed;
             top: 0; left: 0; right: 0;
             z-index: 9999;
@@ -106,11 +106,15 @@
             height: 100% !important;
         }
 
-        /* GrapesJS theme */
-        .gjs-one-bg { background: #16213e !important; }
-        .gjs-two-bg { background: #0f3460 !important; }
-        .gjs-three-bg { background: #1a1a2e !important; }
-        .gjs-four-bg { background: #0d0d1a !important; }
+        /* GrapesJS theme — standard dark grey */
+        .gjs-one-bg  { background: #383838 !important; }
+        .gjs-two-bg  { background: #2e2e2e !important; }
+        .gjs-three-bg{ background: #222 !important; }
+        .gjs-four-bg { background: #111 !important; }
+        .gjs-pn-panel{ background: #2e2e2e; }
+        .gjs-block    { border-color: #444 !important; color: #ddd !important; }
+        .gjs-block svg{ fill: #ddd !important; }
+        .gjs-block-label { color: #ccc !important; }
     </style>
 </head>
 <body>
