@@ -1,5 +1,6 @@
 import 'grapesjs/dist/css/grapes.min.css';
 import grapesjs from 'grapesjs';
+import grapesjsBlocksBasic from 'grapesjs-blocks-basic';
 
 document.addEventListener('DOMContentLoaded', () => {
     const cfg = window.__VE__ || {};
@@ -15,6 +16,13 @@ document.addEventListener('DOMContentLoaded', () => {
         // Preserve inline styles (background-image, etc.) exactly as authored.
         avoidInlineStyle: false,
         forceClass:       false,
+
+        plugins: [grapesjsBlocksBasic],
+        pluginsOpts: {
+            [grapesjsBlocksBasic]: {
+                flexGrid: true,
+            },
+        },
 
         canvas: {},
         assetManager: {
