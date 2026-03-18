@@ -49,11 +49,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function injectCanvasCSS() {
         try {
-            const iframe = editor.Canvas.getFrameEl();
-            const doc    = iframe && iframe.contentDocument;
+            // GrapesJS 0.22 — use Canvas.getDocument() for the iframe document.
+            const doc = editor.Canvas.getDocument();
             if (!doc || !doc.head) return;
 
-            // Remove previous injection if any (e.g. on re-render).
             const prev = doc.getElementById('ve-injected-css');
             if (prev) prev.remove();
 
@@ -66,8 +65,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    editor.on('load', injectCanvasCSS);
-    editor.on('canvas:frame:load', injectCanvasCSS);
+    // Try on load and also after a short delay to ensure iframe is ready.
+    editor.on('load', () => setTimeout(injectCanvasCSS, 50));
 
     // ─── Save ────────────────────────────────────────────────────────────────
     const saveBtn  = document.getElementById('ve-save');
