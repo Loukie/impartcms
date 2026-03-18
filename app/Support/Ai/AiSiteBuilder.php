@@ -420,7 +420,7 @@ class AiSiteBuilder
         $parts[] = $brief;
         $parts[] = '';
         $parts[] = 'Homepage composition requirements:';
-        $parts[] = '- Start with a full-viewport hero section immediately after navigation (min-height: 90vh on desktop).';
+        $parts[] = '- Start with a full-viewport hero section at the very top of the page (min-height: 90vh on desktop). Do NOT wrap the hero in a <nav> element.';
         $parts[] = '- Use a strong visual background with readable overlay contrast and premium spacing.';
         $parts[] = '- Include one H1, one supporting paragraph, and 1-2 meaningful CTAs in the hero.';
         $parts[] = '- Do not start the page with a small plain heading block or thin top section.';
@@ -777,8 +777,25 @@ class AiSiteBuilder
     private function stripNavigationAndFooter(string $bodyHtml): string
     {
         $body = trim($bodyHtml);
-        $body = preg_replace('/<nav\b[^>]*>.*?<\/nav>/is', '', $body, 1) ?? $body;
-        $body = preg_replace('/<footer\b[^>]*>.*?<\/footer>/is', '', $body, 1) ?? $body;
+
+        // Only strip a <nav> element if it does NOT contain <section> elements.
+        // If sections are inside the nav, it is likely page content (not just navigation)
+        // and stripping it would wipe the entire page body.
+        $body = preg_replace_callback('/<nav\b[^>]*>.*?<\/nav>/is', function (array $m): string {
+            // Keep the nav if it wraps section content — it's not a standalone nav bar.
+            if (stripos($m[0], '<section') !== false) {
+                return $m[0];
+            }
+            return '';
+        }, $body, 1) ?? $body;
+
+        $body = preg_replace_callback('/<footer\b[^>]*>.*?<\/footer>/is', function (array $m): string {
+            if (stripos($m[0], '<section') !== false) {
+                return $m[0];
+            }
+            return '';
+        }, $body, 1) ?? $body;
+
         return ltrim($body);
     }
 

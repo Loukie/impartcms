@@ -499,36 +499,24 @@ class AiSiteCloneAdminController extends Controller
 
             if ($navsAreDifferent) {
                 // Home nav — full branded style (overlay-centered etc.), homepage only.
-                $homeHeader = LayoutBlock::create([
-                    'type'        => 'header',
-                    'name'        => 'Clone: ' . $label . ' — Home Nav',
-                    'is_enabled'  => true,
-                    'target_mode' => 'only',
-                    'priority'    => 20,
-                    'content'     => $navHtml,
-                ]);
+                $homeHeader = LayoutBlock::updateOrCreate(
+                    ['name' => 'Clone: ' . $label . ' — Home Nav'],
+                    ['type' => 'header', 'is_enabled' => true, 'target_mode' => 'only', 'priority' => 20, 'content' => $navHtml]
+                );
                 $homeHeader->pages()->sync([$homepageId]);
 
                 // Site nav — compact modern top-bar for all inner pages.
-                $siteHeader = LayoutBlock::create([
-                    'type'        => 'header',
-                    'name'        => 'Clone: ' . $label . ' — Site Nav',
-                    'is_enabled'  => true,
-                    'target_mode' => 'only',
-                    'priority'    => 10,
-                    'content'     => $innerNavHtml,
-                ]);
+                $siteHeader = LayoutBlock::updateOrCreate(
+                    ['name' => 'Clone: ' . $label . ' — Site Nav'],
+                    ['type' => 'header', 'is_enabled' => true, 'target_mode' => 'only', 'priority' => 10, 'content' => $innerNavHtml]
+                );
                 $siteHeader->pages()->sync($innerPageIds);
             } else {
                 // Nav is the same for all pages — one block covers everything.
-                $header = LayoutBlock::create([
-                    'type'        => 'header',
-                    'name'        => 'Clone: ' . $label,
-                    'is_enabled'  => true,
-                    'target_mode' => 'only',
-                    'priority'    => 10,
-                    'content'     => $navHtml,
-                ]);
+                $header = LayoutBlock::updateOrCreate(
+                    ['name' => 'Clone: ' . $label, 'type' => 'header'],
+                    ['is_enabled' => true, 'target_mode' => 'only', 'priority' => 10, 'content' => $navHtml]
+                );
                 $header->pages()->sync($allPageIds);
             }
 
@@ -536,51 +524,31 @@ class AiSiteCloneAdminController extends Controller
         }
 
         if (trim($footerHtml) !== '') {
-            $footer = LayoutBlock::create([
-                'type'        => 'footer',
-                'name'        => 'Clone: ' . $label,
-                'is_enabled'  => true,
-                'target_mode' => 'only',
-                'priority'    => 10,
-                'content'     => $footerHtml,
-            ]);
+            $footer = LayoutBlock::updateOrCreate(
+                ['name' => 'Clone: ' . $label, 'type' => 'footer'],
+                ['is_enabled' => true, 'target_mode' => 'only', 'priority' => 10, 'content' => $footerHtml]
+            );
             $footer->pages()->sync($allPageIds);
             Setting::set('layout_footer_enabled', '1');
         }
 
-        if (trim($pageCss) !== '') {
-            $pageStyleSnippet = CustomSnippet::create([
-                'type'        => 'css',
-                'name'        => 'Clone: ' . $label . ' — Page Styles',
-                'position'    => 'head',
-                'is_enabled'  => true,
-                'target_mode' => 'only',
-                'content'     => $pageCss,
-            ]);
-            $pageStyleSnippet->pages()->sync($allPageIds);
-        }
-
-        if (trim($revealCss) !== '') {
-            $cssSnippet = CustomSnippet::create([
-                'type'        => 'css',
-                'name'        => 'Clone: ' . $label . ' — Reveal Animations',
-                'position'    => 'head',
-                'is_enabled'  => true,
-                'target_mode' => 'only',
-                'content'     => $revealCss,
-            ]);
+        // Merge page-specific CSS and scroll-reveal CSS into ONE snippet to avoid
+        // duplicate/conflicting stylesheets accumulating across re-clone runs.
+        // Reveal CSS comes first so page-specific overrides can win.
+        $combinedCss = trim(implode("\n\n", array_filter([trim($revealCss), trim($pageCss)])));
+        if ($combinedCss !== '') {
+            $cssSnippet = CustomSnippet::updateOrCreate(
+                ['type' => 'css', 'name' => 'Clone: ' . $label . ' — Page Styles'],
+                ['position' => 'head', 'is_enabled' => true, 'target_mode' => 'only', 'content' => $combinedCss]
+            );
             $cssSnippet->pages()->sync($allPageIds);
         }
 
         if (trim($revealJs) !== '') {
-            $jsSnippet = CustomSnippet::create([
-                'type'        => 'script',
-                'name'        => 'Clone: ' . $label . ' — Scroll Observer',
-                'position'    => 'footer',
-                'is_enabled'  => true,
-                'target_mode' => 'only',
-                'content'     => $revealJs,
-            ]);
+            $jsSnippet = CustomSnippet::updateOrCreate(
+                ['type' => 'script', 'name' => 'Clone: ' . $label . ' — Scroll Observer'],
+                ['position' => 'footer', 'is_enabled' => true, 'target_mode' => 'only', 'content' => $revealJs]
+            );
             $jsSnippet->pages()->sync($allPageIds);
         }
 
