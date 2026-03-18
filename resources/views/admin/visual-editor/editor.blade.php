@@ -67,14 +67,50 @@
         #ve-editor {
             position: fixed;
             top: 48px; left: 0; right: 0; bottom: 0;
+            overflow: hidden;
         }
 
-        /* GrapesJS theme tweaks */
+        /* Force GrapesJS to fill the container */
+        #ve-editor .gjs-editor {
+            height: 100% !important;
+        }
+        #ve-editor .gjs-editor-cont {
+            height: 100% !important;
+        }
+
+        /* Canvas area fills remaining width */
+        #ve-editor .gjs-cv-canvas {
+            top: 40px !important;
+            height: calc(100% - 40px) !important;
+            background: #f0f0f0;
+        }
+
+        /* Left panel (blocks/layers) — scrollable */
+        #ve-editor .gjs-pn-panel.gjs-pn-views-container {
+            height: calc(100% - 40px) !important;
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+        }
+
+        /* Right panel icons row */
+        #ve-editor .gjs-pn-panel.gjs-pn-views {
+            height: 40px;
+        }
+
+        /* Block manager and layer manager scroll */
+        #ve-editor .gjs-blocks-c,
+        #ve-editor .gjs-layer-manager,
+        #ve-editor .gjs-sm-sectors,
+        #ve-editor .gjs-trt-traits {
+            overflow-y: auto !important;
+            height: 100% !important;
+        }
+
+        /* GrapesJS theme */
         .gjs-one-bg { background: #16213e !important; }
         .gjs-two-bg { background: #0f3460 !important; }
         .gjs-three-bg { background: #1a1a2e !important; }
         .gjs-four-bg { background: #0d0d1a !important; }
-        .gjs-cv-canvas { background: #e8eaf0; }
     </style>
 </head>
 <body>
