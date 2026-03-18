@@ -4,18 +4,6 @@ import grapesjs from 'grapesjs';
 document.addEventListener('DOMContentLoaded', () => {
     const cfg = window.__VE__ || {};
 
-    // ─── Canvas styles ───────────────────────────────────────────────────────
-    const baseCanvasCSS = `
-      *, *::before, *::after { box-sizing: border-box; }
-      body { margin: 0; font-family: system-ui, sans-serif; }
-      img { max-width: 100%; height: auto; }
-    `;
-
-    const canvasStyles = [baseCanvasCSS];
-    if (cfg.canvasCSS && cfg.canvasCSS.trim() !== '') {
-        canvasStyles.push(cfg.canvasCSS);
-    }
-
     // ─── GrapesJS init ───────────────────────────────────────────────────────
     const editor = grapesjs.init({
         container: '#ve-editor',
@@ -28,9 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
         avoidInlineStyle: false,
         forceClass:       false,
 
-        canvas: {
-            styles: canvasStyles,
-        },
+        canvas: {},
         assetManager: {
             autoAdd: true,
             upload:  false,
@@ -52,9 +38,36 @@ document.addEventListener('DOMContentLoaded', () => {
                 close(props) { props.close(); },
             },
         },
-        // Use GrapesJS default panels — no custom panel config needed
-        panels: { defaults: [] },
     });
+
+    // ─── Inject CSS into canvas iframe after load ────────────────────────────
+    const baseCanvasCSS = `
+        *, *::before, *::after { box-sizing: border-box; }
+        body { margin: 0; }
+        img { max-width: 100%; height: auto; }
+    `;
+
+    function injectCanvasCSS() {
+        try {
+            const iframe = editor.Canvas.getFrameEl();
+            const doc    = iframe && iframe.contentDocument;
+            if (!doc || !doc.head) return;
+
+            // Remove previous injection if any (e.g. on re-render).
+            const prev = doc.getElementById('ve-injected-css');
+            if (prev) prev.remove();
+
+            const style = doc.createElement('style');
+            style.id = 've-injected-css';
+            style.textContent = baseCanvasCSS + '\n' + (cfg.canvasCSS || '');
+            doc.head.appendChild(style);
+        } catch (e) {
+            console.warn('VE: Could not inject canvas CSS', e);
+        }
+    }
+
+    editor.on('load', injectCanvasCSS);
+    editor.on('canvas:frame:load', injectCanvasCSS);
 
     // ─── Save ────────────────────────────────────────────────────────────────
     const saveBtn  = document.getElementById('ve-save');

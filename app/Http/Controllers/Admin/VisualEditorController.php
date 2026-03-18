@@ -24,8 +24,8 @@ class VisualEditorController extends Controller
         $snippetCSS = $this->resolvePageCss($page);
 
         // Resolve nav/footer LayoutBlocks for this page and strip their styles too.
-        $rawNav    = LayoutBlockRenderer::headerHtml($page);
-        $rawFooter = LayoutBlockRenderer::footerHtml($page);
+        $rawNav    = LayoutBlockRenderer::headerRaw($page);
+        $rawFooter = LayoutBlockRenderer::footerRaw($page);
         [$navHtml,    $navCss]    = $this->extractStyleBlocks($rawNav);
         [$footerHtml, $footerCss] = $this->extractStyleBlocks($rawFooter);
 
