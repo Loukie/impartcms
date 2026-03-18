@@ -6,8 +6,8 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Visual Editor — {{ $title }}</title>
     <style>
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        html, body { height: 100%; overflow: hidden; font-family: system-ui, sans-serif; background: #1e1e1e; }
+        html, body { height: 100%; overflow: hidden; margin: 0; padding: 0; font-family: system-ui, sans-serif; background: #1e1e1e; }
+        #ve-toolbar, #ve-toolbar * { box-sizing: border-box; margin: 0; padding: 0; }
 
         /* Toolbar */
         #ve-toolbar {
