@@ -1,6 +1,11 @@
 import 'grapesjs/dist/css/grapes.min.css';
-import grapesjs from 'grapesjs';
+import grapesjs            from 'grapesjs';
 import grapesjsBlocksBasic from 'grapesjs-blocks-basic';
+import grapesjsForms       from 'grapesjs-plugin-forms';
+import grapesjsCustomCode  from 'grapesjs-custom-code';
+import grapesjsTabs        from 'grapesjs-tabs';
+import grapesjsTooltip     from 'grapesjs-tooltip';
+import grapesjsTyped       from 'grapesjs-typed';
 
 document.addEventListener('DOMContentLoaded', () => {
     const cfg = window.__VE__ || {};
@@ -27,11 +32,21 @@ document.addEventListener('DOMContentLoaded', () => {
         avoidInlineStyle: false,
         forceClass:       false,
 
-        plugins: [grapesjsBlocksBasic],
+        plugins: [
+            grapesjsBlocksBasic,
+            grapesjsForms,
+            grapesjsCustomCode,
+            grapesjsTabs,
+            grapesjsTooltip,
+            grapesjsTyped,
+        ],
         pluginsOpts: {
-            [grapesjsBlocksBasic]: {
-                flexGrid: true,
-            },
+            [grapesjsBlocksBasic]: { flexGrid: true },
+            [grapesjsForms]:       {},
+            [grapesjsCustomCode]:  {},
+            [grapesjsTabs]:        {},
+            [grapesjsTooltip]:     {},
+            [grapesjsTyped]:       {},
         },
 
         canvas: {},
