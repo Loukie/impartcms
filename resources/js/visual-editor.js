@@ -48,6 +48,51 @@ document.addEventListener('DOMContentLoaded', () => {
         },
     });
 
+    // ─── Extra blocks ────────────────────────────────────────────────────────
+    const bm = editor.BlockManager;
+
+    bm.add('heading', {
+        label: 'Heading',
+        category: 'Basic',
+        content: '<h2>Your Heading Here</h2>',
+        media: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h10M4 18h7"/></svg>`,
+    });
+
+    bm.add('button', {
+        label: 'Button',
+        category: 'Basic',
+        content: '<a href="#" style="display:inline-block;padding:12px 28px;background:#2563eb;color:#fff;border-radius:6px;text-decoration:none;font-weight:600;">Click Me</a>',
+        media: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="8" width="18" height="8" rx="3"/><path d="M9 12h6"/></svg>`,
+    });
+
+    bm.add('divider', {
+        label: 'Divider',
+        category: 'Basic',
+        content: '<hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0;">',
+        media: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/></svg>`,
+    });
+
+    bm.add('quote', {
+        label: 'Quote',
+        category: 'Basic',
+        content: '<blockquote style="border-left:4px solid #2563eb;padding:12px 20px;margin:0;font-style:italic;color:#374151;">"Your quote text here."</blockquote>',
+        media: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.75-2.5-2-3H4c-1.25.5-2 1.75-2 3v4c0 1.25.75 2.5 2 3l1 1M21 21c-3 0-7-1-7-8V5c0-1.25.75-2.5 2-3h4c1.25.5 2 1.75 2 3v4c0 1.25-.75 2.5-2 3l-1 1"/></svg>`,
+    });
+
+    bm.add('section', {
+        label: 'Section',
+        category: 'Layout',
+        content: '<section style="padding:60px 20px;"><div style="max-width:1200px;margin:0 auto;"><h2>Section Title</h2><p>Section content goes here.</p></div></section>',
+        media: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 9h20"/></svg>`,
+    });
+
+    bm.add('hero', {
+        label: 'Hero',
+        category: 'Layout',
+        content: '<section style="padding:100px 20px;background:linear-gradient(135deg,#1e3a5f,#2563eb);color:#fff;text-align:center;"><h1 style="font-size:2.5rem;margin-bottom:16px;">Hero Title</h1><p style="font-size:1.1rem;margin-bottom:32px;opacity:.9;">Supporting subtitle text goes here.</p><a href="#" style="display:inline-block;padding:14px 32px;background:#fff;color:#2563eb;border-radius:6px;font-weight:700;text-decoration:none;">Get Started</a></section>',
+        media: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>`,
+    });
+
     // ─── Inject CSS into canvas iframe after load ────────────────────────────
     const baseCanvasCSS = `
         *, *::before, *::after { box-sizing: border-box; }
