@@ -154,23 +154,26 @@ class VisualEditorController extends Controller
      */
     private function wrapWithLayout(string $body, string $navHtml, string $footerHtml): string
     {
-        $nav    = $navHtml    !== '' ? '<div data-gjs-editable="false" data-gjs-selectable="false" data-gjs-hoverable="false" data-ve-role="nav">'    . $navHtml    . '</div>' : '';
-        $footer = $footerHtml !== '' ? '<div data-gjs-editable="false" data-gjs-selectable="false" data-gjs-hoverable="false" data-ve-role="footer">' . $footerHtml . '</div>' : '';
+        $nav    = $navHtml    !== '' ? '<div data-gjs-editable="false" data-gjs-selectable="false" data-gjs-hoverable="false">' . $navHtml    . '</div>' : '';
+        $footer = $footerHtml !== '' ? '<div data-gjs-editable="false" data-gjs-selectable="false" data-gjs-hoverable="false">' . $footerHtml . '</div>' : '';
 
-        return $nav . $body . $footer;
+        // Wrap body in comment markers so we can reliably extract it on save,
+        // regardless of how deeply nested the nav/footer HTML is.
+        return $nav . '<!-- ve-body-start -->' . $body . '<!-- ve-body-end -->' . $footer;
     }
 
     /**
-     * When saving, strip the nav/footer wrapper divs and return only the
-     * editable page body that was originally between them.
+     * When saving, extract only the content between the body markers.
+     * This is reliable even when nav/footer contain many nested div tags.
      */
     private function extractBodyFromLayout(string $html): string
     {
-        // Remove non-editable nav/footer wrapper divs added by wrapWithLayout().
-        $html = preg_replace('/<div[^>]+data-ve-role="nav"[^>]*>.*?<\/div>/is', '', $html);
-        $html = preg_replace('/<div[^>]+data-ve-role="footer"[^>]*>.*?<\/div>/is', '', $html);
+        if (preg_match('/<!--\s*ve-body-start\s*-->(.*?)<!--\s*ve-body-end\s*-->/is', $html, $m)) {
+            return trim($m[1]);
+        }
 
-        return trim($html ?? '');
+        // No markers found — return as-is (e.g. direct save without layout context).
+        return trim($html);
     }
 
     /**
