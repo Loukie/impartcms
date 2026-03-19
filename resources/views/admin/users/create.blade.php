@@ -7,7 +7,7 @@
             </div>
 
             <a href="{{ route('admin.users.index') }}"
-               class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 uppercase tracking-widest hover:bg-gray-50">
+               class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 hover:bg-gray-50">
                 Back to Users
             </a>
         </div>
@@ -52,7 +52,7 @@
                             <div class="flex flex-wrap items-center justify-between gap-3">
                                 <div class="text-sm font-medium text-gray-900">Password</div>
                                 <button type="button" id="gen-password"
-                                        class="inline-flex items-center px-3 py-1.5 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 uppercase tracking-widest hover:bg-gray-50">
+                                        class="inline-flex items-center px-3 py-1.5 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 hover:bg-gray-50">
                                     Generate random password
                                 </button>
                             </div>
@@ -62,7 +62,7 @@
                                 <div class="mt-2 flex items-center gap-2">
                                     <code id="generated-password" class="px-2 py-1 rounded bg-gray-100 text-gray-900 text-sm"></code>
                                     <button type="button" id="copy-password"
-                                            class="inline-flex items-center px-3 py-1.5 bg-gray-900 text-white rounded-md font-semibold text-xs uppercase tracking-widest hover:bg-gray-800">
+                                            class="inline-flex items-center px-3 py-1.5 bg-gray-900 text-white rounded-md font-semibold text-xs hover:bg-gray-800">
                                         Copy
                                     </button>
                                 </div>
@@ -104,7 +104,7 @@
 
                     <div class="mt-8 flex items-center justify-between">
                         <button type="submit" form="user-create-form"
-                                class="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-md font-semibold text-xs uppercase tracking-widest hover:bg-gray-800">
+                                class="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-md font-semibold text-xs hover:bg-gray-800">
                             Create User
                         </button>
 

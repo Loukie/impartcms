@@ -7,7 +7,7 @@
 
             <div class="flex items-center gap-3">
                 <a href="{{ route('admin.pages.index') }}"
-                   class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 uppercase tracking-widest hover:bg-gray-50">
+                   class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 hover:bg-gray-50">
                     Back to Pages
                 </a>
             </div>
@@ -90,7 +90,7 @@
                             </div>
 
                             <div class="flex items-center gap-3">
-                                <button id="blueprint-btn" type="submit" class="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-md font-semibold text-xs uppercase tracking-widest hover:bg-gray-800">
+                                <button id="blueprint-btn" type="submit" class="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-md font-semibold text-xs hover:bg-gray-800">
                                     Generate Blueprint
                                 </button>
                                 <div class="text-xs text-gray-500">Rate limit: 3 per minute</div>
@@ -162,7 +162,7 @@
                                     </div>
 
                                     <div class="flex items-center gap-3">
-                                        <button id="build-btn" type="submit" class="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-md font-semibold text-xs uppercase tracking-widest hover:bg-gray-800">
+                                        <button id="build-btn" type="submit" class="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-md font-semibold text-xs hover:bg-gray-800">
                                             Build Site
                                         </button>
                                         <a href="{{ route('admin.site-builder.create') }}" class="text-sm text-gray-600 hover:text-gray-900">Start over</a>
@@ -286,11 +286,11 @@
                         </div>
 
                         <div class="flex items-center gap-3">
-                            <a href="{{ route('admin.pages.index') }}" class="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-md font-semibold text-xs uppercase tracking-widest hover:bg-gray-800">
+                            <a href="{{ route('admin.pages.index') }}" class="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-md font-semibold text-xs hover:bg-gray-800">
                                 Go to Pages
                             </a>
 
-                            <a href="{{ route('admin.site-builder.create') }}" class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 uppercase tracking-widest hover:bg-gray-50">
+                            <a href="{{ route('admin.site-builder.create') }}" class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 hover:bg-gray-50">
                                 Build another site
                             </a>
                         </div>

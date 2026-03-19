@@ -11,13 +11,13 @@
             <div class="flex items-center gap-2">
                 @if(!$isNew)
                     <a href="{{ route('admin.forms.submissions.index', $form) }}"
-                       class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 uppercase tracking-widest hover:bg-gray-50">
+                       class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 hover:bg-gray-50">
                         Submissions
                     </a>
                 @endif
 
                 <a href="{{ route('admin.forms.index') }}"
-                   class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 uppercase tracking-widest hover:bg-gray-50">
+                   class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 hover:bg-gray-50">
                     Back
                 </a>
             </div>
@@ -84,7 +84,7 @@
                                 <div class="grid grid-cols-1 lg:grid-cols-12">
                                     {{-- Palette --}}
                                     <div class="lg:col-span-3 border-r border-slate-200 bg-white p-4">
-                                        <div class="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-3">Fields</div>
+                                        <div class="text-xs font-semibold text-slate-500 mb-3">Fields</div>
 
                                         <div data-fb-palette class="space-y-2">
                                             <div class="rounded-lg border border-slate-200 bg-white p-3 cursor-grab active:cursor-grabbing" data-fb-palette-item="1" data-type="text">
@@ -130,7 +130,7 @@
 
                                     {{-- Inspector --}}
                                     <div class="lg:col-span-3 border-l border-slate-200 bg-white p-4" data-fb-inspector>
-                                        <div class="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-3">Field settings</div>
+                                        <div class="text-xs font-semibold text-slate-500 mb-3">Field settings</div>
 
                                         <div data-fb-inspector-empty class="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
                                             Select a field to edit.
@@ -182,7 +182,7 @@
 
                                         {{-- Form-level settings (always visible) --}}
                                         <div class="mt-6 pt-4 border-t border-slate-200" data-fb-form-settings>
-                                            <div class="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-3">Form settings</div>
+                                            <div class="text-xs font-semibold text-slate-500 mb-3">Form settings</div>
 
                                             {{-- Pricing --}}
                                             <div class="rounded-lg border border-slate-200 bg-slate-50 p-3" data-fb-pricing>
@@ -259,14 +259,14 @@
 
                             <div class="flex items-center justify-between gap-3">
                                 <button type="submit"
-                                        class="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-md font-semibold text-xs uppercase tracking-widest hover:bg-gray-800">
+                                        class="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-md font-semibold text-xs hover:bg-gray-800">
                                     Save
                                 </button>
 
                                 @if(!$isNew)
                                     <button type="button"
                                             onclick="if(confirm('Move this form to trash?')) document.getElementById('delete-form').submit();"
-                                            class="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-md font-semibold text-xs uppercase tracking-widest hover:bg-red-700">
+                                            class="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-md font-semibold text-xs hover:bg-red-700">
                                         Move to Trash
                                     </button>
                                 @endif

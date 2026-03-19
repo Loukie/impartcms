@@ -7,13 +7,13 @@
             </div>
             <div class="flex items-center gap-3">
                 <a href="{{ route('admin.media.trash') }}"
-                   class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 uppercase tracking-widest hover:bg-gray-50">
+                   class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 hover:bg-gray-50">
                     Trash
                 </a>
                 <button type="button"
                         x-data
                         @click="$dispatch('media-toggle-upload')"
-                        class="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-md font-semibold text-xs uppercase tracking-widest hover:bg-gray-800">
+                        class="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-md font-semibold text-xs hover:bg-gray-800">
                     Upload
                 </button>
             </div>
@@ -72,7 +72,7 @@
                                     @csrf
                                     <input type="file" name="files[]" multiple class="block w-full text-sm text-zinc-600" />
                                     <button type="submit"
-                                            class="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-md font-semibold text-xs uppercase tracking-widest hover:bg-gray-800 whitespace-nowrap">
+                                            class="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-md font-semibold text-xs hover:bg-gray-800 whitespace-nowrap">
                                         Upload files
                                     </button>
                                 </form>
@@ -128,13 +128,13 @@
                                        class="border border-gray-300 rounded-md text-sm px-3 py-2 w-48"
                                        placeholder="Search…" />
 
-                                <button class="inline-flex items-center px-3 py-2 bg-gray-900 text-white rounded-md font-semibold text-xs uppercase tracking-widest hover:bg-gray-800">Apply</button>
+                                <button class="inline-flex items-center px-3 py-2 bg-gray-900 text-white rounded-md font-semibold text-xs hover:bg-gray-800">Apply</button>
                                 <a href="{{ route('admin.media.index', ['type' => $currentType]) }}"
-                                   class="inline-flex items-center px-3 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 uppercase tracking-widest hover:bg-gray-50">Reset</a>
+                                   class="inline-flex items-center px-3 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 hover:bg-gray-50">Reset</a>
                             </form>
                             <button type="button"
                                     @click="bulkMode = !bulkMode; if(!bulkMode) selected=[]"
-                                    class="inline-flex items-center px-3 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 uppercase tracking-widest hover:bg-gray-50"
+                                    class="inline-flex items-center px-3 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 hover:bg-gray-50"
                                     x-text="bulkMode ? 'Cancel' : 'Select'">
                             </button>
                         @endif
@@ -149,13 +149,13 @@
                                 @csrf
                                 <div class="mb-4 flex items-center gap-2 flex-wrap" x-show="bulkMode">
                                     <button type="button"
-                                            class="inline-flex items-center px-3 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 uppercase tracking-widest hover:bg-gray-50"
+                                            class="inline-flex items-center px-3 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 hover:bg-gray-50"
                                             @click="selectAllPage()">Select all</button>
                                     <button type="button"
-                                            class="inline-flex items-center px-3 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 uppercase tracking-widest hover:bg-gray-50"
+                                            class="inline-flex items-center px-3 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 hover:bg-gray-50"
                                             @click="clearSelected()">Clear</button>
                                     <button type="submit"
-                                            class="inline-flex items-center px-3 py-2 bg-red-600 text-white rounded-md font-semibold text-xs uppercase tracking-widest hover:bg-red-700"
+                                            class="inline-flex items-center px-3 py-2 bg-red-600 text-white rounded-md font-semibold text-xs hover:bg-red-700"
                                             :disabled="selected.length === 0"
                                             onclick="return confirm('Move selected to trash?')">
                                         Trash selected (<span x-text="selected.length"></span>)

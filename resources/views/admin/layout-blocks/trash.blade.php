@@ -4,7 +4,7 @@
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">Header &amp; Footer Trash</h2>
 
             <a href="{{ route('admin.layout-blocks.index') }}"
-               class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 uppercase tracking-widest hover:bg-gray-50">
+               class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 hover:bg-gray-50">
                 Back
             </a>
         </div>
@@ -23,7 +23,7 @@
                 <form method="POST" action="{{ route('admin.layout-blocks.trash.bulk') }}" id="bulkLayoutTrashForm" onsubmit="return confirm('Permanently delete selected blocks? This cannot be undone.');">
                     @csrf
                     <div class="p-4 border-b border-gray-200">
-                        <button type="submit" id="bulkLayoutTrashBtn" disabled class="inline-flex items-center px-3 py-1.5 bg-red-600 text-white rounded-md text-xs font-semibold uppercase tracking-widest hover:bg-red-700 disabled:opacity-50">
+                        <button type="submit" id="bulkLayoutTrashBtn" disabled class="inline-flex items-center px-3 py-1.5 bg-red-600 text-white rounded-md text-xs font-semibold hover:bg-red-700 disabled:opacity-50">
                             Delete Selected
                         </button>
                     </div>
@@ -53,13 +53,13 @@
                                 <div class="inline-flex items-center gap-2">
                                     <form method="POST" action="{{ route('admin.layout-blocks.restore', $b) }}">
                                         @csrf
-                                        <button class="inline-flex items-center px-3 py-1.5 bg-white border border-gray-300 rounded-md text-xs font-semibold text-gray-900 uppercase tracking-widest hover:bg-gray-50" type="submit">Restore</button>
+                                        <button class="inline-flex items-center px-3 py-1.5 bg-white border border-gray-300 rounded-md text-xs font-semibold text-gray-900 hover:bg-gray-50" type="submit">Restore</button>
                                     </form>
 
                                     <form method="POST" action="{{ route('admin.layout-blocks.force-destroy', $b) }}" onsubmit="return confirm('Delete permanently?')">
                                         @csrf
                                         @method('DELETE')
-                                        <button class="inline-flex items-center px-3 py-1.5 bg-red-600 text-white rounded-md text-xs font-semibold uppercase tracking-widest hover:bg-red-700" type="submit">Delete</button>
+                                        <button class="inline-flex items-center px-3 py-1.5 bg-red-600 text-white rounded-md text-xs font-semibold hover:bg-red-700" type="submit">Delete</button>
                                     </form>
                                 </div>
                             </td>

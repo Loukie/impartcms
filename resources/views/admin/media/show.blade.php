@@ -55,7 +55,7 @@
                                            value="{{ $media->url }}" />
                                     <button type="button"
                                             onclick="navigator.clipboard.writeText(document.getElementById('mediaPublicUrl').value)"
-                                            class="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-md font-semibold text-xs uppercase tracking-widest hover:bg-gray-800">
+                                            class="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-md font-semibold text-xs hover:bg-gray-800">
                                         Copy
                                     </button>
                                 </div>
@@ -88,7 +88,7 @@
 
                                 <div class="mt-6 flex items-center justify-between">
                                     <button type="submit"
-                                            class="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-md font-semibold text-xs uppercase tracking-widest hover:bg-gray-800">
+                                            class="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-md font-semibold text-xs hover:bg-gray-800">
                                         Save
                                     </button>
 
@@ -102,7 +102,7 @@
                                 @method('DELETE')
                                 <button type="submit"
                                         @if(($usage['is_used'] ?? false)) disabled @endif
-                                        class="inline-flex items-center px-4 py-2 rounded-md font-semibold text-xs uppercase tracking-widest
+                                        class="inline-flex items-center px-4 py-2 rounded-md font-semibold text-xs
                                                {{ ($usage['is_used'] ?? false) ? 'bg-red-200 text-red-700 cursor-not-allowed' : 'bg-red-600 text-white hover:bg-red-500' }}">
                                     Delete
                                 </button>

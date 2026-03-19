@@ -106,17 +106,17 @@
 
                             <div class="flex items-center gap-3">
                                 <a href="{{ route('admin.pages.index') }}"
-                                   class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 uppercase tracking-widest hover:bg-gray-50">
+                                   class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 hover:bg-gray-50">
                                     Cancel
                                 </a>
 
                                 <button type="submit" name="action" value="draft"
-                                        class="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-md font-semibold text-xs uppercase tracking-widest hover:bg-gray-800">
+                                        class="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-md font-semibold text-xs hover:bg-gray-800">
                                     Generate Draft
                                 </button>
 
                                 <button type="submit" name="action" value="publish"
-                                        class="inline-flex items-center px-4 py-2 bg-emerald-700 text-white rounded-md font-semibold text-xs uppercase tracking-widest hover:bg-emerald-800">
+                                        class="inline-flex items-center px-4 py-2 bg-emerald-700 text-white rounded-md font-semibold text-xs hover:bg-emerald-800">
                                     Generate &amp; Publish
                                 </button>
                             </div>

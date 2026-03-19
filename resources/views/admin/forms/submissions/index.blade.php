@@ -8,7 +8,7 @@
 
             <div class="flex items-center gap-2">
                 <a href="{{ route('admin.forms.edit', $form) }}"
-                   class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 uppercase tracking-widest hover:bg-gray-50">
+                   class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 hover:bg-gray-50">
                     Back to builder
                 </a>
             </div>

@@ -7,7 +7,7 @@
                 </h2>
 
                 <a href="{{ route('admin.pages.index') }}"
-                   class="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-md font-semibold text-xs uppercase tracking-widest hover:bg-gray-800">
+                   class="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-md font-semibold text-xs hover:bg-gray-800">
                     Back to Pages
                 </a>
             </div>

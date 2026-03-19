@@ -8,17 +8,17 @@
 
             <div class="flex items-center gap-3">
                 <a href="{{ route('admin.forms.trash') }}"
-                   class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 uppercase tracking-widest hover:bg-gray-50">
+                   class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 hover:bg-gray-50">
                     Trash
                 </a>
 
                 <a href="{{ route('admin.forms.settings.edit') }}"
-                   class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 uppercase tracking-widest hover:bg-gray-50">
+                   class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 hover:bg-gray-50">
                     Settings
                 </a>
 
                 <a href="{{ route('admin.forms.create') }}"
-                   class="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-md font-semibold text-xs uppercase tracking-widest hover:bg-gray-800">
+                   class="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-md font-semibold text-xs hover:bg-gray-800">
                     New Form
                 </a>
             </div>
@@ -87,12 +87,12 @@
                                            class="w-full sm:w-64 rounded-md border-gray-300" />
 
                                     <button type="submit"
-                                            class="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-md font-semibold text-xs uppercase tracking-widest hover:bg-gray-800">
+                                            class="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-md font-semibold text-xs hover:bg-gray-800">
                                         Apply
                                     </button>
 
                                     <a href="{{ route('admin.forms.index') }}"
-                                       class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 uppercase tracking-widest hover:bg-gray-50">
+                                       class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 hover:bg-gray-50">
                                         Reset
                                     </a>
                                 </div>
@@ -153,12 +153,12 @@
                                         <td class="px-3 py-2 whitespace-nowrap text-right">
                                             <div class="flex items-center justify-end gap-2">
                                                 <a href="{{ route('admin.forms.submissions.index', $form) }}"
-                                                   class="inline-flex items-center px-3 py-1.5 bg-white border border-gray-300 rounded-md text-xs font-semibold text-gray-900 uppercase tracking-widest hover:bg-gray-50">
+                                                   class="inline-flex items-center px-3 py-1.5 bg-white border border-gray-300 rounded-md text-xs font-semibold text-gray-900 hover:bg-gray-50">
                                                     Submissions
                                                 </a>
 
                                                 <a href="{{ route('admin.forms.edit', $form) }}"
-                                                   class="inline-flex items-center px-3 py-1.5 bg-white border border-gray-300 rounded-md text-xs font-semibold text-gray-900 uppercase tracking-widest hover:bg-gray-50">
+                                                   class="inline-flex items-center px-3 py-1.5 bg-white border border-gray-300 rounded-md text-xs font-semibold text-gray-900 hover:bg-gray-50">
                                                     Edit
                                                 </a>
 
@@ -168,7 +168,7 @@
                                                     @csrf
                                                     @method('DELETE')
                                                     <button type="submit"
-                                                            class="inline-flex items-center px-3 py-1.5 bg-red-600 text-white rounded-md text-xs font-semibold uppercase tracking-widest hover:bg-red-700">
+                                                            class="inline-flex items-center px-3 py-1.5 bg-red-600 text-white rounded-md text-xs font-semibold hover:bg-red-700">
                                                         Trash
                                                     </button>
                                                 </form>

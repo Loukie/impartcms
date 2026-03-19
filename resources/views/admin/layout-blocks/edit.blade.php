@@ -7,7 +7,7 @@
 
             <div class="flex items-center gap-3">
                 <a href="{{ route('admin.layout-blocks.index') }}"
-                   class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 uppercase tracking-widest hover:bg-gray-50">
+                   class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 hover:bg-gray-50">
                     Back
                 </a>
             </div>
@@ -115,7 +115,7 @@
                             </div>
 
                             <div class="flex items-center gap-3">
-                                <button type="submit" class="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-md font-semibold text-xs uppercase tracking-widest hover:bg-gray-800">
+                                <button type="submit" class="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-md font-semibold text-xs hover:bg-gray-800">
                                     Save
                                 </button>
                             </div>
@@ -128,7 +128,7 @@
                         <form method="POST" action="{{ route('admin.layout-blocks.destroy', $block) }}" onsubmit="return confirm('Move to trash?')" class="inline">
                             @csrf
                             @method('DELETE')
-                            <button type="submit" class="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-md font-semibold text-xs uppercase tracking-widest hover:bg-red-700">
+                            <button type="submit" class="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-md font-semibold text-xs hover:bg-red-700">
                                 Trash
                             </button>
                         </form>
