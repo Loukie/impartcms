@@ -25,7 +25,7 @@
                     <div class="prose max-w-none">
                         <p>
                             This tool captures a screenshot of one of your pages and a screenshot of a reference site,
-                            then asks the AI to redesign your page to match the reference’s hierarchy and vibe.
+                            then asks the AI to redesign your page to match the reference's hierarchy and vibe.
                         </p>
                         <ul>
                             <li>✅ Saves as <strong>draft</strong> (safe)</li>

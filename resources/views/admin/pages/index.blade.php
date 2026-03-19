@@ -178,35 +178,35 @@
 
                                         <td class="px-3 py-2 whitespace-nowrap text-right">
                                             <div class="flex items-center justify-end gap-2">
-                                                @if($page->status === ‘published’)
-                                                    <a href="{{ url(‘/’ . ltrim($page->slug, ‘/’)) }}" target="_blank"
+                                                @if($page->status === 'published')
+                                                    <a href="{{ url('/' . ltrim($page->slug, '/')) }}" target="_blank"
                                                        class="inline-flex items-center px-3 py-1.5 bg-white border border-gray-300 rounded-md text-xs font-semibold text-gray-900 uppercase tracking-widest hover:bg-gray-50">
                                                         View Live
                                                     </a>
                                                 @else
-                                                    <a href="{{ route(‘pages.preview’, $page) }}" target="_blank"
+                                                    <a href="{{ route('pages.preview', $page) }}" target="_blank"
                                                        class="inline-flex items-center px-3 py-1.5 bg-white border border-gray-300 rounded-md text-xs font-semibold text-gray-900 uppercase tracking-widest hover:bg-gray-50">
                                                         Preview
                                                     </a>
                                                 @endif
 
-                                                <a href="{{ route(‘admin.pages.edit’, $page) }}"
+                                                <a href="{{ route('admin.pages.edit', $page) }}"
                                                    class="inline-flex items-center px-3 py-1.5 bg-white border border-gray-300 rounded-md text-xs font-semibold text-gray-900 uppercase tracking-widest hover:bg-gray-50">
                                                     Edit
                                                 </a>
 
                                                 @if($page->is_homepage)
-                                                    <form method="POST" action="{{ route(‘admin.pages.unsetHomepage’, $page) }}" class="inline"
-                                                          onsubmit="return confirm(‘Unset this page as the homepage?’);">
+                                                    <form method="POST" action="{{ route('admin.pages.unsetHomepage', $page) }}" class="inline"
+                                                          onsubmit="return confirm('Unset this page as the homepage?');">
                                                         @csrf
                                                         <button type="submit"
                                                                 class="inline-flex items-center px-3 py-1.5 bg-white border border-gray-300 rounded-md text-xs font-semibold text-gray-900 uppercase tracking-widest hover:bg-gray-50">
                                                             Unset Home
                                                         </button>
                                                     </form>
-                                                @elseif($page->status === ‘published’)
-                                                    <form method="POST" action="{{ route(‘admin.pages.setHomepage’, $page) }}" class="inline"
-                                                          onsubmit="return confirm(‘Set this page as the homepage (/)?’);">
+                                                @elseif($page->status === 'published')
+                                                    <form method="POST" action="{{ route('admin.pages.setHomepage', $page) }}" class="inline"
+                                                          onsubmit="return confirm('Set this page as the homepage (/)?');">
                                                         @csrf
                                                         <button type="submit"
                                                                 class="inline-flex items-center px-3 py-1.5 bg-white border border-gray-300 rounded-md text-xs font-semibold text-gray-900 uppercase tracking-widest hover:bg-gray-50">
@@ -216,10 +216,10 @@
                                                 @endif
 
                                                 @if(!$page->is_homepage)
-                                                    <form method="POST" action="{{ route(‘admin.pages.destroy’, $page) }}"
-                                                          onsubmit="return confirm(‘Move this page to trash?’);" class="inline">
+                                                    <form method="POST" action="{{ route('admin.pages.destroy', $page) }}"
+                                                          onsubmit="return confirm('Move this page to trash?');" class="inline">
                                                         @csrf
-                                                        @method(‘DELETE’)
+                                                        @method('DELETE')
                                                         <button type="submit"
                                                                 class="inline-flex items-center px-3 py-1.5 bg-red-600 text-white rounded-md text-xs font-semibold uppercase tracking-widest hover:bg-red-700">
                                                             Trash

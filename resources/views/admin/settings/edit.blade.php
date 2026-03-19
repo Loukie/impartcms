@@ -335,7 +335,7 @@
                                 <pre class="mt-3 text-xs bg-white border rounded-lg p-3 overflow-auto"><code>[icon kind="fa" value="fa-solid fa-house" size="24" colour="#111827"]
 [icon kind="lucide" value="home" size="24" colour="#111827"]</code></pre>
                                 <div class="mt-3 text-xs text-gray-600">
-                                    Alternative JSON form (use <span class="font-semibold">single quotes</span> so JSON quotes don’t break the shortcode):
+                                    Alternative JSON form (use <span class="font-semibold">single quotes</span> so JSON quotes don't break the shortcode):
                                 </div>
                                 <pre class="mt-2 text-xs bg-white border rounded-lg p-3 overflow-auto"><code>[icon data='{"kind":"fa","value":"fa-solid fa-house","size":24,"colour":"#111827"}']</code></pre>
                             </div>

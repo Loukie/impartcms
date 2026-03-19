@@ -37,7 +37,7 @@
                                 <option value="">— Select a page —</option>
                             </select>
                         </div>
-                        <p class="mt-1 text-[11px] text-slate-500">Tip: if you’re editing a page, it will auto-select.</p>
+                        <p class="mt-1 text-[11px] text-slate-500">Tip: if you're editing a page, it will auto-select.</p>
                     </div>
 
                     <div>

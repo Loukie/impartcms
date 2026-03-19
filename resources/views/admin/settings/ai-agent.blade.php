@@ -182,7 +182,7 @@
                                            value="{{ old('openAiModelCustom', $openAiModelCustom) }}"
                                            placeholder="e.g. gpt-4o"
                                            class="mt-1 block w-full rounded-md border-gray-300 focus:border-gray-500 focus:ring-gray-500" />
-                                    <p class="mt-1 text-xs text-gray-500">Only use this if your model isn’t in the list.</p>
+                                    <p class="mt-1 text-xs text-gray-500">Only use this if your model isn't in the list.</p>
                                 </div>
 
                                 @error('openai_model') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror

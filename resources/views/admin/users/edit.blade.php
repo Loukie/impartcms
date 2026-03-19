@@ -59,7 +59,7 @@
                             </div>
 
                             <div id="generated-wrap" class="mt-3 hidden">
-                                <div class="text-xs text-gray-600">Generated (copy this now — it won’t be shown again):</div>
+                                <div class="text-xs text-gray-600">Generated (copy this now — it won't be shown again):</div>
                                 <div class="mt-2 flex items-center gap-2">
                                     <code id="generated-password" class="px-2 py-1 rounded bg-gray-100 text-gray-900 text-sm"></code>
                                     <button type="button" id="copy-password"
@@ -133,13 +133,13 @@
                                 </button>
                             </form>
                         @else
-                            <span class="text-sm text-gray-500">You can’t trash yourself here.</span>
+                            <span class="text-sm text-gray-500">You can't trash yourself here.</span>
                         @endif
                     </div>
 
                     @if($user->is_admin && $adminCount <= 1)
                         <div class="mt-6 p-3 rounded bg-yellow-50 text-yellow-800 border border-yellow-200">
-                            This is the last admin account. You won’t be able to remove admin access or trash this user until another admin exists.
+                            This is the last admin account. You won't be able to remove admin access or trash this user until another admin exists.
                         </div>
                     @endif
                 </div>

@@ -73,7 +73,7 @@
                                     <option value="inline" @selected($mode === 'inline')>Inline styles (recommended)</option>
                                     <option value="classes" @selected($mode === 'classes')>Classes (advanced)</option>
                                 </select>
-                                <p class="mt-1 text-xs text-gray-500">Your front-end theme doesn’t always load app CSS, so inline is safest.</p>
+                                <p class="mt-1 text-xs text-gray-500">Your front-end theme doesn't always load app CSS, so inline is safest.</p>
                                 @error('style_mode') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                             </div>
 

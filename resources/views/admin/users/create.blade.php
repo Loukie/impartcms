@@ -58,7 +58,7 @@
                             </div>
 
                             <div id="generated-wrap" class="mt-3 hidden">
-                                <div class="text-xs text-gray-600">Generated (copy this now — it won’t be shown again):</div>
+                                <div class="text-xs text-gray-600">Generated (copy this now — it won't be shown again):</div>
                                 <div class="mt-2 flex items-center gap-2">
                                     <code id="generated-password" class="px-2 py-1 rounded bg-gray-100 text-gray-900 text-sm"></code>
                                     <button type="button" id="copy-password"

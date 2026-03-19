@@ -151,24 +151,24 @@
 
                                     <td class="px-3 py-2 whitespace-nowrap text-right">
                                         <div class="flex items-center justify-end gap-2">
-                                            <a href="{{ route(‘admin.users.edit’, $user) }}"
+                                            <a href="{{ route('admin.users.edit', $user) }}"
                                                class="inline-flex items-center px-3 py-1.5 bg-white border border-gray-300 rounded-md text-xs font-semibold text-gray-900 uppercase tracking-widest hover:bg-gray-50">
                                                 Edit
                                             </a>
 
                                             @if(auth()->id() !== $user->id)
-                                                <form method="POST" action="{{ route(‘admin.users.toggleAdmin’, $user) }}" class="inline"
-                                                      onsubmit="return confirm(‘{{ $user->is_admin ? ‘Remove admin access for this user?’ : ‘Promote this user to admin?’ }}’);">
+                                                <form method="POST" action="{{ route('admin.users.toggleAdmin', $user) }}" class="inline"
+                                                      onsubmit="return confirm('{{ $user->is_admin ? 'Remove admin access for this user?' : 'Promote this user to admin?' }}');">
                                                     @csrf
                                                     <button type="submit"
                                                             class="inline-flex items-center px-3 py-1.5 bg-white border border-gray-300 rounded-md text-xs font-semibold text-gray-900 uppercase tracking-widest hover:bg-gray-50">
-                                                        {{ $user->is_admin ? ‘Remove Admin’ : ‘Make Admin’ }}
+                                                        {{ $user->is_admin ? 'Remove Admin' : 'Make Admin' }}
                                                     </button>
                                                 </form>
                                             @else
                                                 <span class="inline-flex items-center px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-md text-xs font-semibold text-gray-400 uppercase tracking-widest cursor-not-allowed"
-                                                      title="You can’t change your own role here.">
-                                                    {{ $user->is_admin ? ‘Admin’ : ‘Member’ }}
+                                                      title="You can't change your own role here.">
+                                                    {{ $user->is_admin ? 'Admin' : 'Member' }}
                                                 </span>
                                             @endif
 
@@ -177,11 +177,11 @@
                                             @endphp
 
                                             @if($canTrash)
-                                                <form method="POST" action="{{ route(‘admin.users.destroy’, $user) }}"
-                                                      onsubmit="return confirm(‘Move this user to trash?’);"
+                                                <form method="POST" action="{{ route('admin.users.destroy', $user) }}"
+                                                      onsubmit="return confirm('Move this user to trash?');"
                                                       class="inline">
                                                     @csrf
-                                                    @method(‘DELETE’)
+                                                    @method('DELETE')
                                                     <button type="submit"
                                                             class="inline-flex items-center px-3 py-1.5 bg-red-600 text-white rounded-md text-xs font-semibold uppercase tracking-widest hover:bg-red-700">
                                                         Trash
@@ -189,7 +189,7 @@
                                                 </form>
                                             @else
                                                 <span class="inline-flex items-center px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-md text-xs font-semibold text-gray-400 uppercase tracking-widest cursor-not-allowed"
-                                                      title="{{ auth()->id() === $user->id ? ‘You can\’t trash yourself.’ : ‘You can\’t trash the last admin.’ }}">
+                                                      title="{{ auth()->id() === $user->id ? 'You can\'t trash yourself.' : 'You can\'t trash the last admin.' }}">
                                                     Trash
                                                 </span>
                                             @endif

@@ -119,7 +119,7 @@
                                                 </form>
                                                 @else
                                                     <span class="text-gray-400 font-semibold text-sm cursor-not-allowed"
-                                                          title="You can’t permanently delete the homepage. Set a different homepage first.">
+                                                          title="You can't permanently delete the homepage. Set a different homepage first.">
                                                         Delete Permanently
                                                     </span>
                                                 @endif
