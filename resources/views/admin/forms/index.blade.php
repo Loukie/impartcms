@@ -49,20 +49,18 @@
                     @endphp
 
                     <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                        <div class="text-sm text-gray-600">
+                        <div class="flex items-center gap-1 text-sm">
                             <a href="{{ route('admin.forms.index', $baseTabQuery) }}"
-                               class="{{ $isAll ? 'font-semibold text-gray-900' : 'hover:text-gray-900' }}">
-                                All <span class="text-gray-500">({{ $counts['all'] ?? 0 }})</span>
+                               class="px-3 py-1.5 rounded-lg font-medium transition-colors {{ $isAll ? 'bg-zinc-100 text-zinc-900' : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-50' }}">
+                                All <span class="text-zinc-400 text-xs">({{ $counts['all'] ?? 0 }})</span>
                             </a>
-                            <span class="mx-2 text-gray-300">|</span>
                             <a href="{{ route('admin.forms.index', array_merge($baseTabQuery, ['status' => 'active'])) }}"
-                               class="{{ $isActive ? 'font-semibold text-gray-900' : 'hover:text-gray-900' }}">
-                                Active <span class="text-gray-500">({{ $counts['active'] ?? 0 }})</span>
+                               class="px-3 py-1.5 rounded-lg font-medium transition-colors {{ $isActive ? 'bg-zinc-100 text-zinc-900' : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-50' }}">
+                                Active <span class="text-zinc-400 text-xs">({{ $counts['active'] ?? 0 }})</span>
                             </a>
-                            <span class="mx-2 text-gray-300">|</span>
                             <a href="{{ route('admin.forms.index', array_merge($baseTabQuery, ['status' => 'inactive'])) }}"
-                               class="{{ $isInactive ? 'font-semibold text-gray-900' : 'hover:text-gray-900' }}">
-                                Inactive <span class="text-gray-500">({{ $counts['inactive'] ?? 0 }})</span>
+                               class="px-3 py-1.5 rounded-lg font-medium transition-colors {{ $isInactive ? 'bg-zinc-100 text-zinc-900' : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-50' }}">
+                                Inactive <span class="text-zinc-400 text-xs">({{ $counts['inactive'] ?? 0 }})</span>
                             </a>
                         </div>
 
@@ -160,7 +158,7 @@
                                                 </a>
 
                                                 <a href="{{ route('admin.forms.edit', $form) }}"
-                                                   class="text-indigo-600 hover:text-indigo-900 font-semibold text-sm">
+                                                   class="text-violet-600 hover:text-violet-900 font-semibold text-sm">
                                                     Edit
                                                 </a>
 

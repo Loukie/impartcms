@@ -92,11 +92,10 @@
                         </div>
                     </form>
 
-                    <div class="mt-6 flex flex-wrap items-center gap-2">
-                        <span class="text-xs text-gray-500">Counts:</span>
-                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs bg-gray-100 text-gray-700">All {{ $counts['all'] }}</span>
-                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs bg-green-100 text-green-700">Enabled {{ $counts['enabled'] }}</span>
-                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs bg-yellow-100 text-yellow-800">Disabled {{ $counts['disabled'] }}</span>
+                    <div class="mt-4 flex flex-wrap items-center gap-2">
+                        <span class="px-2 py-1 text-xs rounded border bg-zinc-50 text-zinc-700 border-zinc-200">All {{ $counts['all'] }}</span>
+                        <span class="px-2 py-1 text-xs rounded border bg-green-50 text-green-800 border-green-200">Enabled {{ $counts['enabled'] }}</span>
+                        <span class="px-2 py-1 text-xs rounded border bg-yellow-50 text-yellow-800 border-yellow-200">Disabled {{ $counts['disabled'] }}</span>
                     </div>
                 </div>
             </div>
@@ -144,9 +143,9 @@
                             </td>
                             <td class="px-6 py-4">
                                 @if($b->is_enabled)
-                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs bg-green-100 text-green-700">Enabled</span>
+                                    <span class="px-2 py-1 text-xs rounded border bg-green-50 text-green-800 border-green-200">Enabled</span>
                                 @else
-                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs bg-yellow-100 text-yellow-800">Disabled</span>
+                                    <span class="px-2 py-1 text-xs rounded border bg-yellow-50 text-yellow-800 border-yellow-200">Disabled</span>
                                 @endif
                             </td>
                             <td class="px-6 py-4 text-right">

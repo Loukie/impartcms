@@ -41,20 +41,18 @@
                     @endphp
 
                     <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                        <div class="text-sm text-gray-600">
+                        <div class="flex items-center gap-1 text-sm">
                             <a href="{{ route('admin.snippets.index', $baseTabQuery) }}"
-                               class="{{ $isAll ? 'font-semibold text-gray-900' : 'hover:text-gray-900' }}">
-                                All <span class="text-gray-500">({{ $counts['all'] ?? 0 }})</span>
+                               class="px-3 py-1.5 rounded-lg font-medium transition-colors {{ $isAll ? 'bg-zinc-100 text-zinc-900' : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-50' }}">
+                                All <span class="text-zinc-400 text-xs">({{ $counts['all'] ?? 0 }})</span>
                             </a>
-                            <span class="mx-2 text-gray-300">|</span>
                             <a href="{{ route('admin.snippets.index', array_merge($baseTabQuery, ['status' => 'enabled'])) }}"
-                               class="{{ $isEnabled ? 'font-semibold text-gray-900' : 'hover:text-gray-900' }}">
-                                Enabled <span class="text-gray-500">({{ $counts['enabled'] ?? 0 }})</span>
+                               class="px-3 py-1.5 rounded-lg font-medium transition-colors {{ $isEnabled ? 'bg-zinc-100 text-zinc-900' : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-50' }}">
+                                Enabled <span class="text-zinc-400 text-xs">({{ $counts['enabled'] ?? 0 }})</span>
                             </a>
-                            <span class="mx-2 text-gray-300">|</span>
                             <a href="{{ route('admin.snippets.index', array_merge($baseTabQuery, ['status' => 'disabled'])) }}"
-                               class="{{ $isDisabled ? 'font-semibold text-gray-900' : 'hover:text-gray-900' }}">
-                                Disabled <span class="text-gray-500">({{ $counts['disabled'] ?? 0 }})</span>
+                               class="px-3 py-1.5 rounded-lg font-medium transition-colors {{ $isDisabled ? 'bg-zinc-100 text-zinc-900' : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-50' }}">
+                                Disabled <span class="text-zinc-400 text-xs">({{ $counts['disabled'] ?? 0 }})</span>
                             </a>
                         </div>
 
@@ -151,7 +149,7 @@
                                         <td class="px-3 py-2 whitespace-nowrap text-right">
                                             <div class="flex items-center justify-end gap-4">
                                                 <a href="{{ route('admin.snippets.edit', $snippet) }}"
-                                                   class="text-indigo-600 hover:text-indigo-900 font-semibold text-sm">Edit</a>
+                                                   class="text-violet-600 hover:text-violet-900 font-semibold text-sm">Edit</a>
 
                                                 <form method="POST" action="{{ route('admin.snippets.destroy', $snippet) }}"
                                                       onsubmit="return confirm('Move this snippet to trash?');"

@@ -48,20 +48,18 @@
                     @endphp
 
                     <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                        <div class="text-sm text-gray-600">
+                        <div class="flex items-center gap-1 text-sm">
                             <a href="{{ route('admin.users.index', $baseTabQuery) }}"
-                               class="{{ $isAll ? 'font-semibold text-gray-900' : 'hover:text-gray-900' }}">
-                                All <span class="text-gray-500">({{ $counts['all'] ?? 0 }})</span>
+                               class="px-3 py-1.5 rounded-lg font-medium transition-colors {{ $isAll ? 'bg-zinc-100 text-zinc-900' : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-50' }}">
+                                All <span class="text-zinc-400 text-xs">({{ $counts['all'] ?? 0 }})</span>
                             </a>
-                            <span class="mx-2 text-gray-300">|</span>
                             <a href="{{ route('admin.users.index', array_merge($baseTabQuery, ['role' => 'admin'])) }}"
-                               class="{{ $isAdmins ? 'font-semibold text-gray-900' : 'hover:text-gray-900' }}">
-                                Admins <span class="text-gray-500">({{ $counts['admins'] ?? 0 }})</span>
+                               class="px-3 py-1.5 rounded-lg font-medium transition-colors {{ $isAdmins ? 'bg-zinc-100 text-zinc-900' : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-50' }}">
+                                Admins <span class="text-zinc-400 text-xs">({{ $counts['admins'] ?? 0 }})</span>
                             </a>
-                            <span class="mx-2 text-gray-300">|</span>
                             <a href="{{ route('admin.users.index', array_merge($baseTabQuery, ['role' => 'member'])) }}"
-                               class="{{ $isMembers ? 'font-semibold text-gray-900' : 'hover:text-gray-900' }}">
-                                Members <span class="text-gray-500">({{ $counts['members'] ?? 0 }})</span>
+                               class="px-3 py-1.5 rounded-lg font-medium transition-colors {{ $isMembers ? 'bg-zinc-100 text-zinc-900' : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-50' }}">
+                                Members <span class="text-zinc-400 text-xs">({{ $counts['members'] ?? 0 }})</span>
                             </a>
                         </div>
 
@@ -154,7 +152,7 @@
                                     <td class="px-3 py-2 whitespace-nowrap text-right">
                                         <div class="flex items-center justify-end gap-4">
                                             <a href="{{ route('admin.users.edit', $user) }}"
-                                               class="text-indigo-600 hover:text-indigo-900 font-semibold text-sm">
+                                               class="text-violet-600 hover:text-violet-900 font-semibold text-sm">
                                                 Edit
                                             </a>
 
