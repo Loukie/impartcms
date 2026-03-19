@@ -343,10 +343,10 @@ if (empty($faviconUrl) && !empty($faviconIconJson)) {
             $linkActive = 'border-violet-400 bg-white/[0.10] text-white';
             $iconInactive = 'text-white/55 group-hover:text-white transition-colors';
             $iconActive = 'text-violet-300';
-            // Sub-menu link styles (inside darker dropdown panel)
-            $subLinkBase = 'flex items-center gap-2 pl-3 pr-3 py-[7px] rounded-r-lg text-[13px] font-medium transition-all border-l-2';
-            $subLinkInactive = 'border-transparent text-white/65 hover:text-white hover:bg-white/[0.06]';
-            $subLinkActive = 'border-violet-400 text-white bg-white/[0.07]';
+            // Sub-menu link styles
+            $subLinkBase = 'flex items-center gap-2.5 pl-11 pr-4 py-[7px] text-[13px] font-medium transition-colors';
+            $subLinkInactive = 'text-white/55 hover:text-white/90';
+            $subLinkActive = 'text-violet-400';
         @endphp
 
         <nav class="pr-3 py-3 space-y-0.5">
@@ -424,16 +424,28 @@ if (empty($faviconUrl) && !empty($faviconIconJson)) {
                         <path d="M6 9l6 6 6-6"/>
                     </svg>
                 </button>
-                <div x-show="open" class="mt-1 ml-1 mr-0 mb-0.5 rounded-r-xl py-1.5 px-0 space-y-0.5" style="background:rgba(0,0,0,0.18)">
-                    <a href="{{ route('admin.pages.ai.create') }}" class="{{ $subLinkBase }} {{ $isActive('admin.pages.ai.*') ? $subLinkActive : $subLinkInactive }}">AI Page</a>
+                <div x-show="open" class="pb-1">
+                    <a href="{{ route('admin.pages.ai.create') }}" class="{{ $subLinkBase }} {{ $isActive('admin.pages.ai.*') ? $subLinkActive : $subLinkInactive }}">
+                        <span class="w-1.5 h-1.5 rounded-full flex-shrink-0 {{ $isActive('admin.pages.ai.*') ? 'bg-violet-400' : 'bg-white/20' }}"></span>
+                        AI Page
+                    </a>
                     @if(\Illuminate\Support\Facades\Route::has('admin.site-builder.create'))
-                        <a href="{{ route('admin.site-builder.create') }}" class="{{ $subLinkBase }} {{ $isActive('admin.site-builder.*') ? $subLinkActive : $subLinkInactive }}">AI Site Builder</a>
+                        <a href="{{ route('admin.site-builder.create') }}" class="{{ $subLinkBase }} {{ $isActive('admin.site-builder.*') ? $subLinkActive : $subLinkInactive }}">
+                            <span class="w-1.5 h-1.5 rounded-full flex-shrink-0 {{ $isActive('admin.site-builder.*') ? 'bg-violet-400' : 'bg-white/20' }}"></span>
+                            AI Site Builder
+                        </a>
                     @endif
                     @if(\Illuminate\Support\Facades\Route::has('admin.site-clone.create'))
-                        <a href="{{ route('admin.site-clone.create') }}" class="{{ $subLinkBase }} {{ $isActive('admin.site-clone.*') ? $subLinkActive : $subLinkInactive }}">Clone Website</a>
+                        <a href="{{ route('admin.site-clone.create') }}" class="{{ $subLinkBase }} {{ $isActive('admin.site-clone.*') ? $subLinkActive : $subLinkInactive }}">
+                            <span class="w-1.5 h-1.5 rounded-full flex-shrink-0 {{ $isActive('admin.site-clone.*') ? 'bg-violet-400' : 'bg-white/20' }}"></span>
+                            Clone Website
+                        </a>
                     @endif
                     @if(\Illuminate\Support\Facades\Route::has('admin.ai.visual-audit'))
-                        <a href="{{ route('admin.ai.visual-audit') }}" class="{{ $subLinkBase }} {{ $isActive('admin.ai.visual-audit*') ? $subLinkActive : $subLinkInactive }}">AI Visual Audit</a>
+                        <a href="{{ route('admin.ai.visual-audit') }}" class="{{ $subLinkBase }} {{ $isActive('admin.ai.visual-audit*') ? $subLinkActive : $subLinkInactive }}">
+                            <span class="w-1.5 h-1.5 rounded-full flex-shrink-0 {{ $isActive('admin.ai.visual-audit*') ? 'bg-violet-400' : 'bg-white/20' }}"></span>
+                            AI Visual Audit
+                        </a>
                     @endif
                 </div>
             </div>
@@ -453,12 +465,21 @@ if (empty($faviconUrl) && !empty($faviconIconJson)) {
                             <path d="M6 9l6 6 6-6"/>
                         </svg>
                     </button>
-                    <div x-show="open" class="mt-1 ml-1 mr-0 mb-0.5 rounded-r-xl py-1.5 px-0 space-y-0.5" style="background:rgba(0,0,0,0.18)">
-                        <a href="{{ route('admin.settings.edit') }}" class="{{ $subLinkBase }} {{ $isActive('admin.settings.*') ? $subLinkActive : $subLinkInactive }}">Settings</a>
+                    <div x-show="open" class="pb-1">
+                        <a href="{{ route('admin.settings.edit') }}" class="{{ $subLinkBase }} {{ $isActive('admin.settings.*') ? $subLinkActive : $subLinkInactive }}">
+                            <span class="w-1.5 h-1.5 rounded-full flex-shrink-0 {{ $isActive('admin.settings.*') ? 'bg-violet-400' : 'bg-white/20' }}"></span>
+                            Settings
+                        </a>
                         @if(\Illuminate\Support\Facades\Route::has('admin.ai-agent.edit'))
-                            <a href="{{ route('admin.ai-agent.edit') }}" class="{{ $subLinkBase }} {{ $isActive('admin.ai-agent.*') ? $subLinkActive : $subLinkInactive }}">AI Agent</a>
+                            <a href="{{ route('admin.ai-agent.edit') }}" class="{{ $subLinkBase }} {{ $isActive('admin.ai-agent.*') ? $subLinkActive : $subLinkInactive }}">
+                                <span class="w-1.5 h-1.5 rounded-full flex-shrink-0 {{ $isActive('admin.ai-agent.*') ? 'bg-violet-400' : 'bg-white/20' }}"></span>
+                                AI Agent
+                            </a>
                         @endif
-                        <a href="{{ route('admin.reset') }}" class="{{ $subLinkBase }} {{ $isActive('admin.reset*') ? $subLinkActive : $subLinkInactive }}">Data Reset</a>
+                        <a href="{{ route('admin.reset') }}" class="{{ $subLinkBase }} {{ $isActive('admin.reset*') ? $subLinkActive : $subLinkInactive }}">
+                            <span class="w-1.5 h-1.5 rounded-full flex-shrink-0 {{ $isActive('admin.reset*') ? 'bg-violet-400' : 'bg-white/20' }}"></span>
+                            Data Reset
+                        </a>
                     </div>
                 </div>
             @endif
