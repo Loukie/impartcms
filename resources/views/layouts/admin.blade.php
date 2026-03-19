@@ -112,7 +112,7 @@ if (empty($faviconUrl) && !empty($faviconIconJson)) {
 
     /* ── Sidebar section labels ── */
     .admin-sidebar-section {
-        padding: 16px 12px 0;
+        padding: 16px 12px 0 16px;
         font-size: 10px;
         font-weight: 700;
         letter-spacing: 0.1em;
@@ -338,18 +338,18 @@ if (empty($faviconUrl) && !empty($faviconIconJson)) {
         </div>
 
         @php
-            $linkBase = 'group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors';
-            $linkInactive = 'text-white/80 hover:text-white hover:bg-white/[0.08]';
-            $linkActive = 'bg-white/[0.12] text-white';
-            $iconInactive = 'text-white/60 group-hover:text-white transition-colors';
+            $linkBase = 'group flex items-center gap-3 pl-4 pr-3 py-2.5 rounded-r-xl text-sm font-medium transition-all border-l-[3px]';
+            $linkInactive = 'border-transparent text-white/80 hover:text-white hover:bg-white/[0.07]';
+            $linkActive = 'border-violet-400 bg-white/[0.10] text-white';
+            $iconInactive = 'text-white/55 group-hover:text-white transition-colors';
             $iconActive = 'text-violet-300';
             // Sub-menu link styles (inside darker dropdown panel)
-            $subLinkBase = 'flex items-center gap-2 pl-3 pr-3 py-2 rounded-md text-[13px] font-medium transition-colors border-l-2';
-            $subLinkInactive = 'border-transparent text-white/70 hover:text-white hover:bg-white/[0.07]';
-            $subLinkActive = 'border-violet-400 text-white bg-white/[0.08]';
+            $subLinkBase = 'flex items-center gap-2 pl-3 pr-3 py-[7px] rounded-r-lg text-[13px] font-medium transition-all border-l-2';
+            $subLinkInactive = 'border-transparent text-white/65 hover:text-white hover:bg-white/[0.06]';
+            $subLinkActive = 'border-violet-400 text-white bg-white/[0.07]';
         @endphp
 
-        <nav class="p-3 space-y-0.5">
+        <nav class="pr-3 py-3 space-y-0.5">
 
             {{-- Dashboard --}}
             <a href="{{ route('dashboard') }}" class="{{ $linkBase }} {{ $isActive('dashboard') ? $linkActive : $linkInactive }}">
@@ -424,7 +424,7 @@ if (empty($faviconUrl) && !empty($faviconIconJson)) {
                         <path d="M6 9l6 6 6-6"/>
                     </svg>
                 </button>
-                <div x-show="open" class="mt-1 mx-1 mb-0.5 rounded-lg py-1.5 px-1 space-y-0.5" style="background:rgba(0,0,0,0.18)">
+                <div x-show="open" class="mt-1 ml-1 mr-0 mb-0.5 rounded-r-xl py-1.5 px-0 space-y-0.5" style="background:rgba(0,0,0,0.18)">
                     <a href="{{ route('admin.pages.ai.create') }}" class="{{ $subLinkBase }} {{ $isActive('admin.pages.ai.*') ? $subLinkActive : $subLinkInactive }}">AI Page</a>
                     @if(\Illuminate\Support\Facades\Route::has('admin.site-builder.create'))
                         <a href="{{ route('admin.site-builder.create') }}" class="{{ $subLinkBase }} {{ $isActive('admin.site-builder.*') ? $subLinkActive : $subLinkInactive }}">AI Site Builder</a>
@@ -453,7 +453,7 @@ if (empty($faviconUrl) && !empty($faviconIconJson)) {
                             <path d="M6 9l6 6 6-6"/>
                         </svg>
                     </button>
-                    <div x-show="open" class="mt-1 mx-1 mb-0.5 rounded-lg py-1.5 px-1 space-y-0.5" style="background:rgba(0,0,0,0.18)">
+                    <div x-show="open" class="mt-1 ml-1 mr-0 mb-0.5 rounded-r-xl py-1.5 px-0 space-y-0.5" style="background:rgba(0,0,0,0.18)">
                         <a href="{{ route('admin.settings.edit') }}" class="{{ $subLinkBase }} {{ $isActive('admin.settings.*') ? $subLinkActive : $subLinkInactive }}">Settings</a>
                         @if(\Illuminate\Support\Facades\Route::has('admin.ai-agent.edit'))
                             <a href="{{ route('admin.ai-agent.edit') }}" class="{{ $subLinkBase }} {{ $isActive('admin.ai-agent.*') ? $subLinkActive : $subLinkInactive }}">AI Agent</a>
