@@ -112,13 +112,20 @@ if (empty($faviconUrl) && !empty($faviconIconJson)) {
 
     /* ── Sidebar section labels ── */
     .admin-sidebar-section {
-        padding: 16px 12px 5px;
+        padding: 16px 12px 0;
         font-size: 10px;
         font-weight: 700;
         letter-spacing: 0.1em;
         text-transform: uppercase;
         color: rgba(255,255,255,0.35);
         user-select: none;
+    }
+    .admin-sidebar-section::after {
+        content: '';
+        display: block;
+        margin-top: 6px;
+        height: 1px;
+        background: linear-gradient(to right, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.06) 60%, transparent 100%);
     }
 
     /* ── Cards ── */
@@ -332,9 +339,9 @@ if (empty($faviconUrl) && !empty($faviconIconJson)) {
 
         @php
             $linkBase = 'group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors';
-            $linkInactive = 'text-slate-300 hover:text-white hover:bg-white/[0.08]';
+            $linkInactive = 'text-white/80 hover:text-white hover:bg-white/[0.08]';
             $linkActive = 'bg-white/[0.12] text-white';
-            $iconInactive = 'text-slate-400 group-hover:text-slate-200 transition-colors';
+            $iconInactive = 'text-white/60 group-hover:text-white transition-colors';
             $iconActive = 'text-violet-300';
         @endphp
 
