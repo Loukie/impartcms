@@ -90,29 +90,224 @@ if (empty($faviconUrl) && !empty($faviconIconJson)) {
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
     <style>
-    /* Admin-only: remove Breeze-style max container widths so admin pages feel fuller */
-    .admin-shell .max-w-7xl,
-    .admin-shell .max-w-6xl,
-    .admin-shell .max-w-5xl,
-    .admin-shell .max-w-4xl,
-    .admin-shell .max-w-3xl,
-    .admin-shell .max-w-2xl,
-    .admin-shell .max-w-xl,
-    .admin-shell .max-w-lg,
-    .admin-shell .max-w-md,
-    .admin-shell .max-w-sm,
-    .admin-shell .max-w-xs,
-    .admin-shell .container {
-        max-width: none !important;
+    /* ═══════════════════════════════════════════════════════
+       ImpartCMS Admin – Modern Refresh
+       All rules scoped to .admin-shell
+    ═══════════════════════════════════════════════════════ */
+
+    /* ── Base ── */
+    body.admin-shell {
+        background-color: #f4f4f5;
+        -webkit-font-smoothing: antialiased;
     }
 
-    .admin-shell .mx-auto {
-        margin-left: 0 !important;
-        margin-right: 0 !important;
+    /* ── Remove Breeze container constraints ── */
+    .admin-shell .max-w-7xl,.admin-shell .max-w-6xl,.admin-shell .max-w-5xl,
+    .admin-shell .max-w-4xl,.admin-shell .max-w-3xl,.admin-shell .max-w-2xl,
+    .admin-shell .max-w-xl,.admin-shell .max-w-lg,.admin-shell .max-w-md,
+    .admin-shell .max-w-sm,.admin-shell .max-w-xs,.admin-shell .container {
+        max-width: none !important;
+    }
+    .admin-shell .mx-auto { margin-left: 0 !important; margin-right: 0 !important; }
+
+    /* ── Sidebar section labels ── */
+    .admin-sidebar-section {
+        padding: 16px 12px 5px;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: rgba(255,255,255,0.22);
+        user-select: none;
+    }
+
+    /* ── Cards ── */
+    .admin-shell .bg-white.overflow-hidden.shadow-sm,
+    .admin-shell .bg-white.shadow-sm {
+        border: 1px solid #e4e4e7 !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.03) !important;
+        border-radius: 12px !important;
+        overflow: hidden !important;
+    }
+    .admin-shell .bg-white.border.border-gray-200.rounded-lg,
+    .admin-shell .bg-white.border.border-gray-200.rounded-xl {
+        border-color: #e4e4e7 !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.04) !important;
+        border-radius: 12px !important;
+    }
+
+    /* ── Tables ── */
+    .admin-shell table.min-w-full { border-collapse: collapse; }
+    .admin-shell table.min-w-full thead th {
+        background: #fafafa !important;
+        border-bottom: 1px solid #e4e4e7 !important;
+        font-size: 11px !important;
+        font-weight: 600 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.07em !important;
+        color: #a1a1aa !important;
+        padding-top: 11px !important;
+        padding-bottom: 11px !important;
+    }
+    .admin-shell table.min-w-full tbody tr { transition: background-color 0.1s ease; }
+    .admin-shell table.min-w-full tbody tr:hover td { background-color: #fafafa !important; }
+    .admin-shell table.min-w-full.divide-y tbody tr + tr td { border-top: 1px solid #f4f4f5 !important; }
+    .admin-shell table.min-w-full td {
+        padding-top: 13px !important;
+        padding-bottom: 13px !important;
+        font-size: 13.5px !important;
+        color: #3f3f46 !important;
+        border-bottom: none !important;
+    }
+    .admin-shell table.min-w-full td.font-medium { color: #18181b !important; }
+
+    /* ── Buttons — primary (dark) ── */
+    .admin-shell a.bg-gray-900,
+    .admin-shell button.bg-gray-900 {
+        background-color: #18181b !important;
+        border-radius: 8px !important;
+        font-size: 13px !important;
+        font-weight: 500 !important;
+        letter-spacing: 0 !important;
+        text-transform: none !important;
+        padding: 7px 14px !important;
+        transition: background-color 0.15s ease !important;
+    }
+    .admin-shell a.bg-gray-900:hover,
+    .admin-shell button.bg-gray-900:hover { background-color: #27272a !important; }
+
+    /* ── Buttons — secondary (white/border) ── */
+    .admin-shell a.bg-white.border.border-gray-300,
+    .admin-shell button.bg-white.border.border-gray-300 {
+        border-color: #e4e4e7 !important;
+        border-radius: 8px !important;
+        font-size: 13px !important;
+        font-weight: 500 !important;
+        letter-spacing: 0 !important;
+        text-transform: none !important;
+        padding: 7px 14px !important;
+        color: #52525b !important;
+        transition: background-color 0.15s ease, border-color 0.15s ease !important;
+    }
+    .admin-shell a.bg-white.border.border-gray-300:hover,
+    .admin-shell button.bg-white.border.border-gray-300:hover {
+        background-color: #fafafa !important;
+        border-color: #d4d4d8 !important;
+    }
+
+    /* ── Buttons — danger ── */
+    .admin-shell button.bg-red-600 {
+        border-radius: 8px !important;
+        font-size: 13px !important;
+        font-weight: 500 !important;
+        letter-spacing: 0 !important;
+        text-transform: none !important;
+        padding: 7px 14px !important;
+    }
+
+    /* ── Form inputs ── */
+    .admin-shell input[type="text"],
+    .admin-shell input[type="email"],
+    .admin-shell input[type="number"],
+    .admin-shell input[type="password"],
+    .admin-shell input[type="url"],
+    .admin-shell input[type="search"] {
+        border-color: #e4e4e7 !important;
+        border-radius: 8px !important;
+        font-size: 14px !important;
+        color: #18181b !important;
+        transition: border-color 0.15s, box-shadow 0.15s !important;
+    }
+    .admin-shell select {
+        border-color: #e4e4e7 !important;
+        border-radius: 8px !important;
+        font-size: 14px !important;
+        color: #18181b !important;
+    }
+    .admin-shell textarea {
+        border-color: #e4e4e7 !important;
+        border-radius: 8px !important;
+        font-size: 14px !important;
+        color: #18181b !important;
+    }
+    .admin-shell input[type="text"]:focus,
+    .admin-shell input[type="email"]:focus,
+    .admin-shell input[type="number"]:focus,
+    .admin-shell input[type="password"]:focus,
+    .admin-shell input[type="url"]:focus,
+    .admin-shell select:focus,
+    .admin-shell textarea:focus {
+        border-color: #7c3aed !important;
+        box-shadow: 0 0 0 3px rgba(124,58,237,0.12) !important;
+        --tw-ring-shadow: none !important;
+        outline: none !important;
+    }
+
+    /* ── Labels ── */
+    .admin-shell label.block.text-sm.font-medium.text-gray-700 {
+        font-size: 13px !important;
+        font-weight: 500 !important;
+        color: #3f3f46 !important;
+    }
+
+    /* ── Badges ── */
+    .admin-shell span.text-xs.px-2.py-1.rounded.border,
+    .admin-shell span.text-xs.px-2.py-0\.5.rounded.border {
+        border-radius: 6px !important;
+        font-size: 11px !important;
+        font-weight: 500 !important;
+    }
+
+    /* ── Flash alerts ── */
+    .admin-shell div.mb-4.p-3.rounded.bg-green-50,
+    .admin-shell div.mb-4.p-3.rounded.bg-red-50 {
+        border-radius: 10px !important;
+        padding: 13px 16px !important;
+        font-size: 14px !important;
+    }
+
+    /* ── Section headings inside cards ── */
+    .admin-shell h3.text-sm.font-semibold.text-gray-900 {
+        font-size: 14px !important;
+        font-weight: 600 !important;
+        color: #18181b !important;
+    }
+
+    /* ── Page header title ── */
+    .admin-shell h2.font-semibold.text-xl.text-gray-800 {
+        font-size: 18px !important;
+        font-weight: 700 !important;
+        color: #18181b !important;
+        letter-spacing: -0.01em !important;
+    }
+
+    /* ── Topbar ── */
+    .admin-topbar-inner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 24px;
+        height: 56px;
+        border-bottom: 1px solid #e4e4e7;
+    }
+
+    /* ── User avatar initials ── */
+    .admin-user-avatar {
+        width: 32px; height: 32px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #7c3aed, #4f46e5);
+        color: #fff;
+        font-size: 12px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        letter-spacing: 0.02em;
+        flex-shrink: 0;
     }
 </style>
 </head>
-<body class="min-h-screen bg-slate-50 admin-shell">
+<body class="min-h-screen admin-shell">
 <div class="min-h-screen flex">
     {{-- Sidebar --}}
     <aside class="w-64 bg-slate-950 text-white flex-shrink-0 border-r border-white/5">
@@ -136,14 +331,15 @@ if (empty($faviconUrl) && !empty($faviconIconJson)) {
         </div>
 
         @php
-            $linkBase = 'group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition';
-            $linkInactive = 'text-white/80 hover:text-white hover:bg-white/10';
-            $linkActive = 'bg-white/10 text-white';
-            $iconInactive = 'text-white/60 group-hover:text-white/80';
-            $iconActive = 'text-white';
+            $linkBase = 'group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors';
+            $linkInactive = 'text-white/70 hover:text-white hover:bg-white/[0.07]';
+            $linkActive = 'bg-violet-500/[0.18] text-white';
+            $iconInactive = 'text-white/40 group-hover:text-white/70 transition-colors';
+            $iconActive = 'text-violet-300';
         @endphp
 
-        <nav class="p-3 space-y-1">
+        <nav class="p-3 space-y-0.5">
+
             {{-- Dashboard --}}
             <a href="{{ route('dashboard') }}" class="{{ $linkBase }} {{ $isActive('dashboard') ? $linkActive : $linkInactive }}">
                 <svg class="h-4 w-4 flex-none {{ $isActive('dashboard') ? $iconActive : $iconInactive }}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -152,7 +348,6 @@ if (empty($faviconUrl) && !empty($faviconIconJson)) {
                 <span>Dashboard</span>
             </a>
 
-            {{-- View site: MUST be in sidebar under Dashboard --}}
             <a href="{{ url('/') }}" target="_blank" rel="noopener" class="{{ $linkBase }} {{ $linkInactive }}">
                 <svg class="h-4 w-4 flex-none {{ $iconInactive }}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                     <path d="M13.5 4.5a1.5 1.5 0 0 0 0 3h1.88l-6.44 6.44a1.5 1.5 0 1 0 2.12 2.12l6.44-6.44V11.5a1.5 1.5 0 0 0 3 0V6a1.5 1.5 0 0 0-1.5-1.5h-5.5Z"/>
@@ -161,9 +356,9 @@ if (empty($faviconUrl) && !empty($faviconIconJson)) {
                 <span>View site</span>
             </a>
 
-            <div class="my-3 border-t border-white/10"></div>
+            {{-- CONTENT ── ── ── ── ── ── ── ── ── ── ─── --}}
+            <div class="admin-sidebar-section">Content</div>
 
-            {{-- Pages --}}
             <a href="{{ route('admin.pages.index') }}" class="{{ $linkBase }} {{ $isActive('admin.pages.*') ? $linkActive : $linkInactive }}">
                 <svg class="h-4 w-4 flex-none {{ $isActive('admin.pages.*') ? $iconActive : $iconInactive }}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                     <path d="M6 2.25A2.25 2.25 0 0 0 3.75 4.5v15A2.25 2.25 0 0 0 6 21.75h12A2.25 2.25 0 0 0 20.25 19.5v-10.5L14.25 2.25H6Zm7.5 1.56V9h5.19L13.5 3.81Z"/>
@@ -172,48 +367,6 @@ if (empty($faviconUrl) && !empty($faviconIconJson)) {
                 <span>Pages</span>
             </a>
 
-            {{-- Assist Tools group --}}
-            @php
-                $assistGroupActive = $isActive('admin.pages.ai.*') || $isActive('admin.site-builder.*') || $isActive('admin.site-clone.*') || $isActive('admin.ai.visual-audit*');
-            @endphp
-            <div x-data="{ open: {{ $assistGroupActive ? 'true' : 'false' }} }">
-                <button @click="open = !open"
-                        class="{{ $linkBase }} w-full {{ $assistGroupActive ? $linkActive : $linkInactive }}">
-                    <svg class="h-4 w-4 flex-none {{ $assistGroupActive ? $iconActive : $iconInactive }}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                        <path d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423L16.5 15.75l.394 1.183a2.25 2.25 0 0 0 1.423 1.423L19.5 18.75l-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z"/>
-                    </svg>
-                    <span class="flex-1 text-left">Assist Tools</span>
-                    <svg class="h-3 w-3 flex-none transition-transform" :class="open ? 'rotate-180' : ''" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M6 9l6 6 6-6"/>
-                    </svg>
-                </button>
-                <div x-show="open" class="mt-1 ml-7 space-y-0.5">
-                    <a href="{{ route('admin.pages.ai.create') }}"
-                       class="{{ $linkBase }} text-xs {{ $isActive('admin.pages.ai.*') ? $linkActive : $linkInactive }}">
-                        AI Page
-                    </a>
-                    @if(\Illuminate\Support\Facades\Route::has('admin.site-builder.create'))
-                        <a href="{{ route('admin.site-builder.create') }}"
-                           class="{{ $linkBase }} text-xs {{ $isActive('admin.site-builder.*') ? $linkActive : $linkInactive }}">
-                            AI Site Builder
-                        </a>
-                    @endif
-                    @if(\Illuminate\Support\Facades\Route::has('admin.site-clone.create'))
-                        <a href="{{ route('admin.site-clone.create') }}"
-                           class="{{ $linkBase }} text-xs {{ $isActive('admin.site-clone.*') ? $linkActive : $linkInactive }}">
-                            Clone Website
-                        </a>
-                    @endif
-                    @if(\Illuminate\Support\Facades\Route::has('admin.ai.visual-audit'))
-                        <a href="{{ route('admin.ai.visual-audit') }}"
-                           class="{{ $linkBase }} text-xs {{ $isActive('admin.ai.visual-audit*') ? $linkActive : $linkInactive }}">
-                            AI Visual Audit
-                        </a>
-                    @endif
-                </div>
-            </div>
-
-            {{-- Media --}}
             @if(\Illuminate\Support\Facades\Route::has('admin.media.index'))
                 <a href="{{ route('admin.media.index') }}" class="{{ $linkBase }} {{ $isActive('admin.media.*') ? $linkActive : $linkInactive }}">
                     <svg class="h-4 w-4 flex-none {{ $isActive('admin.media.*') ? $iconActive : $iconInactive }}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -223,7 +376,6 @@ if (empty($faviconUrl) && !empty($faviconIconJson)) {
                 </a>
             @endif
 
-            {{-- Forms --}}
             @if(\Illuminate\Support\Facades\Route::has('admin.forms.index'))
                 <a href="{{ route('admin.forms.index') }}" class="{{ $linkBase }} {{ $isActive('admin.forms.*') ? $linkActive : $linkInactive }}">
                     <svg class="h-4 w-4 flex-none {{ $isActive('admin.forms.*') ? $iconActive : $iconInactive }}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -233,8 +385,9 @@ if (empty($faviconUrl) && !empty($faviconIconJson)) {
                 </a>
             @endif
 
-            {{-- Users --}}
+            {{-- PEOPLE ── ── ── ── ── ── ── ── ── ── ─── --}}
             @if(\Illuminate\Support\Facades\Route::has('admin.users.index'))
+                <div class="admin-sidebar-section">People</div>
                 <a href="{{ route('admin.users.index') }}" class="{{ $linkBase }} {{ $isActive('admin.users.*') ? $linkActive : $linkInactive }}">
                     <svg class="h-4 w-4 flex-none {{ $isActive('admin.users.*') ? $iconActive : $iconInactive }}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                         <path d="M16.5 7.5a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0Z"/>
@@ -244,12 +397,43 @@ if (empty($faviconUrl) && !empty($faviconIconJson)) {
                 </a>
             @endif
 
-            {{-- Settings group --}}
+            {{-- TOOLS ── ── ── ── ── ── ── ── ── ── ─── --}}
+            <div class="admin-sidebar-section">Tools</div>
+
+            @php
+                $assistGroupActive = $isActive('admin.pages.ai.*') || $isActive('admin.site-builder.*') || $isActive('admin.site-clone.*') || $isActive('admin.ai.visual-audit*');
+            @endphp
+            <div x-data="{ open: {{ $assistGroupActive ? 'true' : 'false' }} }">
+                <button @click="open = !open" class="{{ $linkBase }} w-full {{ $assistGroupActive ? $linkActive : $linkInactive }}">
+                    <svg class="h-4 w-4 flex-none {{ $assistGroupActive ? $iconActive : $iconInactive }}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                        <path d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423L16.5 15.75l.394 1.183a2.25 2.25 0 0 0 1.423 1.423L19.5 18.75l-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z"/>
+                    </svg>
+                    <span class="flex-1 text-left">Assist Tools</span>
+                    <svg class="h-3 w-3 flex-none transition-transform" :class="open ? 'rotate-180' : ''" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M6 9l6 6 6-6"/>
+                    </svg>
+                </button>
+                <div x-show="open" class="mt-0.5 ml-7 space-y-0.5">
+                    <a href="{{ route('admin.pages.ai.create') }}" class="{{ $linkBase }} text-xs {{ $isActive('admin.pages.ai.*') ? $linkActive : $linkInactive }}">AI Page</a>
+                    @if(\Illuminate\Support\Facades\Route::has('admin.site-builder.create'))
+                        <a href="{{ route('admin.site-builder.create') }}" class="{{ $linkBase }} text-xs {{ $isActive('admin.site-builder.*') ? $linkActive : $linkInactive }}">AI Site Builder</a>
+                    @endif
+                    @if(\Illuminate\Support\Facades\Route::has('admin.site-clone.create'))
+                        <a href="{{ route('admin.site-clone.create') }}" class="{{ $linkBase }} text-xs {{ $isActive('admin.site-clone.*') ? $linkActive : $linkInactive }}">Clone Website</a>
+                    @endif
+                    @if(\Illuminate\Support\Facades\Route::has('admin.ai.visual-audit'))
+                        <a href="{{ route('admin.ai.visual-audit') }}" class="{{ $linkBase }} text-xs {{ $isActive('admin.ai.visual-audit*') ? $linkActive : $linkInactive }}">AI Visual Audit</a>
+                    @endif
+                </div>
+            </div>
+
+            {{-- SYSTEM ── ── ── ── ── ── ── ── ── ── ─── --}}
+            <div class="admin-sidebar-section">System</div>
+
             @if(\Illuminate\Support\Facades\Route::has('admin.settings.edit'))
                 @php $settingsGroupActive = $isActive('admin.settings.*') || $isActive('admin.reset*') || $isActive('admin.ai-agent.*'); @endphp
                 <div x-data="{ open: {{ $settingsGroupActive ? 'true' : 'false' }} }">
-                    <button @click="open = !open"
-                            class="{{ $linkBase }} w-full {{ $settingsGroupActive ? $linkActive : $linkInactive }}">
+                    <button @click="open = !open" class="{{ $linkBase }} w-full {{ $settingsGroupActive ? $linkActive : $linkInactive }}">
                         <svg class="h-4 w-4 flex-none {{ $settingsGroupActive ? $iconActive : $iconInactive }}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                             <path d="M11.983 1.5a1.5 1.5 0 0 1 1.484 1.28l.17 1.14a7.92 7.92 0 0 1 1.82.75l1.05-.5a1.5 1.5 0 0 1 1.86.53l1.5 2.6a1.5 1.5 0 0 1-.38 1.95l-.93.72c.08.6.08 1.22 0 1.82l.93.72a1.5 1.5 0 0 1 .38 1.95l-1.5 2.6a1.5 1.5 0 0 1-1.86.53l-1.05-.5a7.92 7.92 0 0 1-1.82.75l-.17 1.14A1.5 1.5 0 0 1 11.983 22.5h-3a1.5 1.5 0 0 1-1.484-1.28l-.17-1.14a7.92 7.92 0 0 1-1.82-.75l-1.05.5a1.5 1.5 0 0 1-1.86-.53l-1.5-2.6a1.5 1.5 0 0 1 .38-1.95l.93-.72a7.7 7.7 0 0 1 0-1.82l-.93-.72a1.5 1.5 0 0 1-.38-1.95l1.5-2.6a1.5 1.5 0 0 1 1.86-.53l1.05.5c.58-.3 1.18-.56 1.82-.75l.17-1.14A1.5 1.5 0 0 1 8.983 1.5h3Zm-1.5 7.5a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z"/>
                         </svg>
@@ -258,26 +442,16 @@ if (empty($faviconUrl) && !empty($faviconIconJson)) {
                             <path d="M6 9l6 6 6-6"/>
                         </svg>
                     </button>
-                    <div x-show="open" class="mt-1 ml-7 space-y-0.5">
-                        <a href="{{ route('admin.settings.edit') }}"
-                           class="{{ $linkBase }} text-xs {{ $isActive('admin.settings.*') ? $linkActive : $linkInactive }}">
-                            Settings
-                        </a>
+                    <div x-show="open" class="mt-0.5 ml-7 space-y-0.5">
+                        <a href="{{ route('admin.settings.edit') }}" class="{{ $linkBase }} text-xs {{ $isActive('admin.settings.*') ? $linkActive : $linkInactive }}">Settings</a>
                         @if(\Illuminate\Support\Facades\Route::has('admin.ai-agent.edit'))
-                            <a href="{{ route('admin.ai-agent.edit') }}"
-                               class="{{ $linkBase }} text-xs {{ $isActive('admin.ai-agent.*') ? $linkActive : $linkInactive }}">
-                                AI Agent
-                            </a>
+                            <a href="{{ route('admin.ai-agent.edit') }}" class="{{ $linkBase }} text-xs {{ $isActive('admin.ai-agent.*') ? $linkActive : $linkInactive }}">AI Agent</a>
                         @endif
-                        <a href="{{ route('admin.reset') }}"
-                           class="{{ $linkBase }} text-xs {{ $isActive('admin.reset*') ? $linkActive : $linkInactive }}">
-                            Data Reset
-                        </a>
+                        <a href="{{ route('admin.reset') }}" class="{{ $linkBase }} text-xs {{ $isActive('admin.reset*') ? $linkActive : $linkInactive }}">Data Reset</a>
                     </div>
                 </div>
             @endif
 
-            {{-- Header & Footer --}}
             @if(\Illuminate\Support\Facades\Route::has('admin.layout-blocks.index'))
                 <a href="{{ route('admin.layout-blocks.index') }}" class="{{ $linkBase }} {{ $isActive('admin.layout-blocks.*') ? $linkActive : $linkInactive }}">
                     <svg class="h-4 w-4 flex-none {{ $isActive('admin.layout-blocks.*') ? $iconActive : $iconInactive }}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -287,7 +461,6 @@ if (empty($faviconUrl) && !empty($faviconIconJson)) {
                 </a>
             @endif
 
-            {{-- Custom code (CSS + Scripts) --}}
             @if(\Illuminate\Support\Facades\Route::has('admin.snippets.index'))
                 <a href="{{ route('admin.snippets.index') }}" class="{{ $linkBase }} {{ $isActive('admin.snippets.*') ? $linkActive : $linkInactive }}">
                     <svg class="h-4 w-4 flex-none {{ $isActive('admin.snippets.*') ? $iconActive : $iconInactive }}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -297,22 +470,32 @@ if (empty($faviconUrl) && !empty($faviconIconJson)) {
                     <span>Custom code</span>
                 </a>
             @endif
+
         </nav>
     </aside>
 
     {{-- Main --}}
     <div class="flex-1 min-w-0">
         {{-- Top bar --}}
-        <header class="bg-white/80 backdrop-blur border-b border-slate-200">
-            <div class="px-6 py-4 flex items-center justify-between">
-                <div class="text-sm text-slate-600">
-                    Logged in as <span class="font-semibold text-slate-900">{{ Auth::user()->name }}</span>
+        <header class="bg-white border-b border-zinc-200/80">
+            <div class="px-6 flex items-center justify-between" style="height:56px">
+                @php
+                    $initials = collect(explode(' ', Auth::user()->name))
+                        ->map(fn($w) => strtoupper(substr($w,0,1)))
+                        ->take(2)->implode('');
+                @endphp
+                <div class="flex items-center gap-3">
+                    <div class="admin-user-avatar">{{ $initials }}</div>
+                    <div>
+                        <div class="text-sm font-semibold text-zinc-900 leading-tight">{{ Auth::user()->name }}</div>
+                        <div class="text-xs text-zinc-400 leading-tight">{{ Auth::user()->email }}</div>
+                    </div>
                 </div>
 
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
-                    <button type="submit" class="text-sm font-semibold text-slate-700 hover:text-slate-900">
-                        Log out
+                    <button type="submit" class="text-xs font-medium text-zinc-400 hover:text-zinc-700 transition-colors">
+                        Sign out
                     </button>
                 </form>
             </div>
