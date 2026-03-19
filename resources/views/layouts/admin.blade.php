@@ -172,26 +172,46 @@ if (empty($faviconUrl) && !empty($faviconIconJson)) {
                 <span>Pages</span>
             </a>
 
-            {{-- AI Site Builder --}}
-            @if(\Illuminate\Support\Facades\Route::has('admin.site-builder.create'))
-                <a href="{{ route('admin.site-builder.create') }}" class="{{ $linkBase }} {{ $isActive('admin.site-builder.*') ? $linkActive : $linkInactive }}">
-                    <svg class="h-4 w-4 flex-none {{ $isActive('admin.site-builder.*') ? $iconActive : $iconInactive }}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                        <path d="M12 2.25a.75.75 0 0 1 .75.75v1.08a7.5 7.5 0 0 1 2.18.9l.77-.77a.75.75 0 0 1 1.06 0l1.06 1.06a.75.75 0 0 1 0 1.06l-.77.77c.39.68.68 1.42.85 2.2H19.5a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-.75.75h-1.08a7.5 7.5 0 0 1-.9 2.18l.77.77a.75.75 0 0 1 0 1.06l-1.06 1.06a.75.75 0 0 1-1.06 0l-.77-.77a7.5 7.5 0 0 1-2.2.85V21a.75.75 0 0 1-.75.75h-1.5A.75.75 0 0 1 10.5 21v-1.08a7.5 7.5 0 0 1-2.18-.9l-.77.77a.75.75 0 0 1-1.06 0L5.43 18.5a.75.75 0 0 1 0-1.06l.77-.77a7.5 7.5 0 0 1-.85-2.2H4.5a.75.75 0 0 1-.75-.75v-1.5a.75.75 0 0 1 .75-.75h1.08a7.5 7.5 0 0 1 .9-2.18l-.77-.77a.75.75 0 0 1 0-1.06l1.06-1.06a.75.75 0 0 1 1.06 0l.77.77a7.5 7.5 0 0 1 2.2-.85V3a.75.75 0 0 1 .75-.75H12Zm0 6a3.75 3.75 0 1 0 0 7.5 3.75 3.75 0 0 0 0-7.5Z"/>
+            {{-- Assist Tools group --}}
+            @php
+                $assistGroupActive = $isActive('admin.pages.ai.*') || $isActive('admin.site-builder.*') || $isActive('admin.site-clone.*') || $isActive('admin.ai.visual-audit*');
+            @endphp
+            <div x-data="{ open: {{ $assistGroupActive ? 'true' : 'false' }} }">
+                <button @click="open = !open"
+                        class="{{ $linkBase }} w-full {{ $assistGroupActive ? $linkActive : $linkInactive }}">
+                    <svg class="h-4 w-4 flex-none {{ $assistGroupActive ? $iconActive : $iconInactive }}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                        <path d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423L16.5 15.75l.394 1.183a2.25 2.25 0 0 0 1.423 1.423L19.5 18.75l-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z"/>
                     </svg>
-                    <span>AI Site Builder</span>
-                </a>
-            @endif
-
-            {{-- AI Visual Audit (screenshots + redesign) --}}
-            @if(\Illuminate\Support\Facades\Route::has('admin.ai.visual-audit'))
-                <a href="{{ route('admin.ai.visual-audit') }}" class="{{ $linkBase }} {{ $isActive('admin.ai.visual-audit*') ? $linkActive : $linkInactive }}">
-                    <svg class="h-4 w-4 flex-none {{ $isActive('admin.ai.visual-audit*') ? $iconActive : $iconInactive }}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                        <path d="M3.75 6.75A3 3 0 0 1 6.75 3.75h10.5a3 3 0 0 1 3 3v10.5a3 3 0 0 1-3 3H6.75a3 3 0 0 1-3-3V6.75Zm3-1.5a1.5 1.5 0 0 0-1.5 1.5v10.5a1.5 1.5 0 0 0 1.5 1.5h10.5a1.5 1.5 0 0 0 1.5-1.5V6.75a1.5 1.5 0 0 0-1.5-1.5H6.75Z"/>
-                        <path d="M12 8.25a3.75 3.75 0 1 0 0 7.5 3.75 3.75 0 0 0 0-7.5Zm0 1.5a2.25 2.25 0 1 1 0 4.5 2.25 2.25 0 0 1 0-4.5Z"/>
+                    <span class="flex-1 text-left">Assist Tools</span>
+                    <svg class="h-3 w-3 flex-none transition-transform" :class="open ? 'rotate-180' : ''" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M6 9l6 6 6-6"/>
                     </svg>
-                    <span>AI Visual Audit</span>
-                </a>
-            @endif
+                </button>
+                <div x-show="open" class="mt-1 ml-7 space-y-0.5">
+                    <a href="{{ route('admin.pages.ai.create') }}"
+                       class="{{ $linkBase }} text-xs {{ $isActive('admin.pages.ai.*') ? $linkActive : $linkInactive }}">
+                        AI Page
+                    </a>
+                    @if(\Illuminate\Support\Facades\Route::has('admin.site-builder.create'))
+                        <a href="{{ route('admin.site-builder.create') }}"
+                           class="{{ $linkBase }} text-xs {{ $isActive('admin.site-builder.*') ? $linkActive : $linkInactive }}">
+                            AI Site Builder
+                        </a>
+                    @endif
+                    @if(\Illuminate\Support\Facades\Route::has('admin.site-clone.create'))
+                        <a href="{{ route('admin.site-clone.create') }}"
+                           class="{{ $linkBase }} text-xs {{ $isActive('admin.site-clone.*') ? $linkActive : $linkInactive }}">
+                            Clone Website
+                        </a>
+                    @endif
+                    @if(\Illuminate\Support\Facades\Route::has('admin.ai.visual-audit'))
+                        <a href="{{ route('admin.ai.visual-audit') }}"
+                           class="{{ $linkBase }} text-xs {{ $isActive('admin.ai.visual-audit*') ? $linkActive : $linkInactive }}">
+                            AI Visual Audit
+                        </a>
+                    @endif
+                </div>
+            </div>
 
             {{-- Media --}}
             @if(\Illuminate\Support\Facades\Route::has('admin.media.index'))
@@ -226,7 +246,7 @@ if (empty($faviconUrl) && !empty($faviconIconJson)) {
 
             {{-- Settings group --}}
             @if(\Illuminate\Support\Facades\Route::has('admin.settings.edit'))
-                @php $settingsGroupActive = $isActive('admin.settings.*') || $isActive('admin.reset*'); @endphp
+                @php $settingsGroupActive = $isActive('admin.settings.*') || $isActive('admin.reset*') || $isActive('admin.ai-agent.*'); @endphp
                 <div x-data="{ open: {{ $settingsGroupActive ? 'true' : 'false' }} }">
                     <button @click="open = !open"
                             class="{{ $linkBase }} w-full {{ $settingsGroupActive ? $linkActive : $linkInactive }}">
@@ -243,22 +263,18 @@ if (empty($faviconUrl) && !empty($faviconIconJson)) {
                            class="{{ $linkBase }} text-xs {{ $isActive('admin.settings.*') ? $linkActive : $linkInactive }}">
                             Settings
                         </a>
+                        @if(\Illuminate\Support\Facades\Route::has('admin.ai-agent.edit'))
+                            <a href="{{ route('admin.ai-agent.edit') }}"
+                               class="{{ $linkBase }} text-xs {{ $isActive('admin.ai-agent.*') ? $linkActive : $linkInactive }}">
+                                AI Agent
+                            </a>
+                        @endif
                         <a href="{{ route('admin.reset') }}"
                            class="{{ $linkBase }} text-xs {{ $isActive('admin.reset*') ? $linkActive : $linkInactive }}">
                             Data Reset
                         </a>
                     </div>
                 </div>
-            @endif
-
-            {{-- AI Agent --}}
-            @if(\Illuminate\Support\Facades\Route::has('admin.ai-agent.edit'))
-                <a href="{{ route('admin.ai-agent.edit') }}" class="{{ $linkBase }} {{ $isActive('admin.ai-agent.*') ? $linkActive : $linkInactive }}">
-                    <svg class="h-4 w-4 flex-none {{ $isActive('admin.ai-agent.*') ? $iconActive : $iconInactive }}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                        <path d="M12 2.25a.75.75 0 0 1 .75.75v1.08a7.5 7.5 0 0 1 2.18.9l.77-.77a.75.75 0 0 1 1.06 0l1.06 1.06a.75.75 0 0 1 0 1.06l-.77.77c.39.68.68 1.42.85 2.2H19.5a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-.75.75h-1.08a7.5 7.5 0 0 1-.9 2.18l.77.77a.75.75 0 0 1 0 1.06l-1.06 1.06a.75.75 0 0 1-1.06 0l-.77-.77a7.5 7.5 0 0 1-2.2.85V21a.75.75 0 0 1-.75.75h-1.5A.75.75 0 0 1 10.5 21v-1.08a7.5 7.5 0 0 1-2.18-.9l-.77.77a.75.75 0 0 1-1.06 0L5.43 18.5a.75.75 0 0 1 0-1.06l.77-.77a7.5 7.5 0 0 1-.85-2.2H4.5a.75.75 0 0 1-.75-.75v-1.5a.75.75 0 0 1 .75-.75h1.08a7.5 7.5 0 0 1 .9-2.18l-.77-.77a.75.75 0 0 1 0-1.06l1.06-1.06a.75.75 0 0 1 1.06 0l.77.77a7.5 7.5 0 0 1 2.2-.85V3a.75.75 0 0 1 .75-.75H12Zm0 6a3.75 3.75 0 1 0 0 7.5 3.75 3.75 0 0 0 0-7.5Z"/>
-                    </svg>
-                    <span>AI Agent</span>
-                </a>
             @endif
 
             {{-- Header & Footer --}}

@@ -6,24 +6,6 @@
             </h2>
 
             <div class="flex items-center gap-3">
-                <a href="{{ route('admin.pages.ai.create') }}"
-                   class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 uppercase tracking-widest hover:bg-gray-50">
-                    AI Page
-                </a>
-
-                @if(\Illuminate\Support\Facades\Route::has('admin.site-builder.create'))
-                    <a href="{{ route('admin.site-builder.create') }}"
-                       class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 uppercase tracking-widest hover:bg-gray-50">
-                        AI Site Builder
-                    </a>
-                @endif
-
-                @if(\Illuminate\Support\Facades\Route::has('admin.site-clone.create'))
-                    <a href="{{ route('admin.site-clone.create') }}"
-                       class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 uppercase tracking-widest hover:bg-gray-50">
-                        Clone Website
-                    </a>
-                @endif
 
                 <form method="POST" action="{{ route('admin.pages.clearHomepage') }}" class="inline"
                       onsubmit="return confirm('Clear homepage selection? This will unmark the homepage and let you trash/delete pages freely.');">
