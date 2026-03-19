@@ -110,15 +110,15 @@
                         <div class="mt-6 overflow-x-auto">
                             <table class="min-w-full divide-y divide-gray-200">
                                 <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="px-3 py-2"><input type="checkbox" id="bulk-select-all" class="bulk-checkbox-header" /></th>
-                                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
-                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
-                                <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                            </tr>
-                            </thead>
+                                    <tr>
+                                        <th class="px-3 py-2 w-8"><input type="checkbox" id="bulk-select-all" class="bulk-checkbox-header" /></th>
+                                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+                                        <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
 
                             <tbody class="bg-white divide-y divide-gray-200">
                             @forelse($users as $user)
@@ -150,25 +150,25 @@
                                     </td>
 
                                     <td class="px-3 py-2 whitespace-nowrap text-right">
-                                        <div class="flex items-center justify-end gap-4">
-                                            <a href="{{ route('admin.users.edit', $user) }}"
-                                               class="text-violet-600 hover:text-violet-900 font-semibold text-sm">
+                                        <div class="flex items-center justify-end gap-2">
+                                            <a href="{{ route(‘admin.users.edit’, $user) }}"
+                                               class="inline-flex items-center px-3 py-1.5 bg-white border border-gray-300 rounded-md text-xs font-semibold text-gray-900 uppercase tracking-widest hover:bg-gray-50">
                                                 Edit
                                             </a>
 
                                             @if(auth()->id() !== $user->id)
-                                                <form method="POST" action="{{ route('admin.users.toggleAdmin', $user) }}" class="inline"
-                                                      onsubmit="return confirm('{{ $user->is_admin ? 'Remove admin access for this user?' : 'Promote this user to admin?' }}');">
+                                                <form method="POST" action="{{ route(‘admin.users.toggleAdmin’, $user) }}" class="inline"
+                                                      onsubmit="return confirm(‘{{ $user->is_admin ? ‘Remove admin access for this user?’ : ‘Promote this user to admin?’ }}’);">
                                                     @csrf
                                                     <button type="submit"
-                                                            class="text-gray-700 hover:text-gray-900 font-semibold text-sm">
-                                                        {{ $user->is_admin ? 'Remove Admin' : 'Make Admin' }}
+                                                            class="inline-flex items-center px-3 py-1.5 bg-white border border-gray-300 rounded-md text-xs font-semibold text-gray-900 uppercase tracking-widest hover:bg-gray-50">
+                                                        {{ $user->is_admin ? ‘Remove Admin’ : ‘Make Admin’ }}
                                                     </button>
                                                 </form>
                                             @else
-                                                <span class="text-gray-400 font-semibold text-sm cursor-not-allowed"
+                                                <span class="inline-flex items-center px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-md text-xs font-semibold text-gray-400 uppercase tracking-widest cursor-not-allowed"
                                                       title="You can’t change your own role here.">
-                                                    {{ $user->is_admin ? 'Admin' : 'Member' }}
+                                                    {{ $user->is_admin ? ‘Admin’ : ‘Member’ }}
                                                 </span>
                                             @endif
 
@@ -177,19 +177,19 @@
                                             @endphp
 
                                             @if($canTrash)
-                                                <form method="POST" action="{{ route('admin.users.destroy', $user) }}"
-                                                      onsubmit="return confirm('Move this user to trash?');"
+                                                <form method="POST" action="{{ route(‘admin.users.destroy’, $user) }}"
+                                                      onsubmit="return confirm(‘Move this user to trash?’);"
                                                       class="inline">
                                                     @csrf
-                                                    @method('DELETE')
+                                                    @method(‘DELETE’)
                                                     <button type="submit"
-                                                            class="text-red-600 hover:text-red-800 font-semibold text-sm">
+                                                            class="inline-flex items-center px-3 py-1.5 bg-red-600 text-white rounded-md text-xs font-semibold uppercase tracking-widest hover:bg-red-700">
                                                         Trash
                                                     </button>
                                                 </form>
                                             @else
-                                                <span class="text-gray-400 font-semibold text-sm cursor-not-allowed"
-                                                      title="{{ auth()->id() === $user->id ? 'You can’t trash yourself.' : 'You can’t trash the last admin.' }}">
+                                                <span class="inline-flex items-center px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-md text-xs font-semibold text-gray-400 uppercase tracking-widest cursor-not-allowed"
+                                                      title="{{ auth()->id() === $user->id ? ‘You can\’t trash yourself.’ : ‘You can\’t trash the last admin.’ }}">
                                                     Trash
                                                 </span>
                                             @endif

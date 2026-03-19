@@ -112,15 +112,15 @@
                             <table class="min-w-full divide-y divide-gray-200">
                                 <thead class="bg-gray-50">
                                     <tr>
-                                        <th class="px-3 py-2"><input type="checkbox" id="bulk-select-all" class="bulk-checkbox-header" /></th>
+                                        <th class="px-3 py-2 w-8"><input type="checkbox" id="bulk-select-all" class="bulk-checkbox-header" /></th>
                                         <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Slug</th>
-                                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Active</th>
-                                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Submissions</th>
-                                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Updated</th>
-                                    <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                                </tr>
-                            </thead>
+                                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Slug</th>
+                                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Active</th>
+                                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Submissions</th>
+                                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Updated</th>
+                                        <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
 
                             <tbody class="bg-white divide-y divide-gray-200">
                                 @forelse($forms as $form)
@@ -151,14 +151,14 @@
                                         </td>
 
                                         <td class="px-3 py-2 whitespace-nowrap text-right">
-                                            <div class="flex items-center justify-end gap-4">
+                                            <div class="flex items-center justify-end gap-2">
                                                 <a href="{{ route('admin.forms.submissions.index', $form) }}"
-                                                   class="underline text-sm text-gray-600 hover:text-gray-900">
-                                                    View submissions
+                                                   class="inline-flex items-center px-3 py-1.5 bg-white border border-gray-300 rounded-md text-xs font-semibold text-gray-900 uppercase tracking-widest hover:bg-gray-50">
+                                                    Submissions
                                                 </a>
 
                                                 <a href="{{ route('admin.forms.edit', $form) }}"
-                                                   class="text-violet-600 hover:text-violet-900 font-semibold text-sm">
+                                                   class="inline-flex items-center px-3 py-1.5 bg-white border border-gray-300 rounded-md text-xs font-semibold text-gray-900 uppercase tracking-widest hover:bg-gray-50">
                                                     Edit
                                                 </a>
 
@@ -168,7 +168,7 @@
                                                     @csrf
                                                     @method('DELETE')
                                                     <button type="submit"
-                                                            class="text-red-600 hover:text-red-800 font-semibold text-sm">
+                                                            class="inline-flex items-center px-3 py-1.5 bg-red-600 text-white rounded-md text-xs font-semibold uppercase tracking-widest hover:bg-red-700">
                                                         Trash
                                                     </button>
                                                 </form>

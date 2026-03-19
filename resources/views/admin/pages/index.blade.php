@@ -125,17 +125,17 @@
                             <table class="min-w-full divide-y divide-gray-200">
                                 <thead class="bg-gray-50">
                                     <tr>
-                                        <th class="px-3 py-2">
+                                        <th class="px-3 py-2 w-8">
                                             <input type="checkbox" id="bulk-select-all" class="bulk-checkbox-header" />
                                         </th>
                                         <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
-                                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Slug</th>
-                                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
-                                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Updated</th>
-                                    <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                                </tr>
-                            </thead>
+                                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Slug</th>
+                                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+                                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Updated</th>
+                                        <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
 
                             <tbody class="bg-white divide-y divide-gray-200">
                                 @forelse($pages as $page)
@@ -177,60 +177,57 @@
                                         </td>
 
                                         <td class="px-3 py-2 whitespace-nowrap text-right">
-                                            <div class="flex items-center justify-end gap-4">
-                                                @if($page->status === 'published')
-                                                    <a href="{{ url('/' . ltrim($page->slug, '/')) }}"
-                                                       target="_blank"
-                                                       class="underline text-sm text-gray-600 hover:text-gray-900">
+                                            <div class="flex items-center justify-end gap-2">
+                                                @if($page->status === ‘published’)
+                                                    <a href="{{ url(‘/’ . ltrim($page->slug, ‘/’)) }}" target="_blank"
+                                                       class="inline-flex items-center px-3 py-1.5 bg-white border border-gray-300 rounded-md text-xs font-semibold text-gray-900 uppercase tracking-widest hover:bg-gray-50">
                                                         View Live
                                                     </a>
                                                 @else
-                                                    <a href="{{ route('pages.preview', $page) }}"
-                                                       target="_blank"
-                                                       class="underline text-sm text-gray-600 hover:text-gray-900">
-                                                        Preview Draft
+                                                    <a href="{{ route(‘pages.preview’, $page) }}" target="_blank"
+                                                       class="inline-flex items-center px-3 py-1.5 bg-white border border-gray-300 rounded-md text-xs font-semibold text-gray-900 uppercase tracking-widest hover:bg-gray-50">
+                                                        Preview
                                                     </a>
                                                 @endif
 
-                                                <a href="{{ route('admin.pages.edit', $page) }}"
-                                                   class="text-violet-600 hover:text-violet-900 font-semibold text-sm">
+                                                <a href="{{ route(‘admin.pages.edit’, $page) }}"
+                                                   class="inline-flex items-center px-3 py-1.5 bg-white border border-gray-300 rounded-md text-xs font-semibold text-gray-900 uppercase tracking-widest hover:bg-gray-50">
                                                     Edit
                                                 </a>
 
                                                 @if($page->is_homepage)
-                                                    <form method="POST" action="{{ route('admin.pages.unsetHomepage', $page) }}" class="inline"
-                                                          onsubmit="return confirm('Unset this page as the homepage?');">
+                                                    <form method="POST" action="{{ route(‘admin.pages.unsetHomepage’, $page) }}" class="inline"
+                                                          onsubmit="return confirm(‘Unset this page as the homepage?’);">
                                                         @csrf
                                                         <button type="submit"
-                                                                class="text-gray-700 hover:text-gray-900 font-semibold text-sm">
+                                                                class="inline-flex items-center px-3 py-1.5 bg-white border border-gray-300 rounded-md text-xs font-semibold text-gray-900 uppercase tracking-widest hover:bg-gray-50">
                                                             Unset Home
                                                         </button>
                                                     </form>
-                                                @elseif($page->status === 'published')
-                                                    <form method="POST" action="{{ route('admin.pages.setHomepage', $page) }}" class="inline"
-                                                          onsubmit="return confirm('Set this page as the homepage (/)?');">
+                                                @elseif($page->status === ‘published’)
+                                                    <form method="POST" action="{{ route(‘admin.pages.setHomepage’, $page) }}" class="inline"
+                                                          onsubmit="return confirm(‘Set this page as the homepage (/)?’);">
                                                         @csrf
                                                         <button type="submit"
-                                                                class="text-gray-700 hover:text-gray-900 font-semibold text-sm">
+                                                                class="inline-flex items-center px-3 py-1.5 bg-white border border-gray-300 rounded-md text-xs font-semibold text-gray-900 uppercase tracking-widest hover:bg-gray-50">
                                                             Set Home
                                                         </button>
                                                     </form>
                                                 @endif
 
                                                 @if(!$page->is_homepage)
-                                                    <form method="POST" action="{{ route('admin.pages.destroy', $page) }}"
-                                                          onsubmit="return confirm('Move this page to trash?');"
-                                                          class="inline">
+                                                    <form method="POST" action="{{ route(‘admin.pages.destroy’, $page) }}"
+                                                          onsubmit="return confirm(‘Move this page to trash?’);" class="inline">
                                                         @csrf
-                                                        @method('DELETE')
+                                                        @method(‘DELETE’)
                                                         <button type="submit"
-                                                                class="text-red-600 hover:text-red-800 font-semibold text-sm">
+                                                                class="inline-flex items-center px-3 py-1.5 bg-red-600 text-white rounded-md text-xs font-semibold uppercase tracking-widest hover:bg-red-700">
                                                             Trash
                                                         </button>
                                                     </form>
                                                 @else
-                                                    <span class="text-gray-400 font-semibold text-sm cursor-not-allowed"
-                                                          title="You can’t trash the homepage. Unset the homepage first.">
+                                                    <span class="inline-flex items-center px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-md text-xs font-semibold text-gray-400 uppercase tracking-widest cursor-not-allowed"
+                                                          title="Unset as homepage first.">
                                                         Trash
                                                     </span>
                                                 @endif
