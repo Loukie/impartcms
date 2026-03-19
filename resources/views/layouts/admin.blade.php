@@ -298,6 +298,41 @@ if (empty($faviconUrl) && !empty($faviconIconJson)) {
         border-bottom: 1px solid #e4e4e7;
     }
 
+    /* ══════════════════════════════════════════
+       Sidebar nav links  (.snl)
+    ══════════════════════════════════════════ */
+    .snl {
+        display: flex; align-items: center; gap: 12px;
+        padding: 10px 12px 10px 16px;
+        font-size: 13.5px; font-weight: 500;
+        border-left: 3px solid transparent;
+        border-radius: 0 12px 12px 0;
+        color: rgba(255,255,255,0.78);
+        text-decoration: none;
+        transition: background .15s, color .15s, border-color .15s;
+        width: 100%; cursor: pointer;
+        background: none; border-top: none; border-right: none; border-bottom: none;
+        text-align: left;
+    }
+    .snl:hover { background: rgba(255,255,255,0.07); color: #fff; }
+    .snl.snl-on { border-left-color: #a78bfa; background: rgba(255,255,255,0.10); color: #fff; }
+    .snl-icon { width: 20px; height: 20px; flex-shrink: 0; color: rgba(255,255,255,0.50); transition: color .15s; }
+    .snl:hover .snl-icon, .snl.snl-on .snl-icon { color: #c4b5fd; }
+
+    /* Sub-menu links (.ssl) */
+    .ssl {
+        display: flex; align-items: center; gap: 10px;
+        padding: 7px 16px 7px 40px;
+        font-size: 13px; font-weight: 500;
+        color: rgba(255,255,255,0.52);
+        text-decoration: none;
+        transition: color .15s;
+    }
+    .ssl:hover { color: rgba(255,255,255,0.88); }
+    .ssl.ssl-on { color: #a78bfa; }
+    .ssl-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; background: rgba(255,255,255,0.18); }
+    .ssl.ssl-on .ssl-dot { background: #a78bfa; }
+
     /* ── User avatar initials ── */
     .admin-user-avatar {
         width: 32px; height: 32px;
@@ -338,114 +373,74 @@ if (empty($faviconUrl) && !empty($faviconIconJson)) {
         </div>
 
         @php
-            $linkBase = 'group flex items-center gap-3 pl-4 pr-3 py-2.5 rounded-r-xl text-sm font-medium transition-all border-l-[3px]';
-            $linkInactive = 'border-transparent text-white/80 hover:text-white hover:bg-white/[0.07]';
-            $linkActive = 'border-violet-400 bg-white/[0.10] text-white';
-            $iconInactive = 'text-white/55 group-hover:text-white transition-colors';
-            $iconActive = 'text-violet-300';
-            // Sub-menu link styles
-            $subLinkBase = 'flex items-center gap-2.5 pl-11 pr-4 py-[7px] text-[13px] font-medium transition-colors';
-            $subLinkInactive = 'text-white/55 hover:text-white/90';
-            $subLinkActive = 'text-violet-400';
+            $lnk  = fn($active) => 'snl' . ($active ? ' snl-on' : '');
+            $slnk = fn($active) => 'ssl' . ($active ? ' ssl-on' : '');
         @endphp
 
-        <nav class="pr-3 py-3 space-y-0.5">
+        <nav class="py-3">
 
             {{-- Dashboard --}}
-            <a href="{{ route('dashboard') }}" class="{{ $linkBase }} {{ $isActive('dashboard') ? $linkActive : $linkInactive }}">
-                <svg class="h-5 w-5 flex-none {{ $isActive('dashboard') ? $iconActive : $iconInactive }}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                    <path d="M11.47 2.22a1.5 1.5 0 0 1 1.06 0l7.5 2.75A1.5 1.5 0 0 1 21 6.38v6.82c0 3.6-2.26 6.9-5.64 8.26l-2.35.94a2 2 0 0 1-1.5 0l-2.35-.94C5.76 20.1 3.5 16.8 3.5 13.2V6.38A1.5 1.5 0 0 1 4.47 4.97l7-2.75Z"/>
-                </svg>
+            <a href="{{ route('dashboard') }}" class="{{ $lnk($isActive('dashboard')) }}">
+                <svg class="snl-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M11.47 2.22a1.5 1.5 0 0 1 1.06 0l7.5 2.75A1.5 1.5 0 0 1 21 6.38v6.82c0 3.6-2.26 6.9-5.64 8.26l-2.35.94a2 2 0 0 1-1.5 0l-2.35-.94C5.76 20.1 3.5 16.8 3.5 13.2V6.38A1.5 1.5 0 0 1 4.47 4.97l7-2.75Z"/></svg>
                 <span>Dashboard</span>
             </a>
 
-            <a href="{{ url('/') }}" target="_blank" rel="noopener" class="{{ $linkBase }} {{ $linkInactive }}">
-                <svg class="h-5 w-5 flex-none {{ $iconInactive }}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                    <path d="M13.5 4.5a1.5 1.5 0 0 0 0 3h1.88l-6.44 6.44a1.5 1.5 0 1 0 2.12 2.12l6.44-6.44V11.5a1.5 1.5 0 0 0 3 0V6a1.5 1.5 0 0 0-1.5-1.5h-5.5Z"/>
-                    <path d="M6 6.75A2.25 2.25 0 0 0 3.75 9v9A2.25 2.25 0 0 0 6 20.25h9A2.25 2.25 0 0 0 17.25 18v-4.5a.75.75 0 0 0-1.5 0V18c0 .414-.336.75-.75.75H6A.75.75 0 0 1 5.25 18V9c0-.414.336-.75.75-.75h4.5a.75.75 0 0 0 0-1.5H6Z"/>
-                </svg>
+            <a href="{{ url('/') }}" target="_blank" rel="noopener" class="{{ $lnk(false) }}">
+                <svg class="snl-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M13.5 4.5a1.5 1.5 0 0 0 0 3h1.88l-6.44 6.44a1.5 1.5 0 1 0 2.12 2.12l6.44-6.44V11.5a1.5 1.5 0 0 0 3 0V6a1.5 1.5 0 0 0-1.5-1.5h-5.5Z"/><path d="M6 6.75A2.25 2.25 0 0 0 3.75 9v9A2.25 2.25 0 0 0 6 20.25h9A2.25 2.25 0 0 0 17.25 18v-4.5a.75.75 0 0 0-1.5 0V18c0 .414-.336.75-.75.75H6A.75.75 0 0 1 5.25 18V9c0-.414.336-.75.75-.75h4.5a.75.75 0 0 0 0-1.5H6Z"/></svg>
                 <span>View site</span>
             </a>
 
-            {{-- CONTENT ── ── ── ── ── ── ── ── ── ── ─── --}}
+            {{-- CONTENT --}}
             <div class="admin-sidebar-section">Content</div>
 
-            <a href="{{ route('admin.pages.index') }}" class="{{ $linkBase }} {{ $isActive('admin.pages.*') ? $linkActive : $linkInactive }}">
-                <svg class="h-5 w-5 flex-none {{ $isActive('admin.pages.*') ? $iconActive : $iconInactive }}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                    <path d="M6 2.25A2.25 2.25 0 0 0 3.75 4.5v15A2.25 2.25 0 0 0 6 21.75h12A2.25 2.25 0 0 0 20.25 19.5v-10.5L14.25 2.25H6Zm7.5 1.56V9h5.19L13.5 3.81Z"/>
-                    <path d="M7.5 12a.75.75 0 0 1 .75-.75h7.5a.75.75 0 0 1 0 1.5h-7.5A.75.75 0 0 1 7.5 12Zm0 3a.75.75 0 0 1 .75-.75h7.5a.75.75 0 0 1 0 1.5h-7.5A.75.75 0 0 1 7.5 15Z"/>
-                </svg>
+            <a href="{{ route('admin.pages.index') }}" class="{{ $lnk($isActive('admin.pages.*')) }}">
+                <svg class="snl-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M6 2.25A2.25 2.25 0 0 0 3.75 4.5v15A2.25 2.25 0 0 0 6 21.75h12A2.25 2.25 0 0 0 20.25 19.5v-10.5L14.25 2.25H6Zm7.5 1.56V9h5.19L13.5 3.81Z"/><path d="M7.5 12a.75.75 0 0 1 .75-.75h7.5a.75.75 0 0 1 0 1.5h-7.5A.75.75 0 0 1 7.5 12Zm0 3a.75.75 0 0 1 .75-.75h7.5a.75.75 0 0 1 0 1.5h-7.5A.75.75 0 0 1 7.5 15Z"/></svg>
                 <span>Pages</span>
             </a>
 
             @if(\Illuminate\Support\Facades\Route::has('admin.media.index'))
-                <a href="{{ route('admin.media.index') }}" class="{{ $linkBase }} {{ $isActive('admin.media.*') ? $linkActive : $linkInactive }}">
-                    <svg class="h-5 w-5 flex-none {{ $isActive('admin.media.*') ? $iconActive : $iconInactive }}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                        <path d="M4.5 5.25A2.25 2.25 0 0 1 6.75 3h10.5A2.25 2.25 0 0 1 19.5 5.25v13.5A2.25 2.25 0 0 1 17.25 21H6.75A2.25 2.25 0 0 1 4.5 18.75V5.25Zm12 3a.75.75 0 1 0-1.5 0 .75.75 0 0 0 1.5 0Zm-9.75 9.69 2.22-2.22 1.66 1.66 4.12-4.12a.75.75 0 0 1 1.06 0l2.19 2.19v3.84c0 .414-.336.75-.75.75H6.75a.75.75 0 0 1-.75-.75v-1.35Z"/>
-                    </svg>
+                <a href="{{ route('admin.media.index') }}" class="{{ $lnk($isActive('admin.media.*')) }}">
+                    <svg class="snl-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M4.5 5.25A2.25 2.25 0 0 1 6.75 3h10.5A2.25 2.25 0 0 1 19.5 5.25v13.5A2.25 2.25 0 0 1 17.25 21H6.75A2.25 2.25 0 0 1 4.5 18.75V5.25Zm12 3a.75.75 0 1 0-1.5 0 .75.75 0 0 0 1.5 0Zm-9.75 9.69 2.22-2.22 1.66 1.66 4.12-4.12a.75.75 0 0 1 1.06 0l2.19 2.19v3.84c0 .414-.336.75-.75.75H6.75a.75.75 0 0 1-.75-.75v-1.35Z"/></svg>
                     <span>Media</span>
                 </a>
             @endif
 
             @if(\Illuminate\Support\Facades\Route::has('admin.forms.index'))
-                <a href="{{ route('admin.forms.index') }}" class="{{ $linkBase }} {{ $isActive('admin.forms.*') ? $linkActive : $linkInactive }}">
-                    <svg class="h-5 w-5 flex-none {{ $isActive('admin.forms.*') ? $iconActive : $iconInactive }}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                        <path d="M6 2.25A2.25 2.25 0 0 0 3.75 4.5v15A2.25 2.25 0 0 0 6 21.75h12A2.25 2.25 0 0 0 20.25 19.5v-15A2.25 2.25 0 0 0 18 2.25H6Zm2.25 6a.75.75 0 0 1 .75-.75h6a.75.75 0 0 1 0 1.5H9a.75.75 0 0 1-.75-.75Zm0 3a.75.75 0 0 1 .75-.75h6a.75.75 0 0 1 0 1.5H9a.75.75 0 0 1-.75-.75Zm0 3a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 0 1.5H9a.75.75 0 0 1-.75-.75Z"/>
-                    </svg>
+                <a href="{{ route('admin.forms.index') }}" class="{{ $lnk($isActive('admin.forms.*')) }}">
+                    <svg class="snl-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M6 2.25A2.25 2.25 0 0 0 3.75 4.5v15A2.25 2.25 0 0 0 6 21.75h12A2.25 2.25 0 0 0 20.25 19.5v-15A2.25 2.25 0 0 0 18 2.25H6Zm2.25 6a.75.75 0 0 1 .75-.75h6a.75.75 0 0 1 0 1.5H9a.75.75 0 0 1-.75-.75Zm0 3a.75.75 0 0 1 .75-.75h6a.75.75 0 0 1 0 1.5H9a.75.75 0 0 1-.75-.75Zm0 3a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 0 1.5H9a.75.75 0 0 1-.75-.75Z"/></svg>
                     <span>Forms</span>
                 </a>
             @endif
 
-            {{-- PEOPLE ── ── ── ── ── ── ── ── ── ── ─── --}}
+            {{-- PEOPLE --}}
             @if(\Illuminate\Support\Facades\Route::has('admin.users.index'))
                 <div class="admin-sidebar-section">People</div>
-                <a href="{{ route('admin.users.index') }}" class="{{ $linkBase }} {{ $isActive('admin.users.*') ? $linkActive : $linkInactive }}">
-                    <svg class="h-5 w-5 flex-none {{ $isActive('admin.users.*') ? $iconActive : $iconInactive }}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                        <path d="M16.5 7.5a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0Z"/>
-                        <path d="M3.75 20.25a7.5 7.5 0 0 1 15 0 .75.75 0 0 1-.75.75H4.5a.75.75 0 0 1-.75-.75Z"/>
-                    </svg>
+                <a href="{{ route('admin.users.index') }}" class="{{ $lnk($isActive('admin.users.*')) }}">
+                    <svg class="snl-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 7.5a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0Z"/><path d="M3.75 20.25a7.5 7.5 0 0 1 15 0 .75.75 0 0 1-.75.75H4.5a.75.75 0 0 1-.75-.75Z"/></svg>
                     <span>Users</span>
                 </a>
             @endif
 
-            {{-- TOOLS ── ── ── ── ── ── ── ── ── ── ─── --}}
+            {{-- TOOLS --}}
             <div class="admin-sidebar-section">Tools</div>
 
-            @php
-                $assistGroupActive = $isActive('admin.pages.ai.*') || $isActive('admin.site-builder.*') || $isActive('admin.site-clone.*') || $isActive('admin.ai.visual-audit*');
-            @endphp
-            <div x-data="{ open: {{ $assistGroupActive ? 'true' : 'false' }} }">
-                <button @click="open = !open" class="{{ $linkBase }} w-full {{ $assistGroupActive ? $linkActive : $linkInactive }}">
-                    <svg class="h-5 w-5 flex-none {{ $assistGroupActive ? $iconActive : $iconInactive }}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                        <path d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423L16.5 15.75l.394 1.183a2.25 2.25 0 0 0 1.423 1.423L19.5 18.75l-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z"/>
-                    </svg>
-                    <span class="flex-1 text-left">Assist Tools</span>
-                    <svg class="h-3 w-3 flex-none transition-transform" :class="open ? 'rotate-180' : ''" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M6 9l6 6 6-6"/>
-                    </svg>
+            @php $assistOn = $isActive('admin.pages.ai.*') || $isActive('admin.site-builder.*') || $isActive('admin.site-clone.*') || $isActive('admin.ai.visual-audit*'); @endphp
+            <div x-data="{ open: {{ $assistOn ? 'true' : 'false' }} }">
+                <button @click="open = !open" class="{{ $lnk($assistOn) }}" style="width:100%">
+                    <svg class="snl-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423L16.5 15.75l.394 1.183a2.25 2.25 0 0 0 1.423 1.423L19.5 18.75l-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z"/></svg>
+                    <span style="flex:1;text-align:left">Assist Tools</span>
+                    <svg style="width:12px;height:12px;flex-shrink:0;transition:transform .2s" :style="open ? 'transform:rotate(180deg)' : ''" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
                 </button>
-                <div x-show="open" class="pb-1">
-                    <a href="{{ route('admin.pages.ai.create') }}" class="{{ $subLinkBase }} {{ $isActive('admin.pages.ai.*') ? $subLinkActive : $subLinkInactive }}">
-                        <span class="w-1.5 h-1.5 rounded-full flex-shrink-0 {{ $isActive('admin.pages.ai.*') ? 'bg-violet-400' : 'bg-white/20' }}"></span>
-                        AI Page
-                    </a>
+                <div x-show="open" style="padding-bottom:4px">
+                    <a href="{{ route('admin.pages.ai.create') }}" class="{{ $slnk($isActive('admin.pages.ai.*')) }}"><span class="ssl-dot"></span>AI Page</a>
                     @if(\Illuminate\Support\Facades\Route::has('admin.site-builder.create'))
-                        <a href="{{ route('admin.site-builder.create') }}" class="{{ $subLinkBase }} {{ $isActive('admin.site-builder.*') ? $subLinkActive : $subLinkInactive }}">
-                            <span class="w-1.5 h-1.5 rounded-full flex-shrink-0 {{ $isActive('admin.site-builder.*') ? 'bg-violet-400' : 'bg-white/20' }}"></span>
-                            AI Site Builder
-                        </a>
+                        <a href="{{ route('admin.site-builder.create') }}" class="{{ $slnk($isActive('admin.site-builder.*')) }}"><span class="ssl-dot"></span>AI Site Builder</a>
                     @endif
                     @if(\Illuminate\Support\Facades\Route::has('admin.site-clone.create'))
-                        <a href="{{ route('admin.site-clone.create') }}" class="{{ $subLinkBase }} {{ $isActive('admin.site-clone.*') ? $subLinkActive : $subLinkInactive }}">
-                            <span class="w-1.5 h-1.5 rounded-full flex-shrink-0 {{ $isActive('admin.site-clone.*') ? 'bg-violet-400' : 'bg-white/20' }}"></span>
-                            Clone Website
-                        </a>
+                        <a href="{{ route('admin.site-clone.create') }}" class="{{ $slnk($isActive('admin.site-clone.*')) }}"><span class="ssl-dot"></span>Clone Website</a>
                     @endif
                     @if(\Illuminate\Support\Facades\Route::has('admin.ai.visual-audit'))
-                        <a href="{{ route('admin.ai.visual-audit') }}" class="{{ $subLinkBase }} {{ $isActive('admin.ai.visual-audit*') ? $subLinkActive : $subLinkInactive }}">
-                            <span class="w-1.5 h-1.5 rounded-full flex-shrink-0 {{ $isActive('admin.ai.visual-audit*') ? 'bg-violet-400' : 'bg-white/20' }}"></span>
-                            AI Visual Audit
-                        </a>
+                        <a href="{{ route('admin.ai.visual-audit') }}" class="{{ $slnk($isActive('admin.ai.visual-audit*')) }}"><span class="ssl-dot"></span>AI Visual Audit</a>
                     @endif
                 </div>
             </div>
@@ -454,51 +449,33 @@ if (empty($faviconUrl) && !empty($faviconIconJson)) {
             <div class="admin-sidebar-section">System</div>
 
             @if(\Illuminate\Support\Facades\Route::has('admin.settings.edit'))
-                @php $settingsGroupActive = $isActive('admin.settings.*') || $isActive('admin.reset*') || $isActive('admin.ai-agent.*'); @endphp
-                <div x-data="{ open: {{ $settingsGroupActive ? 'true' : 'false' }} }">
-                    <button @click="open = !open" class="{{ $linkBase }} w-full {{ $settingsGroupActive ? $linkActive : $linkInactive }}">
-                        <svg class="h-5 w-5 flex-none {{ $settingsGroupActive ? $iconActive : $iconInactive }}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                            <path d="M11.983 1.5a1.5 1.5 0 0 1 1.484 1.28l.17 1.14a7.92 7.92 0 0 1 1.82.75l1.05-.5a1.5 1.5 0 0 1 1.86.53l1.5 2.6a1.5 1.5 0 0 1-.38 1.95l-.93.72c.08.6.08 1.22 0 1.82l.93.72a1.5 1.5 0 0 1 .38 1.95l-1.5 2.6a1.5 1.5 0 0 1-1.86.53l-1.05-.5a7.92 7.92 0 0 1-1.82.75l-.17 1.14A1.5 1.5 0 0 1 11.983 22.5h-3a1.5 1.5 0 0 1-1.484-1.28l-.17-1.14a7.92 7.92 0 0 1-1.82-.75l-1.05.5a1.5 1.5 0 0 1-1.86-.53l-1.5-2.6a1.5 1.5 0 0 1 .38-1.95l.93-.72a7.7 7.7 0 0 1 0-1.82l-.93-.72a1.5 1.5 0 0 1-.38-1.95l1.5-2.6a1.5 1.5 0 0 1 1.86-.53l1.05.5c.58-.3 1.18-.56 1.82-.75l.17-1.14A1.5 1.5 0 0 1 8.983 1.5h3Zm-1.5 7.5a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z"/>
-                        </svg>
-                        <span class="flex-1 text-left">Settings</span>
-                        <svg class="h-3 w-3 flex-none transition-transform" :class="open ? 'rotate-180' : ''" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M6 9l6 6 6-6"/>
-                        </svg>
+                @php $settingsOn = $isActive('admin.settings.*') || $isActive('admin.reset*') || $isActive('admin.ai-agent.*'); @endphp
+                <div x-data="{ open: {{ $settingsOn ? 'true' : 'false' }} }">
+                    <button @click="open = !open" class="{{ $lnk($settingsOn) }}" style="width:100%">
+                        <svg class="snl-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M11.983 1.5a1.5 1.5 0 0 1 1.484 1.28l.17 1.14a7.92 7.92 0 0 1 1.82.75l1.05-.5a1.5 1.5 0 0 1 1.86.53l1.5 2.6a1.5 1.5 0 0 1-.38 1.95l-.93.72c.08.6.08 1.22 0 1.82l.93.72a1.5 1.5 0 0 1 .38 1.95l-1.5 2.6a1.5 1.5 0 0 1-1.86.53l-1.05-.5a7.92 7.92 0 0 1-1.82.75l-.17 1.14A1.5 1.5 0 0 1 11.983 22.5h-3a1.5 1.5 0 0 1-1.484-1.28l-.17-1.14a7.92 7.92 0 0 1-1.82-.75l-1.05.5a1.5 1.5 0 0 1-1.86-.53l-1.5-2.6a1.5 1.5 0 0 1 .38-1.95l.93-.72a7.7 7.7 0 0 1 0-1.82l-.93-.72a1.5 1.5 0 0 1-.38-1.95l1.5-2.6a1.5 1.5 0 0 1 1.86-.53l1.05.5c.58-.3 1.18-.56 1.82-.75l.17-1.14A1.5 1.5 0 0 1 8.983 1.5h3Zm-1.5 7.5a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z"/></svg>
+                        <span style="flex:1;text-align:left">Settings</span>
+                        <svg style="width:12px;height:12px;flex-shrink:0;transition:transform .2s" :style="open ? 'transform:rotate(180deg)' : ''" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
                     </button>
-                    <div x-show="open" class="pb-1">
-                        <a href="{{ route('admin.settings.edit') }}" class="{{ $subLinkBase }} {{ $isActive('admin.settings.*') ? $subLinkActive : $subLinkInactive }}">
-                            <span class="w-1.5 h-1.5 rounded-full flex-shrink-0 {{ $isActive('admin.settings.*') ? 'bg-violet-400' : 'bg-white/20' }}"></span>
-                            Settings
-                        </a>
+                    <div x-show="open" style="padding-bottom:4px">
+                        <a href="{{ route('admin.settings.edit') }}" class="{{ $slnk($isActive('admin.settings.*')) }}"><span class="ssl-dot"></span>Settings</a>
                         @if(\Illuminate\Support\Facades\Route::has('admin.ai-agent.edit'))
-                            <a href="{{ route('admin.ai-agent.edit') }}" class="{{ $subLinkBase }} {{ $isActive('admin.ai-agent.*') ? $subLinkActive : $subLinkInactive }}">
-                                <span class="w-1.5 h-1.5 rounded-full flex-shrink-0 {{ $isActive('admin.ai-agent.*') ? 'bg-violet-400' : 'bg-white/20' }}"></span>
-                                AI Agent
-                            </a>
+                            <a href="{{ route('admin.ai-agent.edit') }}" class="{{ $slnk($isActive('admin.ai-agent.*')) }}"><span class="ssl-dot"></span>AI Agent</a>
                         @endif
-                        <a href="{{ route('admin.reset') }}" class="{{ $subLinkBase }} {{ $isActive('admin.reset*') ? $subLinkActive : $subLinkInactive }}">
-                            <span class="w-1.5 h-1.5 rounded-full flex-shrink-0 {{ $isActive('admin.reset*') ? 'bg-violet-400' : 'bg-white/20' }}"></span>
-                            Data Reset
-                        </a>
+                        <a href="{{ route('admin.reset') }}" class="{{ $slnk($isActive('admin.reset*')) }}"><span class="ssl-dot"></span>Data Reset</a>
                     </div>
                 </div>
             @endif
 
             @if(\Illuminate\Support\Facades\Route::has('admin.layout-blocks.index'))
-                <a href="{{ route('admin.layout-blocks.index') }}" class="{{ $linkBase }} {{ $isActive('admin.layout-blocks.*') ? $linkActive : $linkInactive }}">
-                    <svg class="h-5 w-5 flex-none {{ $isActive('admin.layout-blocks.*') ? $iconActive : $iconInactive }}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                        <path d="M4.5 6.75A2.25 2.25 0 0 1 6.75 4.5h10.5A2.25 2.25 0 0 1 19.5 6.75v10.5A2.25 2.25 0 0 1 17.25 19.5H6.75A2.25 2.25 0 0 1 4.5 17.25V6.75Zm2.25-.75a.75.75 0 0 0-.75.75v.75h12v-.75a.75.75 0 0 0-.75-.75H6.75Zm11.25 12H6v.75c0 .414.336.75.75.75h10.5c.414 0 .75-.336.75-.75V18Zm-12 0h12V9H6v9Z"/>
-                    </svg>
+                <a href="{{ route('admin.layout-blocks.index') }}" class="{{ $lnk($isActive('admin.layout-blocks.*')) }}">
+                    <svg class="snl-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M4.5 6.75A2.25 2.25 0 0 1 6.75 4.5h10.5A2.25 2.25 0 0 1 19.5 6.75v10.5A2.25 2.25 0 0 1 17.25 19.5H6.75A2.25 2.25 0 0 1 4.5 17.25V6.75Zm2.25-.75a.75.75 0 0 0-.75.75v.75h12v-.75a.75.75 0 0 0-.75-.75H6.75Zm11.25 12H6v.75c0 .414.336.75.75.75h10.5c.414 0 .75-.336.75-.75V18Zm-12 0h12V9H6v9Z"/></svg>
                     <span>Header &amp; Footer</span>
                 </a>
             @endif
 
             @if(\Illuminate\Support\Facades\Route::has('admin.snippets.index'))
-                <a href="{{ route('admin.snippets.index') }}" class="{{ $linkBase }} {{ $isActive('admin.snippets.*') ? $linkActive : $linkInactive }}">
-                    <svg class="h-5 w-5 flex-none {{ $isActive('admin.snippets.*') ? $iconActive : $iconInactive }}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                        <path d="M8.7 7.2a.75.75 0 0 1 0 1.06L5.96 11l2.74 2.74a.75.75 0 1 1-1.06 1.06L4.38 11.53a.75.75 0 0 1 0-1.06l3.26-3.27a.75.75 0 0 1 1.06 0Zm6.6 0a.75.75 0 0 1 1.06 0l3.26 3.27a.75.75 0 0 1 0 1.06l-3.26 3.27a.75.75 0 1 1-1.06-1.06L18.04 11l-2.74-2.74a.75.75 0 0 1 0-1.06Z"/>
-                        <path d="M13.65 5.1a.75.75 0 0 1 .53.92l-2.5 13a.75.75 0 1 1-1.47-.28l2.5-13a.75.75 0 0 1 .94-.64Z"/>
-                    </svg>
+                <a href="{{ route('admin.snippets.index') }}" class="{{ $lnk($isActive('admin.snippets.*')) }}">
+                    <svg class="snl-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M8.7 7.2a.75.75 0 0 1 0 1.06L5.96 11l2.74 2.74a.75.75 0 1 1-1.06 1.06L4.38 11.53a.75.75 0 0 1 0-1.06l3.26-3.27a.75.75 0 0 1 1.06 0Zm6.6 0a.75.75 0 0 1 1.06 0l3.26 3.27a.75.75 0 0 1 0 1.06l-3.26 3.27a.75.75 0 1 1-1.06-1.06L18.04 11l-2.74-2.74a.75.75 0 0 1 0-1.06Z"/><path d="M13.65 5.1a.75.75 0 0 1 .53.92l-2.5 13a.75.75 0 1 1-1.47-.28l2.5-13a.75.75 0 0 1 .94-.64Z"/></svg>
                     <span>Custom code</span>
                 </a>
             @endif
