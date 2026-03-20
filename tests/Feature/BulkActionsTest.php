@@ -17,9 +17,6 @@ class BulkActionsTest extends TestCase
         // ensure a predictable admin user for tests
         $user = User::factory()->create([
             "is_admin" => true,
-            "email" => "lourens@2ko.co.za",
-            // password must be hashed; tests can use this plain text
-            "password" => bcrypt("L0ur3nsn3l2630"),
         ]);
 
         $this->actingAs($user);

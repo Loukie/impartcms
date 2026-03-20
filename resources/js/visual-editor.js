@@ -6,6 +6,10 @@ import grapesjsCustomCode   from 'grapesjs-custom-code';
 import grapesjsTabs         from 'grapesjs-tabs';
 import grapesjsTooltip      from 'grapesjs-tooltip';
 import grapesjsTyped        from 'grapesjs-typed';
+import grapesjsNavbar       from 'grapesjs-navbar';
+import grapesjsFlexbox      from 'grapesjs-blocks-flexbox';
+import grapesjsCountdown    from 'grapesjs-component-countdown';
+import grapesjsStyleBg      from 'grapesjs-style-bg';
 
 document.addEventListener('DOMContentLoaded', () => {
     const cfg = window.__VE__ || {};
@@ -66,6 +70,10 @@ document.addEventListener('DOMContentLoaded', () => {
             grapesjsTabs,
             grapesjsTooltip,
             grapesjsTyped,
+            grapesjsNavbar,
+            grapesjsFlexbox,
+            grapesjsCountdown,
+            grapesjsStyleBg,
         ],
         pluginsOpts: {
             [grapesjsBlocksBasic]: { flexGrid: true },
@@ -74,6 +82,10 @@ document.addEventListener('DOMContentLoaded', () => {
             [grapesjsTabs]:        {},
             [grapesjsTooltip]:     {},
             [grapesjsTyped]:       {},
+            [grapesjsNavbar]:      {},
+            [grapesjsFlexbox]:     {},
+            [grapesjsCountdown]:   {},
+            [grapesjsStyleBg]:     {},
         },
 
         canvas: {},

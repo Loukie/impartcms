@@ -17,23 +17,23 @@
                     </span>
                 </div>
 
-                <div class="flex items-center gap-4">
+                <div class="flex items-center gap-3">
                     @if($page->status === 'published')
                         <a href="{{ url('/' . ltrim($page->slug, '/')) }}"
                            target="_blank"
-                           class="underline text-sm text-gray-600 hover:text-gray-900">
+                           class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 hover:bg-gray-50">
                             View Live
                         </a>
                     @else
                         <a href="{{ route('pages.preview', $page) }}"
                            target="_blank"
-                           class="underline text-sm text-gray-600 hover:text-gray-900">
+                           class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 hover:bg-gray-50">
                             Preview Draft
                         </a>
                     @endif
 
                     <a href="{{ route('admin.pages.index') }}"
-                       class="underline text-sm text-gray-600 hover:text-gray-900">
+                       class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-900 hover:bg-gray-50">
                         Back to Pages
                     </a>
                 </div>
